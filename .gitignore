@@ -12,6 +12,23 @@ dist
 dist-ssr
 *.local
 
+# Env files (Vite)
+.env
+.env.local
+.env.*.local
+
+# Test coverage (Vitest)
+coverage
+
+# ESLint cache
+.eslintcache
+
+# TanStack Router generator cache
+.tanstack
+
+# Git worktrees
+.worktrees
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
