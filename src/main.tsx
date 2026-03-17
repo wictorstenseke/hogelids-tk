@@ -7,6 +7,13 @@ import { routeTree } from './routeTree.gen'
 import { queryClient } from './queryClient'
 import './index.css'
 
+if (import.meta.env.DEV) {
+  import('./lib/seed').then(({ seedBookings }) => {
+    ;(window as Window & { seedBookings?: typeof seedBookings }).seedBookings =
+      seedBookings
+  })
+}
+
 const router = createRouter({ routeTree, basepath: '/hogelids-tk/' })
 
 declare module '@tanstack/react-router' {
