@@ -16,9 +16,10 @@ interface Booking {
   createdAt: Timestamp
 }
 
-// Base date: 2026-03-17 (today)
+// Base date: today at midnight (local time)
 function dateAt(daysFromNow: number, hour: number): Date {
-  const d = new Date('2026-03-17T00:00:00')
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
   d.setDate(d.getDate() + daysFromNow)
   d.setHours(hour, 0, 0, 0)
   return d
@@ -45,7 +46,7 @@ function booking(
     ownerDisplayName,
     startTime: toTs(start),
     endTime: toTs(end),
-    createdAt: toTs(new Date('2026-03-17T10:00:00')),
+    createdAt: toTs(new Date()),
   }
 }
 
