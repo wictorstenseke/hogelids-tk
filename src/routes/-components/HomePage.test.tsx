@@ -1,23 +1,31 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HomePage } from './HomePage'
 
+// Mock Firestore so tests don't need a real Firebase connection
+vi.mock('../../services/BookingService', () => ({
+  BOOKINGS_QUERY_KEY: ['bookings', 'upcoming'],
+  getUpcomingBookings: vi.fn(() => new Promise(() => {})), // stays loading
+}))
+
+function renderWithQueryClient(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
+}
+
 describe('HomePage', () => {
-  it('renders the get started heading', () => {
-    render(<HomePage />)
+  it('renders the club name heading', () => {
+    renderWithQueryClient(<HomePage />)
     expect(
-      screen.getByRole('heading', { name: /get started/i })
+      screen.getByRole('heading', { name: /högelids tennisklubb/i })
     ).toBeInTheDocument()
   })
 
-  it('increments count when button is clicked', async () => {
-    const user = userEvent.setup()
-    render(<HomePage />)
-    const button = screen.getByRole('button', { name: /count is 0/i })
-    await user.click(button)
-    expect(
-      screen.getByRole('button', { name: /count is 1/i })
-    ).toBeInTheDocument()
+  it('shows a loading indicator while fetching', () => {
+    renderWithQueryClient(<HomePage />)
+    expect(screen.getByText(/laddar bokningar/i)).toBeInTheDocument()
   })
 })
