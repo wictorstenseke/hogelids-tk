@@ -1,9 +1,4 @@
-import {
-  collection,
-  getDocs,
-  addDoc,
-  Timestamp,
-} from 'firebase/firestore'
+import { collection, getDocs, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from './firebase'
 
 interface Booking {
@@ -55,9 +50,30 @@ const seedData: Booking[] = [
   booking('member', 'test@example.com', 'uid_testuser', 'Test User', 1, 10),
 
   // Swedish members
-  booking('member', 'erik.lindqvist@gmail.com', 'uid_erik', 'Erik Lindqvist', 2, 9),
-  booking('member', 'anna.bergstrom@gmail.com', 'uid_anna', 'Anna Bergström', 3, 14),
-  booking('member', 'lars.svensson@gmail.com', 'uid_lars', 'Lars Svensson', 7, 11),
+  booking(
+    'member',
+    'erik.lindqvist@gmail.com',
+    'uid_erik',
+    'Erik Lindqvist',
+    2,
+    9
+  ),
+  booking(
+    'member',
+    'anna.bergstrom@gmail.com',
+    'uid_anna',
+    'Anna Bergström',
+    3,
+    14
+  ),
+  booking(
+    'member',
+    'lars.svensson@gmail.com',
+    'uid_lars',
+    'Lars Svensson',
+    7,
+    11
+  ),
 
   // Swedish guests
   booking('guest', 'maja.holmberg@gmail.com', null, 'Maja Holmberg', 4, 16),
@@ -65,7 +81,14 @@ const seedData: Booking[] = [
 
   // More variety across the 2-week window
   booking('member', 'sofia.ek@gmail.com', 'uid_sofia', 'Sofia Ek', 8, 15),
-  booking('guest', 'henrik.johansson@tele2.se', null, 'Henrik Johansson', 10, 9),
+  booking(
+    'guest',
+    'henrik.johansson@tele2.se',
+    null,
+    'Henrik Johansson',
+    10,
+    9
+  ),
   booking('member', 'test@example.com', 'uid_testuser', 'Test User', 13, 17),
 ]
 

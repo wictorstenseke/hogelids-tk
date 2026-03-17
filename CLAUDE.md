@@ -45,11 +45,11 @@ npm run preview      # Preview production build locally
 
 ## localStorage Keys
 
-| Key | Purpose |
-|---|---|
-| `htk_guest_email` | Guest's email — used to identify own bookings ("Din bokning") and prefill the booking form |
-| `htk_guest_name` | Guest's display name — used to prefill the booking form |
-| `htk_booking_count` | Guest booking count — used to determine when to show the nudge prompt |
+| Key                 | Purpose                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| `htk_guest_email`   | Guest's email — used to identify own bookings ("Din bokning") and prefill the booking form |
+| `htk_guest_name`    | Guest's display name — used to prefill the booking form                                    |
+| `htk_booking_count` | Guest booking count — used to determine when to show the nudge prompt                      |
 
 Never access localStorage directly in components. Read/write through the `GuestSession` module (Phase 2+).
 
@@ -91,6 +91,7 @@ Never access localStorage directly in components. Read/write through the `GuestS
 ## Learning
 
 Track two types of knowledge:
+
 - Domain: what things are (product decisions, user preferences, APIs, naming conventions)
 - Procedural: how to do things (deploy steps, test commands, review flows)
 

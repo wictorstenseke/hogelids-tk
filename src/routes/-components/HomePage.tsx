@@ -30,7 +30,10 @@ function formatDateRange(booking: BookingWithId): string {
   return `${capitalized} · ${startTime}–${endTime}`
 }
 
-function getBookingLabel(booking: BookingWithId, guestEmail: string | null): string {
+function getBookingLabel(
+  booking: BookingWithId,
+  guestEmail: string | null
+): string {
   if (guestEmail && booking.ownerEmail === guestEmail) {
     return 'Din bokning'
   }
@@ -107,7 +110,9 @@ export function HomePage() {
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-            <span className="ml-3 text-sm text-gray-500">Laddar bokningar…</span>
+            <span className="ml-3 text-sm text-gray-500">
+              Laddar bokningar…
+            </span>
           </div>
         )}
 
