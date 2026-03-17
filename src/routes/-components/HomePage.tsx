@@ -48,7 +48,7 @@ function BookingItem({
   guestEmail: string | null
 }) {
   const label = getBookingLabel(booking, guestEmail)
-  const isOwnBooking = guestEmail && booking.ownerEmail === guestEmail
+  const isOwnBooking = !!guestEmail && booking.ownerEmail === guestEmail
 
   return (
     <li className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">

@@ -33,8 +33,17 @@ export async function getUpcomingBookings(): Promise<BookingWithId[]> {
     orderBy('startTime', 'asc')
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Booking),
-  }))
+  return snapshot.docs.map((doc) => {
+    const data = doc.data()
+    return {
+      id: doc.id,
+      type: data['type'] as 'guest' | 'member',
+      ownerEmail: data['ownerEmail'] as string,
+      ownerUid: data['ownerUid'] as string | null,
+      ownerDisplayName: data['ownerDisplayName'] as string,
+      startTime: data['startTime'] as Timestamp,
+      endTime: data['endTime'] as Timestamp,
+      createdAt: data['createdAt'] as Timestamp,
+    }
+  })
 }
