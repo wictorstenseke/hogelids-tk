@@ -98,9 +98,9 @@ export async function getBookingsByYear(
   const end = Timestamp.fromDate(yearEnd < new Date() ? yearEnd : new Date())
   const q = query(
     bookingsRef,
-    where('startTime', '>=', start),
-    where('startTime', '<', end),
-    orderBy('startTime', 'asc')
+    where('endTime', '>=', start),
+    where('endTime', '<', end),
+    orderBy('endTime', 'asc')
   )
   const snapshot = await getDocs(q)
   return snapshot.docs.map((docSnap) => {
@@ -120,14 +120,14 @@ export async function getBookingsByYear(
 
 export async function getEarliestBookingYear(): Promise<number> {
   const bookingsRef = collection(db, 'bookings')
-  const q = query(bookingsRef, orderBy('startTime', 'asc'), limit(1))
+  const q = query(bookingsRef, orderBy('endTime', 'asc'), limit(1))
   const snapshot = await getDocs(q)
   if (snapshot.empty) {
     return new Date().getFullYear()
   }
   const data = snapshot.docs[0].data()
-  const startTime = data['startTime'] as Timestamp
-  return startTime.toDate().getFullYear()
+  const endTime = data['endTime'] as Timestamp
+  return endTime.toDate().getFullYear()
 }
 
 export async function getUpcomingBookings(): Promise<BookingWithId[]> {
