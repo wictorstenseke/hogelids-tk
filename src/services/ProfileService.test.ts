@@ -19,13 +19,14 @@ vi.mock('firebase/firestore', () => ({
 
 import { updateProfile, getProfile } from './ProfileService'
 import type { UserProfile } from './AuthService'
+import type { Timestamp } from 'firebase/firestore'
 
-// A minimal Timestamp-like object that satisfies the UserProfile type
+// Cast to Timestamp — we only need toDate() at runtime, full interface not required in tests
 const fakeTimestamp = {
   toDate: () => new Date('2024-01-01'),
   seconds: 1704067200,
   nanoseconds: 0,
-}
+} as unknown as Timestamp
 
 beforeEach(() => {
   vi.clearAllMocks()
