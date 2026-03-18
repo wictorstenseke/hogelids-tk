@@ -3,11 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
   deleteGuestBooking,
+  deleteMemberBooking,
   BOOKINGS_QUERY_KEY,
   type BookingWithId,
 } from '../../services/BookingService'
 import { getEmail } from '../../lib/GuestSession'
-import { useAuth } from '../../lib/useAuth'
+import { useAuth, type AuthUser } from '../../lib/useAuth'
 import { signOut, resendVerificationEmail } from '../../services/AuthService'
 import { BookingForm } from './BookingForm'
 import { SuccessDialog } from './SuccessDialog'
@@ -41,8 +42,12 @@ function formatDateRange(booking: BookingWithId): string {
 
 function getBookingLabel(
   booking: BookingWithId,
-  guestEmail: string | null
+  guestEmail: string | null,
+  user: AuthUser | null
 ): string {
+  if (user && booking.type === 'member' && user.uid === booking.ownerUid) {
+    return 'Din bokning'
+  }
   if (guestEmail && booking.ownerEmail === guestEmail) {
     return 'Din bokning'
   }
@@ -55,12 +60,19 @@ function getBookingLabel(
 function BookingItem({
   booking,
   guestEmail,
+  user,
 }: {
   booking: BookingWithId
   guestEmail: string | null
+  user: AuthUser | null
 }) {
-  const label = getBookingLabel(booking, guestEmail)
-  const isOwnBooking = !!guestEmail && booking.ownerEmail === guestEmail
+  const label = getBookingLabel(booking, guestEmail, user)
+  const isOwnBooking =
+    (!!guestEmail && booking.ownerEmail === guestEmail) ||
+    (!!user && booking.type === 'member' && user.uid === booking.ownerUid)
+  const canDelete =
+    booking.type === 'guest' ||
+    (booking.type === 'member' && !!user && user.uid === booking.ownerUid)
   const queryClient = useQueryClient()
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -69,7 +81,11 @@ function BookingItem({
     setIsDeleting(true)
     setDeleteError(null)
     try {
-      await deleteGuestBooking(booking.id)
+      if (booking.type === 'member') {
+        await deleteMemberBooking(booking.id)
+      } else {
+        await deleteGuestBooking(booking.id)
+      }
       await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
     } catch {
       setDeleteError('Kunde inte ta bort bokningen.')
@@ -94,7 +110,7 @@ function BookingItem({
           >
             {label}
           </span>
-          {booking.type === 'guest' && (
+          {canDelete && (
             <button
               onClick={() => void handleDelete()}
               disabled={isDeleting}
@@ -214,6 +230,7 @@ export function HomePage() {
         <BookingForm
           existingBookings={bookings ?? []}
           onSuccess={handleSuccess}
+          user={user}
         />
 
         <div>
@@ -250,6 +267,7 @@ export function HomePage() {
                   key={booking.id}
                   booking={booking}
                   guestEmail={guestEmail}
+                  user={user}
                 />
               ))}
             </ul>

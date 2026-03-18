@@ -3,12 +3,15 @@ import * as GuestSession from '../../lib/GuestSession'
 import {
   hasConflict,
   createGuestBooking,
+  createMemberBooking,
   type BookingWithId,
 } from '../../services/BookingService'
+import type { AuthUser } from '../../lib/useAuth'
 
 interface BookingFormProps {
   existingBookings: BookingWithId[]
   onSuccess: (startTime: Date, endTime: Date) => void
+  user: AuthUser | null
 }
 
 function toDatetimeLocalValue(date: Date): string {
@@ -27,7 +30,11 @@ function toDatetimeLocalValue(date: Date): string {
   )
 }
 
-export function BookingForm({ existingBookings, onSuccess }: BookingFormProps) {
+export function BookingForm({
+  existingBookings,
+  onSuccess,
+  user,
+}: BookingFormProps) {
   const [name, setName] = useState(GuestSession.getName() ?? '')
   const [email, setEmail] = useState(GuestSession.getEmail() ?? '')
   const [startValue, setStartValue] = useState('')
@@ -61,7 +68,10 @@ export function BookingForm({ existingBookings, onSuccess }: BookingFormProps) {
     e.preventDefault()
     setSubmitError(null)
 
-    if (!name.trim() || !email.trim() || !startValue || !endValue) {
+    const effectiveName = user ? user.displayName : name.trim()
+    const effectiveEmail = user ? user.email : email.trim()
+
+    if (!effectiveName || !effectiveEmail || !startValue || !endValue) {
       setSubmitError('Fyll i alla fält innan du bokar.')
       return
     }
@@ -86,10 +96,20 @@ export function BookingForm({ existingBookings, onSuccess }: BookingFormProps) {
 
     setIsSubmitting(true)
     try {
-      await createGuestBooking(email.trim(), name.trim(), start, end)
-      GuestSession.setEmail(email.trim())
-      GuestSession.setName(name.trim())
-      GuestSession.incrementBookingCount()
+      if (user) {
+        await createMemberBooking(
+          user.uid,
+          user.email,
+          user.displayName,
+          start,
+          end
+        )
+      } else {
+        await createGuestBooking(effectiveEmail, effectiveName, start, end)
+        GuestSession.setEmail(effectiveEmail)
+        GuestSession.setName(effectiveName)
+        GuestSession.incrementBookingCount()
+      }
       onSuccess(start, end)
     } catch (err) {
       setSubmitError(
@@ -114,15 +134,24 @@ export function BookingForm({ existingBookings, onSuccess }: BookingFormProps) {
           >
             Namn
           </label>
-          <input
-            id="booking-name"
-            type="text"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ditt namn"
-            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
-          />
+          {user ? (
+            <p
+              id="booking-name"
+              className="w-full min-h-[44px] rounded-lg border border-gray-100 bg-gray-100 px-3 py-2.5 text-sm text-gray-600 flex items-center"
+            >
+              {user.displayName}
+            </p>
+          ) : (
+            <input
+              id="booking-name"
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ditt namn"
+              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            />
+          )}
         </div>
 
         {/* Email */}
@@ -133,16 +162,25 @@ export function BookingForm({ existingBookings, onSuccess }: BookingFormProps) {
           >
             E-post
           </label>
-          <input
-            id="booking-email"
-            type="email"
-            autoComplete="email"
-            inputMode="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="din@epost.se"
-            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
-          />
+          {user ? (
+            <p
+              id="booking-email"
+              className="w-full min-h-[44px] rounded-lg border border-gray-100 bg-gray-100 px-3 py-2.5 text-sm text-gray-600 flex items-center"
+            >
+              {user.email}
+            </p>
+          ) : (
+            <input
+              id="booking-email"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="din@epost.se"
+              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            />
+          )}
         </div>
 
         {/* Start time */}
