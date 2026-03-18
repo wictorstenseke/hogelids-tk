@@ -52,17 +52,6 @@ function addHours(timeValue: string, hours: number): string {
   return `${padTwo(Math.floor(totalMinutes / 60))}:${padTwo(totalMinutes % 60)}`
 }
 
-function formatDateLabel(dateValue: string): string {
-  if (!dateValue) return ''
-  const d = new Date(`${dateValue}T12:00:00`)
-  const str = d.toLocaleDateString('sv-SE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
-  return str.charAt(0).toUpperCase() + str.slice(1)
-}
-
 export function BookingForm({
   existingBookings,
   onSuccess,
@@ -70,18 +59,16 @@ export function BookingForm({
 }: BookingFormProps) {
   const isDesktop = useIsDesktop()
   const [email, setEmail] = useState(GuestSession.getEmail() ?? '')
+
+  // Desktop state
   const [dateValue, setDateValue] = useState('')
   const [startTimeValue, setStartTimeValue] = useState('')
   const [endTimeValue, setEndTimeValue] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerStep, setDrawerStep] = useState<'datetime' | 'end'>('datetime')
 
-  function openDrawer(step: 'datetime' | 'end') {
-    setDrawerStep(step)
-    setDrawerOpen(true)
-  }
+  // Mobile drawer
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const startDate =
     dateValue && startTimeValue
@@ -102,6 +89,7 @@ export function BookingForm({
     if (val) setEndTimeValue(addHours(val, 2))
   }
 
+  // Desktop submit
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitError(null)
@@ -158,11 +146,34 @@ export function BookingForm({
     }
   }
 
+  // Mobile submit — called from BookingDrawer on confirm
+  async function handleMobileSubmit(
+    date: string,
+    startTime: string,
+    endTime: string
+  ) {
+    const effectiveEmail = user ? user.email : email.trim()
+    const start = new Date(`${date}T${startTime}`)
+    const end = new Date(`${date}T${endTime}`)
+
+    if (user) {
+      await createMemberBooking(
+        user.uid,
+        user.email,
+        user.displayName,
+        start,
+        end
+      )
+    } else {
+      await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
+      GuestSession.setEmail(effectiveEmail)
+      GuestSession.incrementBookingCount()
+    }
+    onSuccess(start, end)
+  }
+
   const inputClass =
     'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
-
-  const mobileFieldClass =
-    'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-left text-sm transition-colors'
 
   return (
     <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100">
@@ -274,91 +285,53 @@ export function BookingForm({
                 />
               </div>
             </div>
-          </>
-        )}
 
-        {/* ── MOBILE: individual fields → opens BookingDrawer at correct step ── */}
-        {!isDesktop && (
-          <>
-            <div className="min-w-0">
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Datum
-              </label>
-              <button
-                type="button"
-                onClick={() => openDrawer('datetime')}
-                className={`${mobileFieldClass} ${dateValue ? 'text-gray-900' : 'text-gray-400'}`}
-              >
-                {dateValue ? formatDateLabel(dateValue) : 'Välj datum'}
-              </button>
-            </div>
+            {/* Inline conflict error — desktop only */}
+            {conflictDetected && (
+              <p className="text-sm text-red-600">
+                Det finns redan en bokning som överlappar med vald tid.
+              </p>
+            )}
 
-            <div className="min-w-0">
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Starttid
-              </label>
-              <button
-                type="button"
-                onClick={() => openDrawer('datetime')}
-                className={`${mobileFieldClass} ${startTimeValue ? 'text-gray-900' : 'text-gray-400'}`}
-              >
-                {startTimeValue || 'Välj starttid'}
-              </button>
-            </div>
-
-            {startTimeValue && (
-              <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Sluttid
-                </label>
-                <button
-                  type="button"
-                  onClick={() => openDrawer('end')}
-                  className={`${mobileFieldClass} ${endTimeValue ? 'text-gray-900' : 'text-gray-400'}`}
-                >
-                  {endTimeValue || 'Välj sluttid'}
-                </button>
+            {/* Submit error — desktop only */}
+            {submitError && (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {submitError}
               </div>
             )}
+
+            {/* Submit button — desktop only */}
+            <button
+              type="submit"
+              disabled={isSubmitting || conflictDetected}
+              className="flex w-full min-h-[44px] cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#F1E334' }}
+            >
+              {isSubmitting ? 'Bokar…' : 'Boka bana'}
+            </button>
           </>
         )}
 
-        {/* Inline conflict error */}
-        {conflictDetected && (
-          <p className="text-sm text-red-600">
-            Det finns redan en bokning som överlappar med vald tid.
-          </p>
+        {/* ── MOBILE: single button → opens BookingDrawer ── */}
+        {!isDesktop && (
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            disabled={!user && !email.trim()}
+            className="flex w-full min-h-[44px] cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: '#F1E334' }}
+          >
+            Boka banan
+          </button>
         )}
-
-        {/* Submit error */}
-        {submitError && (
-          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {submitError}
-          </div>
-        )}
-
-        {/* Submit button */}
-        <button
-          type="submit"
-          disabled={isSubmitting || conflictDetected}
-          className="flex w-full min-h-[44px] cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#F1E334' }}
-        >
-          {isSubmitting ? 'Bokar…' : 'Boka bana'}
-        </button>
       </form>
 
       {/* Mobile booking drawer */}
-      {drawerOpen && (
+      {!isDesktop && drawerOpen && (
         <BookingDrawer
-          dateValue={dateValue}
-          startTimeValue={startTimeValue}
-          endTimeValue={endTimeValue}
-          onDateChange={setDateValue}
-          onStartTimeChange={handleStartTimeChange}
-          onEndTimeChange={setEndTimeValue}
+          existingBookings={existingBookings}
+          onSubmit={handleMobileSubmit}
           onClose={() => setDrawerOpen(false)}
-          initialStep={drawerStep}
         />
       )}
     </section>
