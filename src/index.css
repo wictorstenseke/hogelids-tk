@@ -141,6 +141,8 @@ label[for] {
 }
 
 /* react-wheel-picker overrides */
-[data-rwp-option] {
+[data-rwp-option],
+[data-rwp-highlight-item] {
   font-family: 'Barlow', system-ui, sans-serif;
+  font-size: 1rem;
 }
