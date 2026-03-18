@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { IconUser, IconLogout } from '@tabler/icons-react'
+import { IconUser, IconLogout, IconShieldCheck } from '@tabler/icons-react'
+import { useNavigate } from '@tanstack/react-router'
 import type { AuthUser } from '../../lib/useAuth'
+import { useRole } from '../../lib/useRole'
 
 interface AvatarMenuProps {
   user: AuthUser
@@ -21,6 +23,9 @@ export function AvatarMenu({
 }: AvatarMenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const role = useRole()
+  const navigate = useNavigate()
+  const isAdmin = role === 'admin' || role === 'superuser'
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -72,6 +77,23 @@ export function AvatarMenu({
             <IconUser size={16} stroke={2} className="shrink-0 text-gray-400" />
             Min profil
           </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                void navigate({ to: '/admin' })
+              }}
+              className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <IconShieldCheck
+                size={16}
+                stroke={2}
+                className="shrink-0 text-gray-400"
+              />
+              Admin
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {

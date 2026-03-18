@@ -10,12 +10,15 @@ import { setDoc, doc, Timestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import { migrateGuestBookings } from './MigrationService'
 
+export type UserRole = 'user' | 'admin' | 'superuser'
+
 export interface UserProfile {
   uid: string
   email: string
   displayName: string
   phone: string | null
   createdAt: Timestamp
+  role: UserRole
 }
 
 // Creates Firebase Auth user, writes users/{uid} doc, migrates guest bookings
@@ -34,6 +37,7 @@ export async function signUp(
     displayName,
     phone: null,
     createdAt: Timestamp.now(),
+    role: 'user' as UserRole,
   } satisfies Omit<UserProfile, 'uid'>)
   await migrateGuestBookings(user.uid, email)
 }

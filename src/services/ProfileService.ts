@@ -1,6 +1,6 @@
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import type { UserProfile } from './AuthService'
+import type { UserProfile, UserRole } from './AuthService'
 
 export const PROFILE_QUERY_KEY = 'profile'
 
@@ -16,6 +16,7 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
     displayName: data.displayName as string,
     phone: (data.phone as string | null) ?? null,
     createdAt: data.createdAt,
+    role: ((data.role as UserRole | undefined) ?? 'user') as UserRole,
   }
 }
 

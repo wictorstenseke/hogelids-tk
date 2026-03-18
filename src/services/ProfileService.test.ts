@@ -90,6 +90,7 @@ describe('getProfile', () => {
       displayName: 'Test User',
       phone: '070123',
       createdAt: fakeTimestamp,
+      role: 'user',
     })
   })
 

@@ -34,6 +34,10 @@ vi.mock('../../lib/useIsDesktop', () => ({
   useIsDesktop: vi.fn(() => true),
 }))
 
+vi.mock('../../lib/useRole', () => ({
+  useRole: vi.fn(() => null),
+}))
+
 function renderWithQueryClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
