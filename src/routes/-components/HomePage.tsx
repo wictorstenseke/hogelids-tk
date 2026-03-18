@@ -10,11 +10,10 @@ import {
 } from '../../services/BookingService'
 import { getEmail } from '../../lib/GuestSession'
 import { useAuth, type AuthUser } from '../../lib/useAuth'
-import { signOut, resendVerificationEmail } from '../../services/AuthService'
+import { signOut } from '../../services/AuthService'
 import { BookingForm } from './BookingForm'
 import { SuccessDialog } from './SuccessDialog'
 import { AuthModal } from './AuthModal'
-import { VerificationBanner } from './VerificationBanner'
 import { HistorySection } from './HistorySection'
 import { ProfileSection } from './ProfileSection'
 
@@ -270,11 +269,6 @@ export function HomePage() {
           </div>
         </div>
       </header>
-
-      {/* Verification banner */}
-      {user && !user.emailVerified && (
-        <VerificationBanner onResend={resendVerificationEmail} />
-      )}
 
       {/* Main content */}
       <main className="mx-auto max-w-lg px-4 py-6 space-y-6">

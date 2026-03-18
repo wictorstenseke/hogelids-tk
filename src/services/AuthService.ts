@@ -3,7 +3,6 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
-  sendEmailVerification,
   updateProfile,
 } from 'firebase/auth'
 import { setDoc, doc, Timestamp } from 'firebase/firestore'
@@ -18,7 +17,7 @@ export interface UserProfile {
   createdAt: Timestamp
 }
 
-// Creates Firebase Auth user, sends verification email, writes users/{uid} doc
+// Creates Firebase Auth user, writes users/{uid} doc, migrates guest bookings
 export async function signUp(
   email: string,
   password: string,
@@ -35,10 +34,6 @@ export async function signUp(
     createdAt: Timestamp.now(),
   } satisfies Omit<UserProfile, 'uid'>)
   await migrateGuestBookings(user.uid, email)
-  // Non-blocking — failure must not abort sign-up
-  sendEmailVerification(user).catch((err) =>
-    console.warn('sendEmailVerification failed:', err)
-  )
 }
 
 // Signs in with email/password (persistent session — Firebase default)
@@ -54,12 +49,4 @@ export async function signOut(): Promise<void> {
 // Sends password reset email
 export async function sendPasswordReset(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email)
-}
-
-// Resends email verification to current user
-export async function resendVerificationEmail(): Promise<void> {
-  const user = auth.currentUser
-  if (user) {
-    await sendEmailVerification(user)
-  }
 }
