@@ -13,7 +13,7 @@ import { BookingForm } from './BookingForm'
 import { SuccessDialog } from './SuccessDialog'
 import { AuthModal } from './AuthModal'
 import { HistorySection } from './HistorySection'
-import { ProfileSection } from './ProfileSection'
+import { ProfileModal } from './ProfileModal'
 import { BookingItem } from './BookingItem'
 import { AvatarMenu } from './AvatarMenu'
 
@@ -206,7 +206,6 @@ export function HomePage() {
           />
         )}
 
-        {user && showProfile && <ProfileSection user={user} />}
       </main>
 
       {successBooking && (
@@ -219,6 +218,10 @@ export function HomePage() {
 
       {authModal && (
         <AuthModal initialView={authModal} onClose={() => setAuthModal(null)} />
+      )}
+
+      {user && showProfile && (
+        <ProfileModal user={user} onClose={() => setShowProfile(false)} />
       )}
     </div>
   )
