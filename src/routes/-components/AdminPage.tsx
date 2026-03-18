@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { deleteField } from 'firebase/firestore'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
+import type { UserProfile, UserRole } from '../../services/AuthService'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { updateAppSettings } from '../../services/AppSettingsService'
+import {
+  listAllUsers,
+  updateUserRole,
+  USERS_QUERY_KEY,
+} from '../../services/UserService'
 
 // A simple toggle switch component.
 interface ToggleProps {
@@ -77,11 +84,99 @@ function SettingsRow({ label, description, children }: SettingsRowProps) {
   )
 }
 
+const ROLE_LABELS: Record<UserRole, string> = {
+  user: 'Användare',
+  admin: 'Admin',
+  superuser: 'Superadmin',
+}
+
+// A single user row in the user management list.
+interface UserRowProps {
+  profile: UserProfile
+  isSelf: boolean
+  isSuperuser: boolean
+}
+
+function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const [selectedRole, setSelectedRole] = useState<UserRole>(profile.role)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  async function handleSave() {
+    if (!user) return
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      await updateUserRole(user.uid, profile.uid, selectedRole)
+      await queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
+    } catch (err) {
+      console.error('Failed to update user role:', err)
+      setSaveError('Kunde inte spara. Försök igen.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <div className="px-4 py-3 space-y-1">
+      <div className="flex min-h-[44px] items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">
+            {profile.displayName}
+          </p>
+          <p className="text-xs text-gray-500 truncate">{profile.email}</p>
+        </div>
+        <div className="shrink-0 flex items-center gap-2">
+          {isSuperuser && !isSelf ? (
+            <>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value as UserRole)}
+                className="rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none min-h-[44px]"
+              >
+                <option value="user">Användare</option>
+                <option value="admin">Admin</option>
+                <option value="superuser">Superadmin</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={isSaving || selectedRole === profile.role}
+                className="min-h-[44px] cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: '#F1E334' }}
+              >
+                {isSaving ? 'Sparar…' : 'Spara'}
+              </button>
+            </>
+          ) : (
+            <span className="text-sm text-gray-600">
+              {ROLE_LABELS[profile.role]}
+            </span>
+          )}
+        </div>
+      </div>
+      {saveError && <p className="text-xs text-red-600">{saveError}</p>}
+    </div>
+  )
+}
+
 export function AdminPage() {
   const { user, loading: authLoading } = useAuth()
   const role = useRole()
   const navigate = useNavigate()
   const { settings } = useAppSettings()
+
+  const {
+    data: users,
+    isLoading: usersLoading,
+    isError: usersError,
+  } = useQuery({
+    queryKey: USERS_QUERY_KEY,
+    queryFn: listAllUsers,
+    enabled: isAdminRole(role),
+  })
 
   const isAdmin = isAdminRole(role)
   // Still loading auth or waiting for role to resolve
@@ -215,6 +310,31 @@ export function AdminPage() {
             </button>
             {saveError && <p className="text-xs text-red-600">{saveError}</p>}
           </div>
+        </SettingsSection>
+
+        <SettingsSection title="Användare">
+          {usersLoading ? (
+            <div className="px-4 py-4 text-sm text-gray-500">
+              Laddar användare…
+            </div>
+          ) : usersError ? (
+            <div className="px-4 py-4 text-sm text-red-600">
+              Kunde inte hämta användare. Försök igen.
+            </div>
+          ) : !users || users.length === 0 ? (
+            <div className="px-4 py-4 text-sm text-gray-500">
+              Inga användare registrerade.
+            </div>
+          ) : (
+            users.map((profile) => (
+              <UserRow
+                key={profile.uid}
+                profile={profile}
+                isSelf={user?.uid === profile.uid}
+                isSuperuser={role === 'superuser'}
+              />
+            ))
+          )}
         </SettingsSection>
       </div>
     </main>
