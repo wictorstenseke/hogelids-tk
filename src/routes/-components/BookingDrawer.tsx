@@ -7,7 +7,7 @@ import type { WheelPickerOption } from '@ncdai/react-wheel-picker'
 type Step = 'datetime' | 'end'
 
 const VISIBLE_COUNT = 12
-const ITEM_HEIGHT = 72
+const ITEM_HEIGHT = 44
 
 const HOUR_OPTIONS: WheelPickerOption<string>[] = Array.from(
   { length: 24 },
