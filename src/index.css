@@ -13,6 +13,13 @@ body {
   min-height: 100svh;
 }
 
+button,
+[role='button'],
+select,
+label[for] {
+  cursor: pointer;
+}
+
 .font-display {
   font-family: 'Barlow Condensed', system-ui, sans-serif;
 }

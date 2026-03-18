@@ -18,16 +18,9 @@ import { VerificationBanner } from './VerificationBanner'
 import { HistorySection } from './HistorySection'
 import { ProfileSection } from './ProfileSection'
 
-function formatDateRange(booking: BookingWithId): string {
+function formatTimeRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
   const end = booking.endTime.toDate()
-
-  const dateStr = start.toLocaleDateString('sv-SE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
-
   const startTime = start.toLocaleTimeString('sv-SE', {
     hour: '2-digit',
     minute: '2-digit',
@@ -36,11 +29,40 @@ function formatDateRange(booking: BookingWithId): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+  return `${startTime}–${endTime}`
+}
 
-  // Capitalize first letter of weekday
-  const capitalized = dateStr.charAt(0).toUpperCase() + dateStr.slice(1)
+function formatDateHeader(date: Date): string {
+  const str = date.toLocaleDateString('sv-SE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
 
-  return `${capitalized} · ${startTime}–${endTime}`
+function groupBookingsByDate(
+  bookings: BookingWithId[]
+): { dateKey: string; dateLabel: string; bookings: BookingWithId[] }[] {
+  const groups: {
+    dateKey: string
+    dateLabel: string
+    bookings: BookingWithId[]
+  }[] = []
+  const map = new Map<string, (typeof groups)[0]>()
+
+  for (const booking of bookings) {
+    const date = booking.startTime.toDate()
+    const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+    if (!map.has(dateKey)) {
+      const group = { dateKey, dateLabel: formatDateHeader(date), bookings: [] }
+      map.set(dateKey, group)
+      groups.push(group)
+    }
+    map.get(dateKey)!.bookings.push(booking)
+  }
+
+  return groups
 }
 
 function getBookingLabel(
@@ -55,9 +77,9 @@ function getBookingLabel(
     return 'Din bokning'
   }
   if (booking.type === 'member') {
-    return booking.ownerDisplayName
+    return user ? booking.ownerDisplayName : 'Medlem'
   }
-  return 'Banan bokad'
+  return booking.ownerEmail || 'Gäst'
 }
 
 function BookingItem({
@@ -98,10 +120,10 @@ function BookingItem({
   }
 
   return (
-    <li className="space-y-2">
+    <li className="space-y-1">
       <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm border border-gray-100">
         <span className="text-sm font-medium text-gray-800">
-          {formatDateRange(booking)}
+          {formatTimeRange(booking)}
         </span>
         <div className="ml-4 flex shrink-0 items-center gap-2">
           <span
@@ -119,7 +141,7 @@ function BookingItem({
               disabled={isDeleting}
               aria-label="Avboka"
               title="Avboka"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isDeleting ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
@@ -140,7 +162,7 @@ function BookingItem({
 }
 
 export function HomePage() {
-  const guestEmail = getEmail()
+  const [guestEmail, setGuestEmail] = useState(getEmail)
   const queryClient = useQueryClient()
   const { user, loading: authLoading } = useAuth()
   const [authModal, setAuthModal] = useState<'sign-in' | 'sign-up' | null>(null)
@@ -168,17 +190,17 @@ export function HomePage() {
   })
 
   function handleSuccess(startTime: Date, endTime: Date) {
+    setGuestEmail(getEmail())
     void queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
     setSuccessBooking({ startTime, endTime })
   }
 
+  const groups = bookings ? groupBookingsByDate(bookings) : []
+
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header
-        className="bg-white"
-        style={{ borderBottom: '4px solid #F1E334' }}
-      >
+      {/* Header — transparent so body gradient flows through */}
+      <header className="bg-transparent">
         <div className="mx-auto max-w-lg px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             {/* Logo */}
@@ -188,9 +210,9 @@ export function HomePage() {
                 alt="Högelids Tennisklubb"
                 width="44"
                 height="44"
-                className="shrink-0"
+                className="shrink-0 rounded-full ring-2 ring-white/30"
               />
-              <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-gray-900">
+              <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-white">
                 Högelids Tennisklubb
               </h1>
             </div>
@@ -200,17 +222,17 @@ export function HomePage() {
               <div className="flex shrink-0 items-center gap-1">
                 {user ? (
                   <>
-                    <span className="hidden text-sm font-medium text-gray-500 sm:block mr-1">
+                    <span className="hidden text-sm font-medium text-white/70 sm:block mr-1">
                       {user.displayName}
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowProfile((v) => !v)}
-                      className="flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
+                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
                       style={
                         showProfile
                           ? { backgroundColor: '#F1E334', color: '#0F0F0F' }
-                          : { color: '#374151' }
+                          : { color: 'rgba(255,255,255,0.85)' }
                       }
                     >
                       Profil
@@ -221,7 +243,7 @@ export function HomePage() {
                         setShowProfile(false)
                         void signOut()
                       }}
-                      className="flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
                     >
                       Logga ut
                     </button>
@@ -231,14 +253,14 @@ export function HomePage() {
                     <button
                       type="button"
                       onClick={() => setAuthModal('sign-in')}
-                      className="flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
                     >
                       Logga in
                     </button>
                     <button
                       type="button"
                       onClick={() => setAuthModal('sign-up')}
-                      className="flex min-h-[44px] items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
+                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
                       style={{ backgroundColor: '#F1E334' }}
                     >
                       Skapa konto
@@ -271,7 +293,7 @@ export function HomePage() {
 
           {isLoading && (
             <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               <span className="ml-3 text-sm text-white/80">
                 Laddar bokningar…
               </span>
@@ -291,17 +313,26 @@ export function HomePage() {
             </div>
           )}
 
-          {!isLoading && !isError && bookings && bookings.length > 0 && (
-            <ul className="space-y-2">
-              {bookings.map((booking) => (
-                <BookingItem
-                  key={booking.id}
-                  booking={booking}
-                  guestEmail={guestEmail}
-                  user={user}
-                />
+          {!isLoading && !isError && groups.length > 0 && (
+            <div className="space-y-4">
+              {groups.map((group) => (
+                <div key={group.dateKey}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/60">
+                    {group.dateLabel}
+                  </p>
+                  <ul className="space-y-1">
+                    {group.bookings.map((booking) => (
+                      <BookingItem
+                        key={booking.id}
+                        booking={booking}
+                        guestEmail={guestEmail}
+                        user={user}
+                      />
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
 

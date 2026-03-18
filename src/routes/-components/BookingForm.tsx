@@ -15,7 +15,6 @@ interface BookingFormProps {
 }
 
 function toDatetimeLocalValue(date: Date): string {
-  // Format as YYYY-MM-DDTHH:MM for datetime-local input
   const pad = (n: number) => String(n).padStart(2, '0')
   return (
     date.getFullYear() +
@@ -35,14 +34,12 @@ export function BookingForm({
   onSuccess,
   user,
 }: BookingFormProps) {
-  const [name, setName] = useState(GuestSession.getName() ?? '')
   const [email, setEmail] = useState(GuestSession.getEmail() ?? '')
   const [startValue, setStartValue] = useState('')
   const [endValue, setEndValue] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  // Compute conflict inline when both start and end are set
   const conflictDetected = (() => {
     if (!startValue || !endValue) return false
     const start = new Date(startValue)
@@ -68,10 +65,9 @@ export function BookingForm({
     e.preventDefault()
     setSubmitError(null)
 
-    const effectiveName = user ? user.displayName : name.trim()
     const effectiveEmail = user ? user.email : email.trim()
 
-    if (!effectiveName || !effectiveEmail || !startValue || !endValue) {
+    if (!effectiveEmail || !startValue || !endValue) {
       setSubmitError('Fyll i alla fält innan du bokar.')
       return
     }
@@ -105,9 +101,9 @@ export function BookingForm({
           end
         )
       } else {
-        await createGuestBooking(effectiveEmail, effectiveName, start, end)
+        // Use email as display name for guests
+        await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
         GuestSession.setEmail(effectiveEmail)
-        GuestSession.setName(effectiveName)
         GuestSession.incrementBookingCount()
       }
       onSuccess(start, end)
@@ -128,50 +124,15 @@ export function BookingForm({
         Ny bokning
       </h2>
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        {/* Name */}
-        <div>
-          <label
-            htmlFor="booking-name"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Namn
-          </label>
-          {user ? (
-            <p
-              id="booking-name"
-              className="w-full min-h-[44px] rounded-lg border border-gray-100 bg-gray-100 px-3 py-2.5 text-sm text-gray-600 flex items-center"
+        {/* Email — guests only */}
+        {!user && (
+          <div>
+            <label
+              htmlFor="booking-email"
+              className="mb-1 block text-sm font-medium text-gray-700"
             >
-              {user.displayName}
-            </p>
-          ) : (
-            <input
-              id="booking-name"
-              type="text"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ditt namn"
-              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
-            />
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label
-            htmlFor="booking-email"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            E-post
-          </label>
-          {user ? (
-            <p
-              id="booking-email"
-              className="w-full min-h-[44px] rounded-lg border border-gray-100 bg-gray-100 px-3 py-2.5 text-sm text-gray-600 flex items-center"
-            >
-              {user.email}
-            </p>
-          ) : (
+              E-post
+            </label>
             <input
               id="booking-email"
               type="email"
@@ -182,8 +143,8 @@ export function BookingForm({
               placeholder="din@epost.se"
               className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
             />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Start time */}
         <div>
@@ -237,7 +198,7 @@ export function BookingForm({
         <button
           type="submit"
           disabled={isSubmitting || conflictDetected}
-          className="flex w-full min-h-[44px] items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-50"
+          className="flex w-full min-h-[44px] cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: '#F1E334' }}
         >
           {isSubmitting ? 'Bokar…' : 'Boka bana'}
