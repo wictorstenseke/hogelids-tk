@@ -76,9 +76,9 @@ export function BookingForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerStep, setDrawerStep] = useState<'date' | 'start' | 'end'>('date')
+  const [drawerStep, setDrawerStep] = useState<'datetime' | 'end'>('datetime')
 
-  function openDrawer(step: 'date' | 'start' | 'end') {
+  function openDrawer(step: 'datetime' | 'end') {
     setDrawerStep(step)
     setDrawerOpen(true)
   }
@@ -283,7 +283,7 @@ export function BookingForm({
               </label>
               <button
                 type="button"
-                onClick={() => openDrawer('date')}
+                onClick={() => openDrawer('datetime')}
                 className={`${mobileFieldClass} ${dateValue ? 'text-gray-900' : 'text-gray-400'}`}
               >
                 {dateValue ? formatDateLabel(dateValue) : 'Välj datum'}
@@ -296,7 +296,7 @@ export function BookingForm({
               </label>
               <button
                 type="button"
-                onClick={() => openDrawer('start')}
+                onClick={() => openDrawer('datetime')}
                 className={`${mobileFieldClass} ${startTimeValue ? 'text-gray-900' : 'text-gray-400'}`}
               >
                 {startTimeValue || 'Välj starttid'}

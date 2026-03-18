@@ -4,13 +4,7 @@ import { WheelPicker, WheelPickerWrapper } from '@ncdai/react-wheel-picker'
 import '@ncdai/react-wheel-picker/style.css'
 import type { WheelPickerOption } from '@ncdai/react-wheel-picker'
 
-type Step = 'date' | 'start' | 'end'
-
-const STEP_LABELS: Record<Step, string> = {
-  date: 'Datum',
-  start: 'Starttid',
-  end: 'Sluttid',
-}
+type Step = 'datetime' | 'end'
 
 const VISIBLE_COUNT = 12
 const ITEM_HEIGHT = 72
@@ -102,9 +96,9 @@ export function BookingDrawer({
   onStartTimeChange,
   onEndTimeChange,
   onClose,
-  initialStep = 'date',
+  initialStep = 'datetime',
 }: BookingDrawerProps) {
-  const [step, setStep] = useState<Step>(initialStep)
+  const [step] = useState<Step>(initialStep)
   const [visible, setVisible] = useState(false)
 
   const DATE_OPTIONS = useMemo(() => generateDateOptions(), [])
@@ -144,41 +138,42 @@ export function BookingDrawer({
     setTimeout(onClose, 280)
   }
 
-  function handleNext() {
-    if (step === 'date') {
+  function handleConfirm() {
+    if (step === 'datetime') {
       onDateChange(draftDate)
-      setStep('start')
-    } else if (step === 'start') {
       const startTime = `${draftStartHour}:${draftStartMinute}`
       onStartTimeChange(startTime)
       const computed = addTwoHours(draftStartHour, draftStartMinute)
       onEndTimeChange(`${computed.hour}:${computed.minute}`)
-      handleClose()
     } else {
       onEndTimeChange(`${draftEndHour}:${draftEndMinute}`)
-      handleClose()
     }
+    handleClose()
   }
 
-  const nextLabel = step === 'date' ? 'Nästa' : 'Klar'
+  const stepLabel = step === 'datetime' ? 'Datum & tid' : 'Sluttid'
 
-  // Date wheel: single column, full-width rounded highlight
+  // Three-wheel highlight: date gets left-rounded, minute gets right-rounded, hour is middle
   const dateClassNames = {
-    optionItem: 'text-gray-400 text-xl font-medium',
-    highlightWrapper: 'bg-gray-100 rounded-2xl mx-3 text-gray-900',
-    highlightItem: 'text-xl font-semibold',
+    optionItem: 'text-gray-400',
+    highlightWrapper: 'bg-gray-100 rounded-l-2xl ml-3',
   }
-
-  // Time wheels: left (hours) and right (minutes) get joined rounded corners
   const hourClassNames = {
-    optionItem: 'text-gray-400 text-2xl font-semibold',
-    highlightWrapper: 'bg-gray-100 rounded-l-2xl ml-3 text-gray-900',
-    highlightItem: 'text-2xl font-bold',
+    optionItem: 'text-gray-400',
+    highlightWrapper: 'bg-gray-100',
   }
   const minuteClassNames = {
-    optionItem: 'text-gray-400 text-2xl font-semibold',
-    highlightWrapper: 'bg-gray-100 rounded-r-2xl mr-3 text-gray-900',
-    highlightItem: 'text-2xl font-bold',
+    optionItem: 'text-gray-400',
+    highlightWrapper: 'bg-gray-100 rounded-r-2xl mr-3',
+  }
+  // End time: hours left-rounded, minutes right-rounded
+  const endHourClassNames = {
+    optionItem: 'text-gray-400',
+    highlightWrapper: 'bg-gray-100 rounded-l-2xl ml-3',
+  }
+  const endMinuteClassNames = {
+    optionItem: 'text-gray-400',
+    highlightWrapper: 'bg-gray-100 rounded-r-2xl mr-3',
   }
 
   return (
@@ -192,7 +187,7 @@ export function BookingDrawer({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={STEP_LABELS[step]}
+        aria-label={stepLabel}
         className={`fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           visible ? 'translate-y-0' : 'translate-y-full'
         }`}
@@ -202,12 +197,12 @@ export function BookingDrawer({
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="font-display text-[20px] font-bold uppercase tracking-wide text-gray-900">
-                {STEP_LABELS[step]}
+                {stepLabel}
               </h2>
-              {step !== 'date' && dateValue && (
+              {step === 'end' && (dateValue || startTimeValue) && (
                 <p className="mt-0.5 text-xs text-gray-500">
                   {formatDateSummary(dateValue)}
-                  {step === 'end' && startTimeValue && ` · ${startTimeValue}`}
+                  {startTimeValue && ` · ${startTimeValue}`}
                 </p>
               )}
             </div>
@@ -221,8 +216,8 @@ export function BookingDrawer({
             </button>
           </div>
 
-          {/* Date wheel */}
-          {step === 'date' && (
+          {/* Date + start time: three wheels */}
+          {step === 'datetime' && (
             <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
               <WheelPicker
                 options={DATE_OPTIONS}
@@ -233,12 +228,6 @@ export function BookingDrawer({
                 infinite={false}
                 classNames={dateClassNames}
               />
-            </WheelPickerWrapper>
-          )}
-
-          {/* Start time wheels */}
-          {step === 'start' && (
-            <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
               <WheelPicker
                 options={HOUR_OPTIONS}
                 value={draftStartHour}
@@ -260,7 +249,7 @@ export function BookingDrawer({
             </WheelPickerWrapper>
           )}
 
-          {/* End time wheels */}
+          {/* End time: two wheels */}
           {step === 'end' && (
             <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
               <WheelPicker
@@ -270,7 +259,7 @@ export function BookingDrawer({
                 visibleCount={VISIBLE_COUNT}
                 optionItemHeight={ITEM_HEIGHT}
                 infinite={true}
-                classNames={hourClassNames}
+                classNames={endHourClassNames}
               />
               <WheelPicker
                 options={MINUTE_OPTIONS}
@@ -279,18 +268,18 @@ export function BookingDrawer({
                 visibleCount={VISIBLE_COUNT}
                 optionItemHeight={ITEM_HEIGHT}
                 infinite={true}
-                classNames={minuteClassNames}
+                classNames={endMinuteClassNames}
               />
             </WheelPickerWrapper>
           )}
 
           <button
             type="button"
-            onClick={handleNext}
+            onClick={handleConfirm}
             className="mt-6 flex w-full min-h-[52px] cursor-pointer items-center justify-center rounded-xl text-base font-semibold text-gray-900 transition-opacity"
             style={{ backgroundColor: '#F1E334' }}
           >
-            {nextLabel}
+            Klar
           </button>
         </div>
       </div>
