@@ -2,13 +2,14 @@ import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
+import { isAdminRole } from '../../services/AuthService'
 
 export function AdminPage() {
   const { user, loading: authLoading } = useAuth()
   const role = useRole()
   const navigate = useNavigate()
 
-  const isAdmin = role === 'admin' || role === 'superuser'
+  const isAdmin = isAdminRole(role)
   // Still loading auth or waiting for role to resolve
   const isLoading = authLoading || (!!user && role === null)
 

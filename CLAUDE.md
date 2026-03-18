@@ -29,7 +29,7 @@ npm run preview      # Preview production build locally
 
 - **Mobile-first**: Native `datetime-local` inputs for date/time — do not use custom pickers. Touch targets min 44×44px.
 - **No login walls**: Auth state drives what's visible and what actions are permitted — never block a route or page behind auth.
-- **Single page**: Everything lives on `/`. No sub-routes. Sections (upcoming, history, profile) are conditional renders, not routes.
+- **Single page**: Everything lives on `/`. No sub-routes. Sections (upcoming, history, profile) are conditional renders, not routes. **Exception**: admin routes (`/admin` and future admin sub-routes) are real TanStack Router routes — this is intentional.
 - **Swedish UI**: All user-facing strings are in Swedish (`sv-SE` locale for date/time formatting). Code, comments, and variable names stay in English.
 - **Conflict detection**: `hasConflict(bookings, start, end)` is a pure function in `BookingService` — use it for both inline validation and pre-write guard. Never allow overlapping bookings to be written.
 

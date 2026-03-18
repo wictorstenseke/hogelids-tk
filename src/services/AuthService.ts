@@ -12,6 +12,11 @@ import { migrateGuestBookings } from './MigrationService'
 
 export type UserRole = 'user' | 'admin' | 'superuser'
 
+// Returns true for roles that grant access to admin features.
+export function isAdminRole(role: UserRole | null): boolean {
+  return role === 'admin' || role === 'superuser'
+}
+
 export interface UserProfile {
   uid: string
   email: string

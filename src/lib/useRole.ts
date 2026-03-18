@@ -16,14 +16,20 @@ export function useRole(): UserRole | null {
     }
 
     const ref = doc(db, 'users', user.uid)
-    const unsubscribe = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        const data = snap.data()
-        setRole((data.role as UserRole | undefined) ?? 'user')
-      } else {
-        setRole('user')
+    const unsubscribe = onSnapshot(
+      ref,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data()
+          setRole((data.role as UserRole | undefined) ?? 'user')
+        } else {
+          setRole('user')
+        }
+      },
+      (error) => {
+        console.error('[useRole] onSnapshot error:', error)
       }
-    })
+    )
 
     return () => {
       unsubscribe()

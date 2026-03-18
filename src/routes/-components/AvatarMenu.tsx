@@ -3,6 +3,7 @@ import { IconUser, IconLogout, IconShieldCheck } from '@tabler/icons-react'
 import { useNavigate } from '@tanstack/react-router'
 import type { AuthUser } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
+import { isAdminRole } from '../../services/AuthService'
 
 interface AvatarMenuProps {
   user: AuthUser
@@ -25,7 +26,7 @@ export function AvatarMenu({
   const ref = useRef<HTMLDivElement>(null)
   const role = useRole()
   const navigate = useNavigate()
-  const isAdmin = role === 'admin' || role === 'superuser'
+  const isAdmin = isAdminRole(role)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
