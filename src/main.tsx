@@ -7,12 +7,14 @@ import { routeTree } from './routeTree.gen'
 import { queryClient } from './queryClient'
 import './index.css'
 
-if (import.meta.env.DEV) {
-  import('./lib/seed').then(({ seedBookings }) => {
-    ;(window as Window & { seedBookings?: typeof seedBookings }).seedBookings =
-      seedBookings
-  })
-}
+import('./lib/seed').then(({ seedBookings, seedHistoricalBookings }) => {
+  const w = window as Window & {
+    seedBookings?: typeof seedBookings
+    seedHistoricalBookings?: typeof seedHistoricalBookings
+  }
+  w.seedBookings = seedBookings
+  w.seedHistoricalBookings = seedHistoricalBookings
+})
 
 const router = createRouter({ routeTree, basepath: '/hogelids-tk/' })
 
