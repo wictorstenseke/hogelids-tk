@@ -5,6 +5,7 @@ import {
   where,
   orderBy,
   Timestamp,
+  addDoc,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
@@ -23,6 +24,35 @@ export interface BookingWithId extends Booking {
 }
 
 export const BOOKINGS_QUERY_KEY = ['bookings', 'upcoming'] as const
+
+export function hasConflict(bookings: BookingWithId[], start: Date, end: Date): boolean {
+  return bookings.some((booking) => {
+    const a = booking.startTime.toDate().getTime()
+    const b = booking.endTime.toDate().getTime()
+    const c = start.getTime()
+    const d = end.getTime()
+    return a < d && c < b
+  })
+}
+
+export async function createGuestBooking(
+  ownerEmail: string,
+  ownerDisplayName: string,
+  startTime: Date,
+  endTime: Date
+): Promise<string> {
+  const bookingsRef = collection(db, 'bookings')
+  const docRef = await addDoc(bookingsRef, {
+    type: 'guest',
+    ownerEmail,
+    ownerUid: null,
+    ownerDisplayName,
+    startTime: Timestamp.fromDate(startTime),
+    endTime: Timestamp.fromDate(endTime),
+    createdAt: Timestamp.fromDate(new Date()),
+  })
+  return docRef.id
+}
 
 export async function getUpcomingBookings(): Promise<BookingWithId[]> {
   const bookingsRef = collection(db, 'bookings')
