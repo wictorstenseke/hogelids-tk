@@ -41,9 +41,7 @@ export function BookingForm({
       ? new Date(`${dateValue}T${startTimeValue}`)
       : null
   const endDate =
-    dateValue && endTimeValue
-      ? new Date(`${dateValue}T${endTimeValue}`)
-      : null
+    dateValue && endTimeValue ? new Date(`${dateValue}T${endTimeValue}`) : null
 
   const conflictDetected = (() => {
     if (!startDate || !endDate) return false
@@ -92,7 +90,13 @@ export function BookingForm({
     setIsSubmitting(true)
     try {
       if (user) {
-        await createMemberBooking(user.uid, user.email, user.displayName, start, end)
+        await createMemberBooking(
+          user.uid,
+          user.email,
+          user.displayName,
+          start,
+          end
+        )
       } else {
         await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
         GuestSession.setEmail(effectiveEmail)
@@ -101,7 +105,9 @@ export function BookingForm({
       onSuccess(start, end)
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : 'Något gick fel. Försök igen senare.'
+        err instanceof Error
+          ? err.message
+          : 'Något gick fel. Försök igen senare.'
       )
     } finally {
       setIsSubmitting(false)

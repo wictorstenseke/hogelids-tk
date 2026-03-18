@@ -205,7 +205,6 @@ export function HomePage() {
             earliestYear={earliestYear ?? currentYear}
           />
         )}
-
       </main>
 
       {successBooking && (

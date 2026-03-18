@@ -13,7 +13,11 @@ function getInitials(name: string): string {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
 }
 
-export function AvatarMenu({ user, onOpenProfile, onSignOut }: AvatarMenuProps) {
+export function AvatarMenu({
+  user,
+  onOpenProfile,
+  onSignOut,
+}: AvatarMenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
