@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { IconUser, IconLogout } from '@tabler/icons-react'
 import type { AuthUser } from '../../lib/useAuth'
 
 interface AvatarMenuProps {
@@ -53,12 +54,12 @@ export function AvatarMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
-          <div className="border-b border-gray-100 px-4 py-2.5">
-            <p className="truncate text-xs font-semibold text-gray-900">
+        <div className="absolute right-0 top-full z-50 mt-2 min-w-[180px] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+          <div className="border-b border-gray-100 px-4 py-3 text-center">
+            <p className="text-sm font-semibold text-gray-900">
               {user.displayName}
             </p>
-            <p className="truncate text-xs text-gray-500">{user.email}</p>
+            <p className="text-xs text-gray-500">{user.email}</p>
           </div>
           <button
             type="button"
@@ -66,8 +67,9 @@ export function AvatarMenu({
               setOpen(false)
               onOpenProfile()
             }}
-            className="flex w-full cursor-pointer items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50"
+            className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
+            <IconUser size={16} stroke={2} className="shrink-0 text-gray-400" />
             Min profil
           </button>
           <button
@@ -76,8 +78,9 @@ export function AvatarMenu({
               setOpen(false)
               onSignOut()
             }}
-            className="flex w-full cursor-pointer items-center px-4 py-3 text-sm text-red-600 hover:bg-red-50"
+            className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
           >
+            <IconLogout size={16} stroke={2} className="shrink-0" />
             Logga ut
           </button>
         </div>
