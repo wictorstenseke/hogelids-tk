@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { IconArrowLeft } from '@tabler/icons-react'
+import { IconChevronLeft } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
@@ -249,9 +249,9 @@ export function AdminPage() {
         <div className="flex items-center gap-3">
           <Link
             to="/"
-            className="flex items-center justify-center rounded-full p-1 text-white/80 transition-opacity hover:opacity-70"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white transition-colors hover:bg-white/30 hover:text-white"
           >
-            <IconArrowLeft size={24} />
+            <IconChevronLeft size={20} stroke={2} />
           </Link>
           <h1 className="text-2xl font-bold text-white">Admin</h1>
         </div>
