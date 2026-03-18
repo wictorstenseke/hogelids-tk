@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { deleteField } from 'firebase/firestore'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
@@ -232,13 +231,9 @@ export function AdminPage() {
     try {
       await updateAppSettings({
         bannerText,
-        bannerLinkText: bannerLinkText || deleteField(),
-        bannerLinkUrl: bannerLinkUrl || deleteField(),
+        bannerLinkText: bannerLinkText,
+        bannerLinkUrl: bannerLinkUrl,
       })
-      // Clear local overrides so inputs show the saved Firestore values
-      setBannerTextOverride(null)
-      setBannerLinkTextOverride(null)
-      setBannerLinkUrlOverride(null)
     } catch (err) {
       console.error('Failed to save banner text:', err)
       setSaveError('Kunde inte spara. Försök igen.')
