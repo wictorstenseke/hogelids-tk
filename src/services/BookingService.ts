@@ -4,6 +4,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
   Timestamp,
   addDoc,
   deleteDoc,
@@ -86,6 +87,46 @@ export async function createMemberBooking(
 
 export async function deleteMemberBooking(id: string): Promise<void> {
   await deleteDoc(doc(db, 'bookings', id))
+}
+
+export async function getBookingsByYear(
+  year: number
+): Promise<BookingWithId[]> {
+  const bookingsRef = collection(db, 'bookings')
+  const start = Timestamp.fromDate(new Date(year, 0, 1))
+  const end = Timestamp.fromDate(new Date(year + 1, 0, 1))
+  const q = query(
+    bookingsRef,
+    where('startTime', '>=', start),
+    where('startTime', '<', end),
+    orderBy('startTime', 'asc')
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map((docSnap) => {
+    const data = docSnap.data()
+    return {
+      id: docSnap.id,
+      type: data['type'] as 'guest' | 'member',
+      ownerEmail: data['ownerEmail'] as string,
+      ownerUid: data['ownerUid'] as string | null,
+      ownerDisplayName: data['ownerDisplayName'] as string,
+      startTime: data['startTime'] as Timestamp,
+      endTime: data['endTime'] as Timestamp,
+      createdAt: data['createdAt'] as Timestamp,
+    }
+  })
+}
+
+export async function getEarliestBookingYear(): Promise<number> {
+  const bookingsRef = collection(db, 'bookings')
+  const q = query(bookingsRef, orderBy('startTime', 'asc'), limit(1))
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) {
+    return new Date().getFullYear()
+  }
+  const data = snapshot.docs[0].data()
+  const startTime = data['startTime'] as Timestamp
+  return startTime.toDate().getFullYear()
 }
 
 export async function getUpcomingBookings(): Promise<BookingWithId[]> {

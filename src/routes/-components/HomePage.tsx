@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
+  getEarliestBookingYear,
   deleteGuestBooking,
   deleteMemberBooking,
   BOOKINGS_QUERY_KEY,
@@ -14,6 +15,7 @@ import { BookingForm } from './BookingForm'
 import { SuccessDialog } from './SuccessDialog'
 import { AuthModal } from './AuthModal'
 import { VerificationBanner } from './VerificationBanner'
+import { HistorySection } from './HistorySection'
 
 function formatDateRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
@@ -156,6 +158,13 @@ export function HomePage() {
     queryFn: getUpcomingBookings,
   })
 
+  const currentYear = new Date().getFullYear()
+
+  const { data: earliestYear } = useQuery({
+    queryKey: ['bookings', 'earliestYear'],
+    queryFn: getEarliestBookingYear,
+  })
+
   function handleSuccess(startTime: Date, endTime: Date) {
     void queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
     setSuccessBooking({ startTime, endTime })
@@ -273,6 +282,13 @@ export function HomePage() {
             </ul>
           )}
         </div>
+
+        {user && (
+          <HistorySection
+            currentYear={currentYear}
+            earliestYear={earliestYear ?? currentYear}
+          />
+        )}
       </main>
 
       {successBooking && (
