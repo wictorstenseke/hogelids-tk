@@ -99,8 +99,8 @@ function BookingItem({
 
   return (
     <li className="space-y-2">
-      <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
-        <span className="text-sm text-gray-700">
+      <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm border border-gray-100">
+        <span className="text-sm font-medium text-gray-800">
           {formatDateRange(booking)}
         </span>
         <div className="ml-4 flex shrink-0 items-center gap-2">
@@ -173,39 +173,66 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f4f4ee]">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="mx-auto max-w-lg px-4 py-5">
+      <header
+        className="bg-white"
+        style={{ borderBottom: '4px solid #F1E334' }}
+      >
+        <div className="mx-auto max-w-lg px-4 py-4">
           <div className="flex items-center justify-between gap-3">
+            {/* Logo */}
             <div className="flex items-center gap-3">
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                style={{ backgroundColor: '#F1E334' }}
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
               >
-                <span className="text-sm font-bold text-gray-900">H</span>
+                <circle cx="20" cy="20" r="20" fill="#F1E334" />
+                <path
+                  d="M10 9C14 13.5 15.5 16.7 15.5 20C15.5 23.3 14 26.5 10 31"
+                  stroke="#0F0F0F"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                <path
+                  d="M30 9C26 13.5 24.5 16.7 24.5 20C24.5 23.3 26 26.5 30 31"
+                  stroke="#0F0F0F"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              </svg>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+                  Boka bana
+                </p>
+                <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-gray-900">
+                  Högelids Tennisklubb
+                </h1>
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900">
-                Högelids Tennisklubb
-              </h1>
             </div>
 
             {/* Auth controls */}
             {!authLoading && (
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1">
                 {user ? (
                   <>
-                    <span className="hidden text-sm text-gray-600 sm:block">
+                    <span className="hidden text-sm font-medium text-gray-500 sm:block mr-1">
                       {user.displayName}
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowProfile((v) => !v)}
-                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
                       style={
                         showProfile
-                          ? { backgroundColor: '#F1E334', color: '#111827' }
-                          : undefined
+                          ? { backgroundColor: '#F1E334', color: '#0F0F0F' }
+                          : { color: '#374151' }
                       }
                     >
                       Profil
@@ -216,7 +243,7 @@ export function HomePage() {
                         setShowProfile(false)
                         void signOut()
                       }}
-                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
                     >
                       Logga ut
                     </button>
@@ -226,14 +253,14 @@ export function HomePage() {
                     <button
                       type="button"
                       onClick={() => setAuthModal('sign-in')}
-                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                      className="flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                     >
                       Logga in
                     </button>
                     <button
                       type="button"
                       onClick={() => setAuthModal('sign-up')}
-                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
+                      className="flex min-h-[44px] items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
                       style={{ backgroundColor: '#F1E334' }}
                     >
                       Skapa konto
@@ -260,7 +287,7 @@ export function HomePage() {
         />
 
         <div>
-          <h2 className="mb-4 text-lg font-semibold text-gray-800">
+          <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-gray-800">
             Kommande bokningar
           </h2>
 

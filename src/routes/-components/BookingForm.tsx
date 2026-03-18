@@ -123,8 +123,10 @@ export function BookingForm({
   }
 
   return (
-    <section className="rounded-xl bg-white px-4 py-5 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-gray-800">Ny bokning</h2>
+    <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100">
+      <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-gray-900">
+        Ny bokning
+      </h2>
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {/* Name */}
         <div>
@@ -149,7 +151,7 @@ export function BookingForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ditt namn"
-              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
+              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
             />
           )}
         </div>
@@ -178,7 +180,7 @@ export function BookingForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="din@epost.se"
-              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
+              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
             />
           )}
         </div>
@@ -196,7 +198,7 @@ export function BookingForm({
             type="datetime-local"
             value={startValue}
             onChange={handleStartChange}
-            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
           />
         </div>
 
@@ -213,7 +215,7 @@ export function BookingForm({
             type="datetime-local"
             value={endValue}
             onChange={(e) => setEndValue(e.target.value)}
-            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
           />
         </div>
 
