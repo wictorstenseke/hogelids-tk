@@ -3,10 +3,10 @@ interface NudgePromptProps {
 }
 
 const MEMBER_ADVANTAGES = [
-  'Se dina egna bokningar samlade',
-  'Hantera och avboka dina egna tider',
-  'Se vem som har bokat (visas med namn)',
-  'Bokningshistorik för alla år',
+  'Avboka från vilken enhet som helst',
+  'Se vem som har bokat varje tid',
+  'Ditt namn visas på dina bokningar',
+  'Tillgång till klubbens turneringar',
 ]
 
 export function NudgePrompt({ onDismiss }: NudgePromptProps) {
