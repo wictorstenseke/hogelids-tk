@@ -14,19 +14,14 @@ interface BookingFormProps {
   user: AuthUser | null
 }
 
-function toDatetimeLocalValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return (
-    date.getFullYear() +
-    '-' +
-    pad(date.getMonth() + 1) +
-    '-' +
-    pad(date.getDate()) +
-    'T' +
-    pad(date.getHours()) +
-    ':' +
-    pad(date.getMinutes())
-  )
+function padTwo(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+function addHours(timeValue: string, hours: number): string {
+  const [h, m] = timeValue.split(':').map(Number)
+  const totalMinutes = (h * 60 + (m ?? 0) + hours * 60) % (24 * 60)
+  return `${padTwo(Math.floor(totalMinutes / 60))}:${padTwo(totalMinutes % 60)}`
 }
 
 export function BookingForm({
@@ -35,29 +30,33 @@ export function BookingForm({
   user,
 }: BookingFormProps) {
   const [email, setEmail] = useState(GuestSession.getEmail() ?? '')
-  const [startValue, setStartValue] = useState('')
-  const [endValue, setEndValue] = useState('')
+  const [dateValue, setDateValue] = useState('')
+  const [startTimeValue, setStartTimeValue] = useState('')
+  const [endTimeValue, setEndTimeValue] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  const startDate =
+    dateValue && startTimeValue
+      ? new Date(`${dateValue}T${startTimeValue}`)
+      : null
+  const endDate =
+    dateValue && endTimeValue
+      ? new Date(`${dateValue}T${endTimeValue}`)
+      : null
+
   const conflictDetected = (() => {
-    if (!startValue || !endValue) return false
-    const start = new Date(startValue)
-    const end = new Date(endValue)
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
-    if (end <= start) return false
-    return hasConflict(existingBookings, start, end)
+    if (!startDate || !endDate) return false
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false
+    if (endDate <= startDate) return false
+    return hasConflict(existingBookings, startDate, endDate)
   })()
 
-  function handleStartChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleStartTimeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
-    setStartValue(val)
+    setStartTimeValue(val)
     if (val) {
-      const start = new Date(val)
-      if (!isNaN(start.getTime())) {
-        const autoEnd = new Date(start.getTime() + 2 * 60 * 60 * 1000)
-        setEndValue(toDatetimeLocalValue(autoEnd))
-      }
+      setEndTimeValue(addHours(val, 2))
     }
   }
 
@@ -67,13 +66,13 @@ export function BookingForm({
 
     const effectiveEmail = user ? user.email : email.trim()
 
-    if (!effectiveEmail || !startValue || !endValue) {
+    if (!effectiveEmail || !dateValue || !startTimeValue || !endTimeValue) {
       setSubmitError('Fyll i alla fält innan du bokar.')
       return
     }
 
-    const start = new Date(startValue)
-    const end = new Date(endValue)
+    const start = new Date(`${dateValue}T${startTimeValue}`)
+    const end = new Date(`${dateValue}T${endTimeValue}`)
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       setSubmitError('Ogiltigt datum eller tid.')
@@ -93,15 +92,8 @@ export function BookingForm({
     setIsSubmitting(true)
     try {
       if (user) {
-        await createMemberBooking(
-          user.uid,
-          user.email,
-          user.displayName,
-          start,
-          end
-        )
+        await createMemberBooking(user.uid, user.email, user.displayName, start, end)
       } else {
-        // Use email as display name for guests
         await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
         GuestSession.setEmail(effectiveEmail)
         GuestSession.incrementBookingCount()
@@ -109,14 +101,15 @@ export function BookingForm({
       onSuccess(start, end)
     } catch (err) {
       setSubmitError(
-        err instanceof Error
-          ? err.message
-          : 'Något gick fel. Försök igen senare.'
+        err instanceof Error ? err.message : 'Något gick fel. Försök igen senare.'
       )
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const inputClass =
+    'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
 
   return (
     <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100">
@@ -141,44 +134,63 @@ export function BookingForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="din@epost.se"
-              className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
+              className={inputClass}
             />
           </div>
         )}
 
+        {/* Date */}
+        <div>
+          <label
+            htmlFor="booking-date"
+            className="mb-1 block text-sm font-medium text-gray-700"
+          >
+            Datum
+          </label>
+          <input
+            id="booking-date"
+            type="date"
+            value={dateValue}
+            onChange={(e) => setDateValue(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+
         {/* Start time */}
         <div>
           <label
-            htmlFor="booking-start"
+            htmlFor="booking-start-time"
             className="mb-1 block text-sm font-medium text-gray-700"
           >
             Starttid
           </label>
           <input
-            id="booking-start"
-            type="datetime-local"
-            value={startValue}
-            onChange={handleStartChange}
-            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
+            id="booking-start-time"
+            type="time"
+            value={startTimeValue}
+            onChange={handleStartTimeChange}
+            className={inputClass}
           />
         </div>
 
-        {/* End time */}
-        <div>
-          <label
-            htmlFor="booking-end"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Sluttid
-          </label>
-          <input
-            id="booking-end"
-            type="datetime-local"
-            value={endValue}
-            onChange={(e) => setEndValue(e.target.value)}
-            className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
-          />
-        </div>
+        {/* End time — shown after start is set */}
+        {startTimeValue && (
+          <div>
+            <label
+              htmlFor="booking-end-time"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Sluttid
+            </label>
+            <input
+              id="booking-end-time"
+              type="time"
+              value={endTimeValue}
+              onChange={(e) => setEndTimeValue(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+        )}
 
         {/* Inline conflict error */}
         {conflictDetected && (
