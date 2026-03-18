@@ -186,28 +186,40 @@ export function BookingDrawer({
   const startDate = draftDate
     ? new Date(`${draftDate}T${draftStartHour}:${draftStartMinute}`)
     : null
+
+  // Datetime step uses tentative end (start + 2h); summary uses actual draftEnd
+  const tentativeEnd = addTwoHours(draftStartHour, draftStartMinute)
+  const tentativeEndDate = draftDate
+    ? new Date(`${draftDate}T${tentativeEnd.hour}:${tentativeEnd.minute}`)
+    : null
   const endDate = draftDate
     ? new Date(`${draftDate}T${draftEndHour}:${draftEndMinute}`)
     : null
 
-  const conflictBooking =
-    startDate && endDate
-      ? (existingBookings.find((b) => {
-          const a = b.startTime.toDate().getTime()
-          const bEnd = b.endTime.toDate().getTime()
-          return startDate.getTime() < bEnd && endDate.getTime() > a
-        }) ?? null)
-      : null
+  function findConflict(end: Date | null) {
+    if (!startDate || !end) return null
+    return (
+      existingBookings.find((b) => {
+        const a = b.startTime.toDate().getTime()
+        const bEnd = b.endTime.toDate().getTime()
+        return startDate.getTime() < bEnd && end.getTime() > a
+      }) ?? null
+    )
+  }
 
-  const conflictLabel = conflictBooking
-    ? `Upptaget ${formatTimeLabel(conflictBooking.startTime.toDate())} – ${formatTimeLabel(conflictBooking.endTime.toDate())}`
-    : null
+  const datetimeConflictBooking = findConflict(tentativeEndDate)
+  const summaryConflictBooking = findConflict(endDate)
+
+  function conflictLabel(booking: BookingWithId | null) {
+    if (!booking) return null
+    return `Upptaget ${formatTimeLabel(booking.startTime.toDate())} – ${formatTimeLabel(booking.endTime.toDate())}`
+  }
 
   // Also block if end ≤ start (wraps midnight)
   const endBeforeStart =
     endDate && startDate ? endDate.getTime() <= startDate.getTime() : false
 
-  const canBook = !conflictLabel && !endBeforeStart
+  const canBook = !conflictLabel(summaryConflictBooking) && !endBeforeStart
 
   // ClassNames for wheel highlights
   const dateClassNames = {
@@ -308,6 +320,11 @@ export function BookingDrawer({
                   classNames={minuteClassNames}
                 />
               </WheelPickerWrapper>
+              {conflictLabel(datetimeConflictBooking) && (
+                <p className="mt-3 text-sm font-medium text-red-600">
+                  {conflictLabel(datetimeConflictBooking)}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={handleNext}
@@ -394,9 +411,10 @@ export function BookingDrawer({
               </div>
 
               {/* Conflict / validation message */}
-              {(conflictLabel || endBeforeStart) && (
+              {(conflictLabel(summaryConflictBooking) || endBeforeStart) && (
                 <p className="mt-3 text-sm font-medium text-red-600">
-                  {conflictLabel ?? 'Sluttiden måste vara efter starttiden.'}
+                  {conflictLabel(summaryConflictBooking) ??
+                    'Sluttiden måste vara efter starttiden.'}
                 </p>
               )}
 
