@@ -26,7 +26,6 @@ function Toggle({ checked, onChange, id }: ToggleProps) {
         'relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         checked ? 'bg-gray-900' : 'bg-gray-200',
       ].join(' ')}
-      style={checked ? { backgroundColor: '#111827' } : {}}
     >
       <span
         className={[
@@ -99,6 +98,8 @@ export function AdminPage() {
   const [bannerLinkUrlOverride, setBannerLinkUrlOverride] = useState<
     string | null
   >(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const bannerText = bannerTextOverride ?? settings?.bannerText ?? ''
   const bannerLinkText =
@@ -116,16 +117,25 @@ export function AdminPage() {
 
   if (!user || !isAdmin) return null
 
-  function handleSaveBannerText() {
-    void updateAppSettings({
-      bannerText,
-      bannerLinkText: bannerLinkText || deleteField(),
-      bannerLinkUrl: bannerLinkUrl || deleteField(),
-    })
-    // Clear local overrides so inputs show the saved Firestore values
-    setBannerTextOverride(null)
-    setBannerLinkTextOverride(null)
-    setBannerLinkUrlOverride(null)
+  async function handleSaveBannerText() {
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      await updateAppSettings({
+        bannerText,
+        bannerLinkText: bannerLinkText || deleteField(),
+        bannerLinkUrl: bannerLinkUrl || deleteField(),
+      })
+      // Clear local overrides so inputs show the saved Firestore values
+      setBannerTextOverride(null)
+      setBannerLinkTextOverride(null)
+      setBannerLinkUrlOverride(null)
+    } catch (err) {
+      console.error('Failed to save banner text:', err)
+      setSaveError('Kunde inte spara. Försök igen.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -142,7 +152,9 @@ export function AdminPage() {
               id="booking-enabled-toggle"
               checked={settings?.bookingEnabled ?? true}
               onChange={(value) =>
-                void updateAppSettings({ bookingEnabled: value })
+                void updateAppSettings({ bookingEnabled: value }).catch((err) =>
+                  console.error('Failed to update bookingEnabled:', err)
+                )
               }
             />
           </SettingsRow>
@@ -154,7 +166,9 @@ export function AdminPage() {
               id="banner-visible-toggle"
               checked={settings?.bannerVisible ?? false}
               onChange={(value) =>
-                void updateAppSettings({ bannerVisible: value })
+                void updateAppSettings({ bannerVisible: value }).catch((err) =>
+                  console.error('Failed to update bannerVisible:', err)
+                )
               }
             />
           </SettingsRow>
@@ -189,15 +203,17 @@ export function AdminPage() {
             />
           </SettingsRow>
 
-          <div className="px-4 py-3">
+          <div className="px-4 py-3 space-y-2">
             <button
               type="button"
-              onClick={handleSaveBannerText}
-              className="min-h-[44px] cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
+              onClick={() => void handleSaveBannerText()}
+              disabled={isSaving}
+              className="min-h-[44px] cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#F1E334' }}
             >
-              Spara
+              {isSaving ? 'Sparar…' : 'Spara'}
             </button>
+            {saveError && <p className="text-xs text-red-600">{saveError}</p>}
           </div>
         </SettingsSection>
       </div>
