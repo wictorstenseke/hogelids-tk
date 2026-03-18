@@ -144,5 +144,16 @@ label[for] {
 [data-rwp-option],
 [data-rwp-highlight-item] {
   font-family: 'Barlow', system-ui, sans-serif;
-  font-size: 1rem;
+  font-size: 1.125rem;
+}
+
+/* Date+time picker: date column wider than hour/minute */
+.htk-datetime-picker [data-rwp]:nth-child(1) {
+  flex: 6;
+}
+.htk-datetime-picker [data-rwp]:nth-child(2) {
+  flex: 3;
+}
+.htk-datetime-picker [data-rwp]:nth-child(3) {
+  flex: 3;
 }
