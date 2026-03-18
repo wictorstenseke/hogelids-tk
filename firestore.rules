@@ -2,6 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Returns true if the caller has role 'admin' or 'superuser'.
+    function isAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superuser'];
+    }
+
+    // Returns true if the caller has role 'superuser'.
+    function isSuperuser() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superuser';
+    }
+
     // Bookings
     // - Anyone can read and create bookings (guests book without auth)
     // - Anyone can delete guest bookings
@@ -19,10 +31,20 @@ service cloud.firestore {
 
     // User profiles
     // - Authenticated users can read any profile
-    // - Users can only write their own profile
+    // - Users can write their own profile
+    // - Superusers can update any profile (e.g. role changes)
     match /users/{uid} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
+      allow update: if isSuperuser();
+    }
+
+    // App settings
+    // - All authenticated users can read (controls UI for all users)
+    // - Admins and superusers can write
+    match /settings/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

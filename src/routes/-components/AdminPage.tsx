@@ -203,6 +203,12 @@ export function AdminPage() {
   >(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [bookingToggleError, setBookingToggleError] = useState<string | null>(
+    null
+  )
+  const [bannerVisibleToggleError, setBannerVisibleToggleError] = useState<
+    string | null
+  >(null)
 
   const bannerText = bannerTextOverride ?? settings?.bannerText ?? ''
   const bannerLinkText =
@@ -254,13 +260,22 @@ export function AdminPage() {
             <Toggle
               id="booking-enabled-toggle"
               checked={settings?.bookingEnabled ?? true}
-              onChange={(value) =>
-                void updateAppSettings({ bookingEnabled: value }).catch((err) =>
-                  console.error('Failed to update bookingEnabled:', err)
+              onChange={(value) => {
+                setBookingToggleError(null)
+                void updateAppSettings({ bookingEnabled: value }).catch(
+                  (err) => {
+                    console.error('Failed to update bookingEnabled:', err)
+                    setBookingToggleError('Kunde inte spara ändringen.')
+                  }
                 )
-              }
+              }}
             />
           </SettingsRow>
+          {bookingToggleError && (
+            <p className="px-4 pb-3 text-xs text-red-600">
+              {bookingToggleError}
+            </p>
+          )}
         </SettingsSection>
 
         <SettingsSection title="Banner">
@@ -268,13 +283,22 @@ export function AdminPage() {
             <Toggle
               id="banner-visible-toggle"
               checked={settings?.bannerVisible ?? false}
-              onChange={(value) =>
-                void updateAppSettings({ bannerVisible: value }).catch((err) =>
-                  console.error('Failed to update bannerVisible:', err)
+              onChange={(value) => {
+                setBannerVisibleToggleError(null)
+                void updateAppSettings({ bannerVisible: value }).catch(
+                  (err) => {
+                    console.error('Failed to update bannerVisible:', err)
+                    setBannerVisibleToggleError('Kunde inte spara ändringen.')
+                  }
                 )
-              }
+              }}
             />
           </SettingsRow>
+          {bannerVisibleToggleError && (
+            <p className="px-4 pb-3 text-xs text-red-600">
+              {bannerVisibleToggleError}
+            </p>
+          )}
 
           <SettingsRow label="Bannertext">
             <input
