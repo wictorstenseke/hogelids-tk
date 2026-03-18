@@ -15,6 +15,7 @@ import { AuthModal } from './AuthModal'
 import { HistorySection } from './HistorySection'
 import { ProfileSection } from './ProfileSection'
 import { BookingItem } from './BookingItem'
+import { AvatarMenu } from './AvatarMenu'
 
 function formatDateHeader(date: Date): string {
   const str = date.toLocaleDateString('sv-SE', {
@@ -110,33 +111,11 @@ export function HomePage() {
             {!authLoading && (
               <div className="flex shrink-0 items-center gap-1">
                 {user ? (
-                  <>
-                    <span className="hidden text-sm font-medium text-white/70 sm:block mr-1">
-                      {user.displayName}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowProfile((v) => !v)}
-                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
-                      style={
-                        showProfile
-                          ? { backgroundColor: '#F1E334', color: '#0F0F0F' }
-                          : { color: 'rgba(255,255,255,0.85)' }
-                      }
-                    >
-                      Profil
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowProfile(false)
-                        void signOut()
-                      }}
-                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
-                    >
-                      Logga ut
-                    </button>
-                  </>
+                  <AvatarMenu
+                    user={user}
+                    onOpenProfile={() => setShowProfile(true)}
+                    onSignOut={() => void signOut()}
+                  />
                 ) : (
                   <>
                     <button
