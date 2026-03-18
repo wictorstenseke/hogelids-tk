@@ -248,18 +248,18 @@ export function BookingForm({
               />
             </div>
 
-            <div className="min-w-0">
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Starttid
-              </label>
-              <TimeSelect
-                value={startTimeValue}
-                onChange={handleStartTimeChange}
-                placeholder="Välj starttid"
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Starttid
+                </label>
+                <TimeSelect
+                  value={startTimeValue}
+                  onChange={handleStartTimeChange}
+                  placeholder="Välj starttid"
+                />
+              </div>
 
-            {startTimeValue && (
               <div className="min-w-0">
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Sluttid
@@ -268,9 +268,12 @@ export function BookingForm({
                   value={endTimeValue}
                   onChange={setEndTimeValue}
                   placeholder="Välj sluttid"
+                  className={
+                    !startTimeValue ? 'opacity-40 pointer-events-none' : ''
+                  }
                 />
               </div>
-            )}
+            </div>
           </>
         )}
 
