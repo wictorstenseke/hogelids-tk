@@ -29,6 +29,8 @@ jobs:
               - '.tailwind*'
               - 'tailwind.config*'
               - 'postcss.config*'
+              - 'firebase.json'
+              - '.github/**'
 
   typecheck:
     runs-on: ubuntu-latest
