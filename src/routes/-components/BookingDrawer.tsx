@@ -13,7 +13,7 @@ const STEP_LABELS: Record<Step, string> = {
 }
 
 const VISIBLE_COUNT = 12
-const ITEM_HEIGHT = 52
+const ITEM_HEIGHT = 72
 
 const HOUR_OPTIONS: WheelPickerOption<string>[] = Array.from(
   { length: 24 },
@@ -161,7 +161,6 @@ export function BookingDrawer({
   }
 
   const nextLabel = step === 'date' ? 'Nästa' : 'Klar'
-  const wheelHeight = VISIBLE_COUNT * ITEM_HEIGHT
 
   // Date wheel: single column, full-width rounded highlight
   const dateClassNames = {
@@ -224,71 +223,65 @@ export function BookingDrawer({
 
           {/* Date wheel */}
           {step === 'date' && (
-            <div style={{ height: wheelHeight }}>
-              <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white h-full overflow-hidden">
-                <WheelPicker
-                  options={DATE_OPTIONS}
-                  value={draftDate}
-                  onValueChange={(v) => setDraftDate(v)}
-                  visibleCount={VISIBLE_COUNT}
-                  optionItemHeight={ITEM_HEIGHT}
-                  infinite={false}
-                  classNames={dateClassNames}
-                />
-              </WheelPickerWrapper>
-            </div>
+            <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <WheelPicker
+                options={DATE_OPTIONS}
+                value={draftDate}
+                onValueChange={(v) => setDraftDate(v)}
+                visibleCount={VISIBLE_COUNT}
+                optionItemHeight={ITEM_HEIGHT}
+                infinite={false}
+                classNames={dateClassNames}
+              />
+            </WheelPickerWrapper>
           )}
 
           {/* Start time wheels */}
           {step === 'start' && (
-            <div style={{ height: wheelHeight }}>
-              <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white h-full overflow-hidden">
-                <WheelPicker
-                  options={HOUR_OPTIONS}
-                  value={draftStartHour}
-                  onValueChange={(v) => setDraftStartHour(v)}
-                  visibleCount={VISIBLE_COUNT}
-                  optionItemHeight={ITEM_HEIGHT}
-                  infinite={true}
-                  classNames={hourClassNames}
-                />
-                <WheelPicker
-                  options={MINUTE_OPTIONS}
-                  value={draftStartMinute}
-                  onValueChange={(v) => setDraftStartMinute(v)}
-                  visibleCount={VISIBLE_COUNT}
-                  optionItemHeight={ITEM_HEIGHT}
-                  infinite={true}
-                  classNames={minuteClassNames}
-                />
-              </WheelPickerWrapper>
-            </div>
+            <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <WheelPicker
+                options={HOUR_OPTIONS}
+                value={draftStartHour}
+                onValueChange={(v) => setDraftStartHour(v)}
+                visibleCount={VISIBLE_COUNT}
+                optionItemHeight={ITEM_HEIGHT}
+                infinite={true}
+                classNames={hourClassNames}
+              />
+              <WheelPicker
+                options={MINUTE_OPTIONS}
+                value={draftStartMinute}
+                onValueChange={(v) => setDraftStartMinute(v)}
+                visibleCount={VISIBLE_COUNT}
+                optionItemHeight={ITEM_HEIGHT}
+                infinite={true}
+                classNames={minuteClassNames}
+              />
+            </WheelPickerWrapper>
           )}
 
           {/* End time wheels */}
           {step === 'end' && (
-            <div style={{ height: wheelHeight }}>
-              <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white h-full overflow-hidden">
-                <WheelPicker
-                  options={HOUR_OPTIONS}
-                  value={draftEndHour}
-                  onValueChange={(v) => setDraftEndHour(v)}
-                  visibleCount={VISIBLE_COUNT}
-                  optionItemHeight={ITEM_HEIGHT}
-                  infinite={true}
-                  classNames={hourClassNames}
-                />
-                <WheelPicker
-                  options={MINUTE_OPTIONS}
-                  value={draftEndMinute}
-                  onValueChange={(v) => setDraftEndMinute(v)}
-                  visibleCount={VISIBLE_COUNT}
-                  optionItemHeight={ITEM_HEIGHT}
-                  infinite={true}
-                  classNames={minuteClassNames}
-                />
-              </WheelPickerWrapper>
-            </div>
+            <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <WheelPicker
+                options={HOUR_OPTIONS}
+                value={draftEndHour}
+                onValueChange={(v) => setDraftEndHour(v)}
+                visibleCount={VISIBLE_COUNT}
+                optionItemHeight={ITEM_HEIGHT}
+                infinite={true}
+                classNames={hourClassNames}
+              />
+              <WheelPicker
+                options={MINUTE_OPTIONS}
+                value={draftEndMinute}
+                onValueChange={(v) => setDraftEndMinute(v)}
+                visibleCount={VISIBLE_COUNT}
+                optionItemHeight={ITEM_HEIGHT}
+                infinite={true}
+                classNames={minuteClassNames}
+              />
+            </WheelPickerWrapper>
           )}
 
           <button
