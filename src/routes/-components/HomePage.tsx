@@ -16,6 +16,7 @@ import { SuccessDialog } from './SuccessDialog'
 import { AuthModal } from './AuthModal'
 import { VerificationBanner } from './VerificationBanner'
 import { HistorySection } from './HistorySection'
+import { ProfileSection } from './ProfileSection'
 
 function formatDateRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
@@ -143,6 +144,7 @@ export function HomePage() {
   const queryClient = useQueryClient()
   const { user, loading: authLoading } = useAuth()
   const [authModal, setAuthModal] = useState<'sign-in' | 'sign-up' | null>(null)
+  const [showProfile, setShowProfile] = useState(false)
   const [successBooking, setSuccessBooking] = useState<{
     startTime: Date
     endTime: Date
@@ -196,6 +198,18 @@ export function HomePage() {
                     <span className="hidden text-sm text-gray-600 sm:block">
                       {user.displayName}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowProfile((v) => !v)}
+                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                      style={
+                        showProfile
+                          ? { backgroundColor: '#F1E334', color: '#111827' }
+                          : undefined
+                      }
+                    >
+                      Profil
+                    </button>
                     <button
                       type="button"
                       onClick={() => void signOut()}
@@ -289,6 +303,8 @@ export function HomePage() {
             earliestYear={earliestYear ?? currentYear}
           />
         )}
+
+        {user && showProfile && <ProfileSection user={user} />}
       </main>
 
       {successBooking && (

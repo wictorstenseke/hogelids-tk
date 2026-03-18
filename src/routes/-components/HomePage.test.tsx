@@ -20,6 +20,10 @@ vi.mock('../../services/AuthService', () => ({
   resendVerificationEmail: vi.fn(),
 }))
 
+vi.mock('./ProfileSection', () => ({
+  ProfileSection: () => null,
+}))
+
 function renderWithQueryClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
