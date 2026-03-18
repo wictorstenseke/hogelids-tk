@@ -11,7 +11,9 @@ import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
 import { getEmail } from '../../lib/GuestSession'
 import { useAuth } from '../../lib/useAuth'
 import { signOut } from '../../services/AuthService'
+import { useAppSettings } from '../../lib/useAppSettings'
 import { BookingForm } from './BookingForm'
+import { Banner } from './Banner'
 import { SuccessDialog } from './SuccessDialog'
 import { AuthModal } from './AuthModal'
 import { HistorySection } from './HistorySection'
@@ -74,6 +76,8 @@ export function HomePage() {
     staleTime: 0,
     refetchInterval: 30_000,
   })
+
+  const { settings: appSettings } = useAppSettings()
 
   const currentYear = new Date().getFullYear()
 
@@ -172,11 +176,24 @@ export function HomePage() {
 
       {/* Main content */}
       <main className="mx-auto max-w-lg px-4 py-6 space-y-6">
-        <BookingForm
-          existingBookings={bookings ?? []}
-          onSuccess={handleSuccess}
-          user={user}
-        />
+        {appSettings && <Banner settings={appSettings} />}
+
+        {appSettings && !appSettings.bookingEnabled ? (
+          <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-6 py-10 text-center">
+            <p className="text-lg font-semibold text-white">
+              Bokning är stängd
+            </p>
+            <p className="mt-2 text-sm text-white/70">
+              Det går inte att göra bokningar just nu. Försök igen senare.
+            </p>
+          </div>
+        ) : (
+          <BookingForm
+            existingBookings={bookings ?? []}
+            onSuccess={handleSuccess}
+            user={user}
+          />
+        )}
 
         <div>
           <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">

@@ -38,6 +38,10 @@ vi.mock('../../lib/useRole', () => ({
   useRole: vi.fn(() => null),
 }))
 
+vi.mock('../../lib/useAppSettings', () => ({
+  useAppSettings: vi.fn(() => ({ settings: null, isLoading: true })),
+}))
+
 function renderWithQueryClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
