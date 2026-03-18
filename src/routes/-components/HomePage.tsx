@@ -69,14 +69,22 @@ function getBookingLabel(
   guestEmail: string | null,
   user: AuthUser | null
 ): string {
-  if (user && booking.type === 'member' && user.uid === booking.ownerUid) {
-    return 'Din bokning'
+  // Logged in: UID-only for own bookings — ignore localStorage guestEmail
+  if (user) {
+    if (booking.type === 'member' && user.uid === booking.ownerUid) {
+      return 'Din bokning'
+    }
+    if (booking.type === 'member') {
+      return booking.ownerDisplayName
+    }
+    return booking.ownerEmail || 'Gäst'
   }
+  // Logged out: match by guestEmail in localStorage
   if (guestEmail && booking.ownerEmail === guestEmail) {
     return 'Din bokning'
   }
   if (booking.type === 'member') {
-    return user ? booking.ownerDisplayName : 'Medlem'
+    return 'Medlem'
   }
   return booking.ownerEmail || 'Gäst'
 }
@@ -187,6 +195,9 @@ export function HomePage() {
     queryKey: ['bookings', 'earliestYear'],
     queryFn: getEarliestBookingYear,
   })
+
+  // When logged in, ignore any stored guest email
+  const effectiveGuestEmail = user ? null : guestEmail
 
   function handleSuccess(startTime: Date, endTime: Date) {
     setGuestEmail(getEmail())
@@ -317,7 +328,7 @@ export function HomePage() {
                       <BookingItem
                         key={booking.id}
                         booking={booking}
-                        guestEmail={guestEmail}
+                        guestEmail={effectiveGuestEmail}
                         user={user}
                       />
                     ))}
