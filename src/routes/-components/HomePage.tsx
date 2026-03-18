@@ -77,7 +77,9 @@ function BookingItem({
   return (
     <li className="space-y-2">
       <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
-        <span className="text-sm text-gray-700">{formatDateRange(booking)}</span>
+        <span className="text-sm text-gray-700">
+          {formatDateRange(booking)}
+        </span>
         <div className="ml-4 flex shrink-0 items-center gap-2">
           <span
             className={`rounded-full px-3 py-1 text-xs font-semibold ${

@@ -17,7 +17,10 @@ export function NudgePrompt({ onDismiss }: NudgePromptProps) {
       </p>
       <ul className="mb-4 space-y-1">
         {MEMBER_ADVANTAGES.map((advantage) => (
-          <li key={advantage} className="flex items-start gap-2 text-sm text-gray-700">
+          <li
+            key={advantage}
+            className="flex items-start gap-2 text-sm text-gray-700"
+          >
             <span className="mt-0.5 shrink-0 text-xs text-gray-400">•</span>
             {advantage}
           </li>
