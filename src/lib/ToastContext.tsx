@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
 } from 'react'
+import { IconSquareRoundedCheck, IconSquareRoundedX } from '@tabler/icons-react'
 
 interface ToastItem {
   id: string
@@ -46,16 +47,23 @@ function ToastEntry({
     }
   }, [id, onRemove])
 
+  const isError = toast.type === 'error'
+
   return (
     <div
       className={[
-        'flex min-w-[220px] items-center rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-lg',
-        'border-l-4',
-        toast.type === 'error' ? 'border-l-red-500' : 'border-l-green-500',
+        'flex min-w-[220px] items-center gap-2.5 rounded-xl bg-white px-4 py-3 shadow-lg',
+        'border-2',
+        isError ? 'border-red-500' : 'border-green-500',
         'transition-all duration-300',
         visible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0',
       ].join(' ')}
     >
+      {isError ? (
+        <IconSquareRoundedX size={18} className="shrink-0 text-red-500" />
+      ) : (
+        <IconSquareRoundedCheck size={18} className="shrink-0 text-green-500" />
+      )}
       <span className="text-sm font-medium text-gray-900">{toast.message}</span>
     </div>
   )

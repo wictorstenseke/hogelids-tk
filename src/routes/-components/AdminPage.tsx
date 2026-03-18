@@ -160,7 +160,7 @@ function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
 
       {/* Confirm strip — shown only when role selection differs from saved */}
       {isSuperuser && !isSelf && hasPendingChange && (
-        <div className="flex items-center justify-end gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5">
+        <div className="-mx-4 flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-4 py-2.5">
           <span className="mr-auto text-xs text-gray-700">Ändra roll?</span>
           <button
             type="button"
