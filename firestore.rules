@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Bookings
+    // - Anyone can read and create bookings (guests book without auth)
+    // - Anyone can delete guest bookings
+    // - Members can delete their own member bookings
+    // - Authenticated users can update bookings (migration: reassign guest → member)
+    match /bookings/{bookingId} {
+      allow read: if true;
+      allow create: if true;
+      allow delete: if resource.data.type == 'guest'
+                    || (resource.data.type == 'member'
+                        && request.auth != null
+                        && request.auth.uid == resource.data.ownerUid);
+      allow update: if request.auth != null;
+    }
+
+    // User profiles
+    // - Authenticated users can read any profile
+    // - Users can only write their own profile
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

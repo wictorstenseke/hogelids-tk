@@ -18,6 +18,8 @@ function getFirebaseErrorMessage(code: string): string {
       return 'Lösenordet måste vara minst 6 tecken.'
     case 'auth/too-many-requests':
       return 'För många försök. Försök igen senare.'
+    case 'auth/operation-not-allowed':
+      return 'Inloggning med e-post är inte aktiverat.'
     default:
       return 'Något gick fel. Försök igen.'
   }
