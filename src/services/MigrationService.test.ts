@@ -1,24 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const {
+  mockCommit,
+  mockUpdate,
+  mockGetDocs,
+  mockWriteBatch,
+  mockQuery,
+  mockCollection,
+  mockWhere,
+  mockDoc,
+} = vi.hoisted(() => {
+  const mockCommit = vi.fn()
+  const mockUpdate = vi.fn()
+  const mockBatch = { update: mockUpdate, commit: mockCommit }
+  return {
+    mockCommit,
+    mockUpdate,
+    mockGetDocs: vi.fn(),
+    mockWriteBatch: vi.fn(() => mockBatch),
+    mockQuery: vi.fn((...args: unknown[]) => args),
+    mockCollection: vi.fn((...args: unknown[]) => args),
+    mockWhere: vi.fn((...args: unknown[]) => args),
+    mockDoc: vi.fn((...args: unknown[]) => args),
+  }
+})
+
 vi.mock('../lib/firebase', () => ({ db: {} }))
 
-const mockCommit = vi.fn()
-const mockUpdate = vi.fn()
-const mockBatch = { update: mockUpdate, commit: mockCommit }
-const mockGetDocs = vi.fn()
-const mockWriteBatch = vi.fn(() => mockBatch)
-const mockQuery = vi.fn((...args) => args)
-const mockCollection = vi.fn((...args) => args)
-const mockWhere = vi.fn((...args) => args)
-const mockDoc = vi.fn((...args) => args)
-
 vi.mock('firebase/firestore', () => ({
-  getDocs: (...args: unknown[]) => mockGetDocs(...args),
-  writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
-  query: (...args: unknown[]) => mockQuery(...args),
-  collection: (...args: unknown[]) => mockCollection(...args),
-  where: (...args: unknown[]) => mockWhere(...args),
-  doc: (...args: unknown[]) => mockDoc(...args),
+  getDocs: mockGetDocs,
+  writeBatch: mockWriteBatch,
+  query: mockQuery,
+  collection: mockCollection,
+  where: mockWhere,
+  doc: mockDoc,
 }))
 
 import { migrateGuestBookings } from './MigrationService'
