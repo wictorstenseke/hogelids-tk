@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { deleteField } from 'firebase/firestore'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
@@ -118,8 +119,8 @@ export function AdminPage() {
   function handleSaveBannerText() {
     void updateAppSettings({
       bannerText,
-      bannerLinkText: bannerLinkText || undefined,
-      bannerLinkUrl: bannerLinkUrl || undefined,
+      bannerLinkText: bannerLinkText || deleteField(),
+      bannerLinkUrl: bannerLinkUrl || deleteField(),
     })
     // Clear local overrides so inputs show the saved Firestore values
     setBannerTextOverride(null)

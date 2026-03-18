@@ -1,4 +1,4 @@
-import { doc, setDoc } from 'firebase/firestore'
+import { doc, setDoc, FieldValue } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
 export interface AppSettings {
@@ -7,6 +7,15 @@ export interface AppSettings {
   bannerText: string
   bannerLinkText?: string
   bannerLinkUrl?: string
+}
+
+// Writable partial that allows FieldValue sentinels (e.g. deleteField()) for
+// optional string fields so callers can clear them from Firestore.
+export type AppSettingsUpdate = Partial<
+  Omit<AppSettings, 'bannerLinkText' | 'bannerLinkUrl'>
+> & {
+  bannerLinkText?: string | FieldValue
+  bannerLinkUrl?: string | FieldValue
 }
 
 export const APP_SETTINGS_DEFAULTS: AppSettings = {
@@ -21,8 +30,9 @@ export function getAppSettingsRef() {
 }
 
 // Writes a partial update to settings/app. Creates the document if it doesn't exist.
+// Pass deleteField() for bannerLinkText/bannerLinkUrl to remove those fields.
 export async function updateAppSettings(
-  partial: Partial<AppSettings>
+  partial: AppSettingsUpdate
 ): Promise<void> {
   await setDoc(getAppSettingsRef(), partial, { merge: true })
 }
