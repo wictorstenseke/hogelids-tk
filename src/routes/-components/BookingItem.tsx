@@ -33,7 +33,7 @@ function getBookingLabel(
       return user.displayName ?? 'Din bokning'
     }
     if (booking.type === 'member') {
-      return booking.ownerDisplayName
+      return booking.ownerDisplayName || booking.ownerEmail || 'Okänd'
     }
     return booking.ownerEmail || 'Gäst'
   }
