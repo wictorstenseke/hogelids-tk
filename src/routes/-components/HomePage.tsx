@@ -212,7 +212,10 @@ export function HomePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void signOut()}
+                      onClick={() => {
+                        setShowProfile(false)
+                        void signOut()
+                      }}
                       className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                     >
                       Logga ut

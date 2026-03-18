@@ -2,6 +2,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import type { UserProfile } from './AuthService'
 
+export const PROFILE_QUERY_KEY = 'profile'
+
 // Fetches the users/{uid} document. Returns null if the doc doesn't exist.
 export async function getProfile(uid: string): Promise<UserProfile | null> {
   const ref = doc(db, 'users', uid)

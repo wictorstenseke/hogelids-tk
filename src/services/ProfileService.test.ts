@@ -99,4 +99,22 @@ describe('getProfile', () => {
 
     expect(result).toBeNull()
   })
+
+  it('returns phone: null when phone field is absent in the doc', async () => {
+    mockGetDoc.mockResolvedValue({
+      exists: () => true,
+      id: 'uid-nophone',
+      data: () => ({
+        email: 'nophone@example.com',
+        displayName: 'No Phone User',
+        createdAt: fakeTimestamp,
+        // phone field intentionally omitted
+      }),
+    })
+
+    const result = await getProfile('uid-nophone')
+
+    expect(result).not.toBeNull()
+    expect(result!.phone).toBeNull()
+  })
 })

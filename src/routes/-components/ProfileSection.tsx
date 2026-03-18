@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { getProfile, updateProfile } from '../../services/ProfileService'
+import {
+  getProfile,
+  updateProfile,
+  PROFILE_QUERY_KEY,
+} from '../../services/ProfileService'
 import type { AuthUser } from '../../lib/useAuth'
 
 interface ProfileSectionProps {
@@ -11,13 +15,14 @@ export function ProfileSection({ user }: ProfileSectionProps) {
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['profile', user.uid],
+    queryKey: [PROFILE_QUERY_KEY, user.uid],
     queryFn: () => getProfile(user.uid),
   })
 
   const [displayName, setDisplayName] = useState('')
   const [phone, setPhone] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [nameError, setNameError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedSuccess, setSavedSuccess] = useState(false)
 
@@ -31,15 +36,22 @@ export function ProfileSection({ user }: ProfileSectionProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!displayName.trim()) {
+      setNameError('Namn krävs')
+      return
+    }
+    setNameError(null)
     setIsSaving(true)
     setSaveError(null)
     setSavedSuccess(false)
     try {
       await updateProfile(user.uid, {
-        displayName: displayName.trim() || undefined,
+        displayName: displayName.trim(),
         phone: phone.trim() || null,
       })
-      await queryClient.invalidateQueries({ queryKey: ['profile', user.uid] })
+      await queryClient.invalidateQueries({
+        queryKey: [PROFILE_QUERY_KEY, user.uid],
+      })
       setSavedSuccess(true)
       setTimeout(() => setSavedSuccess(false), 2000)
     } catch {
@@ -75,9 +87,13 @@ export function ProfileSection({ user }: ProfileSectionProps) {
               id="profile-displayName"
               type="text"
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F1E334]"
+              onChange={(e) => {
+                setDisplayName(e.target.value)
+                if (nameError) setNameError(null)
+              }}
+              className={`w-full min-h-[44px] rounded-xl border px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F1E334] ${nameError ? 'border-red-400' : 'border-gray-200'}`}
             />
+            {nameError && <p className="text-xs text-red-600">{nameError}</p>}
           </div>
 
           {/* Email — read-only */}
