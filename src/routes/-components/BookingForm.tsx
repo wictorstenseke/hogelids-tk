@@ -76,6 +76,12 @@ export function BookingForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerStep, setDrawerStep] = useState<'date' | 'start' | 'end'>('date')
+
+  function openDrawer(step: 'date' | 'start' | 'end') {
+    setDrawerStep(step)
+    setDrawerOpen(true)
+  }
 
   const startDate =
     dateValue && startTimeValue
@@ -155,17 +161,8 @@ export function BookingForm({
   const inputClass =
     'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
 
-  const mobileSummaryEmpty = !dateValue && !startTimeValue
-  const mobileSummary = mobileSummaryEmpty
-    ? 'Välj datum och tid'
-    : [
-        dateValue ? formatDateLabel(dateValue) : null,
-        startTimeValue && endTimeValue
-          ? `${startTimeValue}–${endTimeValue}`
-          : startTimeValue || null,
-      ]
-        .filter(Boolean)
-        .join(' · ')
+  const mobileFieldClass =
+    'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-left text-sm transition-colors'
 
   return (
     <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100">
@@ -277,24 +274,50 @@ export function BookingForm({
           </>
         )}
 
-        {/* ── MOBILE: summary row → opens BookingDrawer ── */}
+        {/* ── MOBILE: individual fields → opens BookingDrawer at correct step ── */}
         {!isDesktop && (
-          <div className="min-w-0">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Datum och tid
-            </label>
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              className={`w-full min-h-[44px] rounded-lg border bg-gray-50 px-3 py-2.5 text-left text-sm transition-colors ${
-                mobileSummaryEmpty
-                  ? 'border-gray-200 text-gray-400'
-                  : 'border-gray-200 text-gray-900'
-              }`}
-            >
-              {mobileSummary}
-            </button>
-          </div>
+          <>
+            <div className="min-w-0">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Datum
+              </label>
+              <button
+                type="button"
+                onClick={() => openDrawer('date')}
+                className={`${mobileFieldClass} ${dateValue ? 'text-gray-900' : 'text-gray-400'}`}
+              >
+                {dateValue ? formatDateLabel(dateValue) : 'Välj datum'}
+              </button>
+            </div>
+
+            <div className="min-w-0">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Starttid
+              </label>
+              <button
+                type="button"
+                onClick={() => openDrawer('start')}
+                className={`${mobileFieldClass} ${startTimeValue ? 'text-gray-900' : 'text-gray-400'}`}
+              >
+                {startTimeValue || 'Välj starttid'}
+              </button>
+            </div>
+
+            {startTimeValue && (
+              <div className="min-w-0">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Sluttid
+                </label>
+                <button
+                  type="button"
+                  onClick={() => openDrawer('end')}
+                  className={`${mobileFieldClass} ${endTimeValue ? 'text-gray-900' : 'text-gray-400'}`}
+                >
+                  {endTimeValue || 'Välj sluttid'}
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Inline conflict error */}
@@ -332,6 +355,7 @@ export function BookingForm({
           onStartTimeChange={handleStartTimeChange}
           onEndTimeChange={setEndTimeValue}
           onClose={() => setDrawerOpen(false)}
+          initialStep={drawerStep}
         />
       )}
     </section>
