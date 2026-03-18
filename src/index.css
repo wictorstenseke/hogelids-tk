@@ -141,19 +141,19 @@ label[for] {
 }
 
 /* react-wheel-picker overrides */
-[data-rwp-option],
-[data-rwp-highlight-item] {
+[data-rwp-wrapper] [data-rwp-option],
+[data-rwp-wrapper] [data-rwp-highlight-item] {
   font-family: 'Barlow', system-ui, sans-serif;
   font-size: 1.125rem;
 }
 
 /* Date+time picker: date column wider than hour/minute */
 .htk-datetime-picker [data-rwp]:nth-child(1) {
-  flex: 6;
+  flex: 8;
 }
 .htk-datetime-picker [data-rwp]:nth-child(2) {
-  flex: 3;
+  flex: 2;
 }
 .htk-datetime-picker [data-rwp]:nth-child(3) {
-  flex: 3;
+  flex: 2;
 }
