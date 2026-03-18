@@ -207,10 +207,8 @@ export function HomePage() {
             <div className="flex items-center gap-3">
               <img
                 src="/htk-logo.svg"
-                alt="Högelids Tennisklubb"
-                width="44"
-                height="44"
-                className="shrink-0 rounded-full ring-2 ring-white/30"
+                alt="HTK Logo"
+                className="h-auto w-[48px] sm:w-[56px] shrink-0 [filter:drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:[filter:drop-shadow(0px_4px_6px_2px_rgba(0,0,0,0.25))] transition-[filter] duration-200"
               />
               <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-white">
                 Högelids Tennisklubb
