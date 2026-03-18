@@ -30,6 +30,10 @@ vi.mock('./ProfileSection', () => ({
   ProfileSection: () => null,
 }))
 
+vi.mock('../../lib/useIsDesktop', () => ({
+  useIsDesktop: vi.fn(() => true),
+}))
+
 function renderWithQueryClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
