@@ -48,6 +48,8 @@ export function HistorySection({
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['bookings', 'history', selectedYear],
     queryFn: () => getBookingsByYear(selectedYear),
+    staleTime: Infinity,
+    gcTime: Infinity,
   })
 
   return (

@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
   getEarliestBookingYear,
+  getBookingsByYear,
   BOOKINGS_QUERY_KEY,
   type BookingWithId,
 } from '../../services/BookingService'
+import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
 import { getEmail } from '../../lib/GuestSession'
 import { useAuth } from '../../lib/useAuth'
 import { signOut } from '../../services/AuthService'
@@ -69,6 +71,8 @@ export function HomePage() {
   } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
+    staleTime: 0,
+    refetchInterval: 30_000,
   })
 
   const currentYear = new Date().getFullYear()
@@ -76,7 +80,32 @@ export function HomePage() {
   const { data: earliestYear } = useQuery({
     queryKey: ['bookings', 'earliestYear'],
     queryFn: getEarliestBookingYear,
+    staleTime: Infinity,
+    gcTime: Infinity,
   })
+
+  // Prefetch profile as soon as user is known — profile modal opens instantly
+  useEffect(() => {
+    if (!user) return
+    void queryClient.prefetchQuery({
+      queryKey: [PROFILE_QUERY_KEY, user.uid],
+      queryFn: () => getProfile(user.uid),
+      staleTime: 1000 * 60 * 10,
+    })
+  }, [user, queryClient])
+
+  // Prefetch all history years once we know the full range
+  useEffect(() => {
+    if (!user || !earliestYear) return
+    for (let y = currentYear; y >= earliestYear; y--) {
+      void queryClient.prefetchQuery({
+        queryKey: ['bookings', 'history', y],
+        queryFn: () => getBookingsByYear(y),
+        staleTime: Infinity,
+        gcTime: Infinity,
+      })
+    }
+  }, [user, earliestYear, currentYear, queryClient])
 
   // When logged in, ignore any stored guest email
   const effectiveGuestEmail = user ? null : guestEmail
