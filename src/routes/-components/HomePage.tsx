@@ -59,46 +59,57 @@ function BookingItem({
   const isOwnBooking = !!guestEmail && booking.ownerEmail === guestEmail
   const queryClient = useQueryClient()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   async function handleDelete() {
     setIsDeleting(true)
+    setDeleteError(null)
     try {
       await deleteGuestBooking(booking.id)
       await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+    } catch {
+      setDeleteError('Kunde inte ta bort bokningen.')
     } finally {
       setIsDeleting(false)
     }
   }
 
   return (
-    <li className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
-      <span className="text-sm text-gray-700">{formatDateRange(booking)}</span>
-      <div className="ml-4 flex shrink-0 items-center gap-2">
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            isOwnBooking
-              ? 'bg-[#F1E334] text-gray-900'
-              : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          {label}
-        </span>
-        {booking.type === 'guest' && (
-          <button
-            onClick={() => void handleDelete()}
-            disabled={isDeleting}
-            aria-label="Avboka"
-            title="Avboka"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+    <li className="space-y-2">
+      <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
+        <span className="text-sm text-gray-700">{formatDateRange(booking)}</span>
+        <div className="ml-4 flex shrink-0 items-center gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              isOwnBooking
+                ? 'bg-[#F1E334] text-gray-900'
+                : 'bg-gray-100 text-gray-600'
+            }`}
           >
-            {isDeleting ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-            ) : (
-              <span className="text-lg leading-none">×</span>
-            )}
-          </button>
-        )}
+            {label}
+          </span>
+          {booking.type === 'guest' && (
+            <button
+              onClick={() => void handleDelete()}
+              disabled={isDeleting}
+              aria-label="Avboka"
+              title="Avboka"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isDeleting ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+              ) : (
+                <span className="text-lg leading-none">×</span>
+              )}
+            </button>
+          )}
+        </div>
       </div>
+      {deleteError && (
+        <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+          {deleteError}
+        </div>
+      )}
     </li>
   )
 }
