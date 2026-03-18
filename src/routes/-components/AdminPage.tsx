@@ -104,6 +104,14 @@ function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  // Sync selectedRole when profile.role changes externally (e.g. after query invalidation),
+  // but not while a save is in progress to avoid resetting the select mid-save.
+  useEffect(() => {
+    if (!isSaving) {
+      setSelectedRole(profile.role)
+    }
+  }, [profile.role, isSaving])
+
   async function handleSave() {
     if (!user) return
     setIsSaving(true)

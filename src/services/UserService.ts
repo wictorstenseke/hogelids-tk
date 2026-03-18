@@ -5,6 +5,7 @@ import {
   updateDoc,
   query,
   orderBy,
+  Timestamp,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import type { UserProfile, UserRole } from './AuthService'
@@ -23,7 +24,7 @@ export async function listAllUsers(): Promise<UserProfile[]> {
       email: data.email as string,
       displayName: data.displayName as string,
       phone: (data.phone as string | null) ?? null,
-      createdAt: data.createdAt,
+      createdAt: data.createdAt as Timestamp,
       role: ((data.role as UserRole | undefined) ?? 'user') as UserRole,
     }
   })
