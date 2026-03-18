@@ -28,7 +28,6 @@ export async function signUp(
   const user = credential.user
 
   await updateProfile(user, { displayName })
-  await sendEmailVerification(user)
   await setDoc(doc(db, 'users', user.uid), {
     email,
     displayName,
@@ -36,6 +35,10 @@ export async function signUp(
     createdAt: Timestamp.now(),
   } satisfies Omit<UserProfile, 'uid'>)
   await migrateGuestBookings(user.uid, email)
+  // Non-blocking — failure must not abort sign-up
+  sendEmailVerification(user).catch((err) =>
+    console.warn('sendEmailVerification failed:', err)
+  )
 }
 
 // Signs in with email/password (persistent session — Firebase default)
