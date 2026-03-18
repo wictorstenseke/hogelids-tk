@@ -140,6 +140,15 @@ label[for] {
   display: none !important;
 }
 
+.react-datepicker-popper .react-datepicker__triangle {
+  stroke: #e5e7eb !important;
+}
+
+.react-datepicker-popper[data-placement^='bottom'] .react-datepicker__triangle {
+  fill: #fff !important;
+  color: #fff !important;
+}
+
 /* react-wheel-picker overrides */
 [data-rwp-wrapper] [data-rwp-option],
 [data-rwp-wrapper] [data-rwp-highlight-item] {
