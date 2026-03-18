@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { IconX } from '@tabler/icons-react'
 import { signIn, signUp, sendPasswordReset } from '../../services/AuthService'
 
 type View = 'sign-in' | 'sign-up' | 'forgot-password'
@@ -45,6 +46,21 @@ export function AuthModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resetSent, setResetSent] = useState(false)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true))
+    document.body.style.overflow = 'hidden'
+    return () => {
+      cancelAnimationFrame(id)
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  function handleClose() {
+    setVisible(false)
+    setTimeout(onClose, 280)
+  }
 
   // Form fields
   const [displayName, setDisplayName] = useState('')
@@ -100,246 +116,59 @@ export function AuthModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:px-4">
+    <>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
-      {/* Modal panel — full-width drawer on mobile, centered card on desktop */}
-      <div className="relative w-full rounded-t-2xl bg-white px-6 py-8 shadow-xl md:max-w-sm md:rounded-2xl">
-        {/* Close button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Stäng"
-          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-        >
-          <span className="text-xl leading-none">×</span>
-        </button>
-
-        {view === 'sign-in' && (
-          <>
-            <h2 className="mb-6 text-xl font-bold text-gray-900">Logga in</h2>
-
-            <form
-              onSubmit={(e) => void handleSignIn(e)}
-              className="space-y-4"
-              noValidate
+      {/* Panel — slides up from bottom on mobile, centered modal on desktop */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={[
+          'fixed z-50 w-full bg-white shadow-2xl',
+          'bottom-0 left-0 right-0 rounded-t-3xl',
+          'transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+          visible ? 'translate-y-0' : 'translate-y-full',
+          'md:bottom-auto md:left-1/2 md:right-auto md:top-1/2',
+          'md:-translate-x-1/2 md:-translate-y-1/2',
+          'md:max-w-sm md:rounded-2xl md:transition-none',
+        ].join(' ')}
+      >
+        <div className="px-6 pb-10 pt-6">
+          {/* Close button */}
+          <div className="mb-5 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="Stäng"
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800"
             >
-              <div>
-                <label
-                  htmlFor="signin-email"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  E-post
-                </label>
-                <input
-                  id="signin-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
-                  placeholder="din@epost.se"
-                />
-              </div>
+              <IconX size={18} stroke={2} />
+            </button>
+          </div>
 
-              <div>
-                <label
-                  htmlFor="signin-password"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Lösenord
-                </label>
-                <input
-                  id="signin-password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
-                  placeholder="••••••"
-                />
-              </div>
+          {view === 'sign-in' && (
+            <>
+              <h2 className="mb-6 text-xl font-bold text-gray-900">Logga in</h2>
 
-              {error && (
-                <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
-                style={{ backgroundColor: '#F1E334' }}
-              >
-                {loading ? 'Laddar…' : 'Logga in'}
-              </button>
-            </form>
-
-            <div className="mt-5 space-y-2 text-center text-sm text-gray-500">
-              <p>
-                <button
-                  type="button"
-                  onClick={() => switchView('forgot-password')}
-                  className="underline hover:text-gray-800"
-                >
-                  Glömt lösenord?
-                </button>
-              </p>
-              <p>
-                Inget konto?{' '}
-                <button
-                  type="button"
-                  onClick={() => switchView('sign-up')}
-                  className="font-medium text-gray-900 underline hover:text-gray-700"
-                >
-                  Skapa konto
-                </button>
-              </p>
-            </div>
-          </>
-        )}
-
-        {view === 'sign-up' && (
-          <>
-            <h2 className="mb-6 text-xl font-bold text-gray-900">
-              Skapa konto
-            </h2>
-
-            <form
-              onSubmit={(e) => void handleSignUp(e)}
-              className="space-y-4"
-              noValidate
-            >
-              <div>
-                <label
-                  htmlFor="signup-name"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Namn
-                </label>
-                <input
-                  id="signup-name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={loading}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
-                  placeholder="För- och efternamn"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="signup-email"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  E-post
-                </label>
-                <input
-                  id="signup-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
-                  placeholder="din@epost.se"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="signup-password"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Lösenord
-                </label>
-                <input
-                  id="signup-password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
-                  placeholder="Minst 6 tecken"
-                />
-              </div>
-
-              {error && (
-                <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
-                style={{ backgroundColor: '#F1E334' }}
-              >
-                {loading ? 'Laddar…' : 'Skapa konto'}
-              </button>
-            </form>
-
-            <div className="mt-5 text-center text-sm text-gray-500">
-              <p>
-                Har du redan ett konto?{' '}
-                <button
-                  type="button"
-                  onClick={() => switchView('sign-in')}
-                  className="font-medium text-gray-900 underline hover:text-gray-700"
-                >
-                  Logga in
-                </button>
-              </p>
-            </div>
-          </>
-        )}
-
-        {view === 'forgot-password' && (
-          <>
-            <h2 className="mb-2 text-xl font-bold text-gray-900">
-              Glömt lösenord?
-            </h2>
-            <p className="mb-6 text-sm text-gray-500">
-              Ange din e-postadress så skickar vi en länk för att återställa
-              lösenordet.
-            </p>
-
-            {resetSent ? (
-              <div className="rounded-xl border border-green-100 bg-green-50 px-4 py-4 text-sm text-green-700">
-                Ett e-postmeddelande har skickats. Kontrollera din inkorg.
-              </div>
-            ) : (
               <form
-                onSubmit={(e) => void handleForgotPassword(e)}
+                onSubmit={(e) => void handleSignIn(e)}
                 className="space-y-4"
                 noValidate
               >
                 <div>
                   <label
-                    htmlFor="reset-email"
+                    htmlFor="signin-email"
                     className="mb-1 block text-sm font-medium text-gray-700"
                   >
                     E-post
                   </label>
                   <input
-                    id="reset-email"
+                    id="signin-email"
                     type="email"
                     autoComplete="email"
                     required
@@ -348,6 +177,26 @@ export function AuthModal({
                     disabled={loading}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                     placeholder="din@epost.se"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="signin-password"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    Lösenord
+                  </label>
+                  <input
+                    id="signin-password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    placeholder="••••••"
                   />
                 </div>
 
@@ -363,25 +212,208 @@ export function AuthModal({
                   className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
                   style={{ backgroundColor: '#F1E334' }}
                 >
-                  {loading ? 'Laddar…' : 'Skicka återställningslänk'}
+                  {loading ? 'Laddar…' : 'Logga in'}
                 </button>
               </form>
-            )}
 
-            <div className="mt-5 text-center text-sm text-gray-500">
-              <p>
+              <div className="mt-5 space-y-2 text-center text-sm text-gray-500">
+                <p>
+                  <button
+                    type="button"
+                    onClick={() => switchView('forgot-password')}
+                    className="underline hover:text-gray-800"
+                  >
+                    Glömt lösenord?
+                  </button>
+                </p>
+                <p>
+                  Inget konto?{' '}
+                  <button
+                    type="button"
+                    onClick={() => switchView('sign-up')}
+                    className="font-medium text-gray-900 underline hover:text-gray-700"
+                  >
+                    Skapa konto
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
+
+          {view === 'sign-up' && (
+            <>
+              <h2 className="mb-6 text-xl font-bold text-gray-900">
+                Skapa konto
+              </h2>
+
+              <form
+                onSubmit={(e) => void handleSignUp(e)}
+                className="space-y-4"
+                noValidate
+              >
+                <div>
+                  <label
+                    htmlFor="signup-name"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    Namn
+                  </label>
+                  <input
+                    id="signup-name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    placeholder="För- och efternamn"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="signup-email"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    E-post
+                  </label>
+                  <input
+                    id="signup-email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    placeholder="din@epost.se"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="signup-password"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    Lösenord
+                  </label>
+                  <input
+                    id="signup-password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    placeholder="Minst 6 tecken"
+                  />
+                </div>
+
+                {error && (
+                  <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
                 <button
-                  type="button"
-                  onClick={() => switchView('sign-in')}
-                  className="font-medium text-gray-900 underline hover:text-gray-700"
+                  type="submit"
+                  disabled={loading}
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
+                  style={{ backgroundColor: '#F1E334' }}
                 >
-                  Tillbaka till inloggning
+                  {loading ? 'Laddar…' : 'Skapa konto'}
                 </button>
+              </form>
+
+              <div className="mt-5 text-center text-sm text-gray-500">
+                <p>
+                  Har du redan ett konto?{' '}
+                  <button
+                    type="button"
+                    onClick={() => switchView('sign-in')}
+                    className="font-medium text-gray-900 underline hover:text-gray-700"
+                  >
+                    Logga in
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
+
+          {view === 'forgot-password' && (
+            <>
+              <h2 className="mb-2 text-xl font-bold text-gray-900">
+                Glömt lösenord?
+              </h2>
+              <p className="mb-6 text-sm text-gray-500">
+                Ange din e-postadress så skickar vi en länk för att återställa
+                lösenordet.
               </p>
-            </div>
-          </>
-        )}
+
+              {resetSent ? (
+                <div className="rounded-xl border border-green-100 bg-green-50 px-4 py-4 text-sm text-green-700">
+                  Ett e-postmeddelande har skickats. Kontrollera din inkorg.
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => void handleForgotPassword(e)}
+                  className="space-y-4"
+                  noValidate
+                >
+                  <div>
+                    <label
+                      htmlFor="reset-email"
+                      className="mb-1 block text-sm font-medium text-gray-700"
+                    >
+                      E-post
+                    </label>
+                    <input
+                      id="reset-email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                      placeholder="din@epost.se"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
+                    style={{ backgroundColor: '#F1E334' }}
+                  >
+                    {loading ? 'Laddar…' : 'Skicka återställningslänk'}
+                  </button>
+                </form>
+              )}
+
+              <div className="mt-5 text-center text-sm text-gray-500">
+                <p>
+                  <button
+                    type="button"
+                    onClick={() => switchView('sign-in')}
+                    className="font-medium text-gray-900 underline hover:text-gray-700"
+                  >
+                    Tillbaka till inloggning
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
