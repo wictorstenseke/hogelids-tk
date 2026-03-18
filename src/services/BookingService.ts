@@ -6,6 +6,8 @@ import {
   orderBy,
   Timestamp,
   addDoc,
+  deleteDoc,
+  doc,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
@@ -56,6 +58,10 @@ export async function createGuestBooking(
     createdAt: Timestamp.fromDate(new Date()),
   })
   return docRef.id
+}
+
+export async function deleteGuestBooking(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'bookings', id))
 }
 
 export async function getUpcomingBookings(): Promise<BookingWithId[]> {

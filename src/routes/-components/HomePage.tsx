@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
+  deleteGuestBooking,
   BOOKINGS_QUERY_KEY,
   type BookingWithId,
 } from '../../services/BookingService'
@@ -56,19 +57,48 @@ function BookingItem({
 }) {
   const label = getBookingLabel(booking, guestEmail)
   const isOwnBooking = !!guestEmail && booking.ownerEmail === guestEmail
+  const queryClient = useQueryClient()
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  async function handleDelete() {
+    setIsDeleting(true)
+    try {
+      await deleteGuestBooking(booking.id)
+      await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <li className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
       <span className="text-sm text-gray-700">{formatDateRange(booking)}</span>
-      <span
-        className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-          isOwnBooking
-            ? 'bg-[#F1E334] text-gray-900'
-            : 'bg-gray-100 text-gray-600'
-        }`}
-      >
-        {label}
-      </span>
+      <div className="ml-4 flex shrink-0 items-center gap-2">
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            isOwnBooking
+              ? 'bg-[#F1E334] text-gray-900'
+              : 'bg-gray-100 text-gray-600'
+          }`}
+        >
+          {label}
+        </span>
+        {booking.type === 'guest' && (
+          <button
+            onClick={() => void handleDelete()}
+            disabled={isDeleting}
+            aria-label="Avboka"
+            title="Avboka"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {isDeleting ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+            ) : (
+              <span className="text-lg leading-none">×</span>
+            )}
+          </button>
+        )}
+      </div>
     </li>
   )
 }
