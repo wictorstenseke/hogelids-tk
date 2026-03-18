@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import { shouldShowNudge } from '../../lib/GuestSession'
+import { NudgePrompt } from './NudgePrompt'
+
 interface SuccessDialogProps {
   startTime: Date
   endTime: Date
@@ -9,6 +13,7 @@ export function SuccessDialog({
   endTime,
   onClose,
 }: SuccessDialogProps) {
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
   const dateStr = startTime.toLocaleDateString('sv-SE', {
     weekday: 'long',
     day: 'numeric',
@@ -56,10 +61,14 @@ export function SuccessDialog({
           </p>
         </div>
 
+        {shouldShowNudge() && !nudgeDismissed && (
+          <NudgePrompt onDismiss={() => setNudgeDismissed(true)} />
+        )}
+
         <button
           type="button"
           onClick={onClose}
-          className="flex w-full min-h-[44px] items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity"
+          className="mt-6 flex w-full min-h-[44px] items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity"
           style={{ backgroundColor: '#F1E334' }}
         >
           Stäng
