@@ -94,7 +94,8 @@ export async function getBookingsByYear(
 ): Promise<BookingWithId[]> {
   const bookingsRef = collection(db, 'bookings')
   const start = Timestamp.fromDate(new Date(year, 0, 1))
-  const end = Timestamp.fromDate(new Date(year + 1, 0, 1))
+  const yearEnd = new Date(year + 1, 0, 1)
+  const end = Timestamp.fromDate(yearEnd < new Date() ? yearEnd : new Date())
   const q = query(
     bookingsRef,
     where('startTime', '>=', start),
