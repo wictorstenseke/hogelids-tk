@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth'
 import { setDoc, doc, Timestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import { migrateGuestBookings } from './MigrationService'
 
 export interface UserProfile {
   uid: string
@@ -34,6 +35,7 @@ export async function signUp(
     phone: null,
     createdAt: Timestamp.now(),
   } satisfies Omit<UserProfile, 'uid'>)
+  await migrateGuestBookings(user.uid, email)
 }
 
 // Signs in with email/password (persistent session — Firebase default)

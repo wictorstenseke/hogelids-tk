@@ -64,6 +64,30 @@ export async function deleteGuestBooking(id: string): Promise<void> {
   await deleteDoc(doc(db, 'bookings', id))
 }
 
+export async function createMemberBooking(
+  uid: string,
+  ownerEmail: string,
+  ownerDisplayName: string,
+  startTime: Date,
+  endTime: Date
+): Promise<string> {
+  const bookingsRef = collection(db, 'bookings')
+  const docRef = await addDoc(bookingsRef, {
+    type: 'member',
+    ownerEmail,
+    ownerUid: uid,
+    ownerDisplayName,
+    startTime: Timestamp.fromDate(startTime),
+    endTime: Timestamp.fromDate(endTime),
+    createdAt: Timestamp.fromDate(new Date()),
+  })
+  return docRef.id
+}
+
+export async function deleteMemberBooking(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'bookings', id))
+}
+
 export async function getUpcomingBookings(): Promise<BookingWithId[]> {
   const bookingsRef = collection(db, 'bookings')
   const now = Timestamp.fromDate(new Date())
