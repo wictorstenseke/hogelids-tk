@@ -26,6 +26,9 @@ coverage
 # TanStack Router generator cache
 .tanstack
 
+# Firebase local cache
+.firebase/
+
 # Git worktrees
 .worktrees
 
