@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, Link } from '@tanstack/react-router'
+import { IconArrowLeft } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
@@ -52,7 +53,7 @@ interface SettingsSectionProps {
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
     <section>
-      <h2 className="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <h2 className="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
         {title}
       </h2>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
@@ -243,9 +244,17 @@ export function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8">
+    <main className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-lg space-y-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/"
+            className="flex items-center justify-center rounded-full p-1 text-white/80 transition-opacity hover:opacity-70"
+          >
+            <IconArrowLeft size={24} />
+          </Link>
+          <h1 className="text-2xl font-bold text-white">Admin</h1>
+        </div>
 
         <SettingsSection title="Bokning">
           <SettingsRow
