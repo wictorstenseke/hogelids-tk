@@ -12,6 +12,9 @@ const STEP_LABELS: Record<Step, string> = {
   end: 'Sluttid',
 }
 
+const VISIBLE_COUNT = 12
+const ITEM_HEIGHT = 52
+
 const HOUR_OPTIONS: WheelPickerOption<string>[] = Array.from(
   { length: 24 },
   (_, i) => ({
@@ -119,7 +122,10 @@ export function BookingDrawer({
 
   const endDefault = endTimeValue
     ? { hour: endTimeValue.split(':')[0]!, minute: endTimeValue.split(':')[1]! }
-    : addTwoHours(draftStartHour, draftStartMinute)
+    : addTwoHours(
+        startTimeValue ? startTimeValue.split(':')[0]! : nearest.hour,
+        startTimeValue ? startTimeValue.split(':')[1]! : nearest.minute
+      )
 
   const [draftEndHour, setDraftEndHour] = useState(endDefault.hour)
   const [draftEndMinute, setDraftEndMinute] = useState(endDefault.minute)
@@ -146,22 +152,34 @@ export function BookingDrawer({
       const startTime = `${draftStartHour}:${draftStartMinute}`
       onStartTimeChange(startTime)
       const computed = addTwoHours(draftStartHour, draftStartMinute)
-      if (!endTimeValue) {
-        setDraftEndHour(computed.hour)
-        setDraftEndMinute(computed.minute)
-      }
-      setStep('end')
+      onEndTimeChange(`${computed.hour}:${computed.minute}`)
+      handleClose()
     } else {
       onEndTimeChange(`${draftEndHour}:${draftEndMinute}`)
       handleClose()
     }
   }
 
-  const nextLabel = step === 'end' ? 'Klar' : 'Nästa'
+  const nextLabel = step === 'date' ? 'Nästa' : 'Klar'
+  const wheelHeight = VISIBLE_COUNT * ITEM_HEIGHT
 
-  const wheelClassNames = {
-    highlightWrapper: 'htk-wheel-highlight',
-    optionItem: 'htk-wheel-option',
+  // Date wheel: single column, full-width rounded highlight
+  const dateClassNames = {
+    optionItem: 'text-gray-400 text-xl font-medium',
+    highlightWrapper: 'bg-gray-100 rounded-2xl mx-3 text-gray-900',
+    highlightItem: 'text-xl font-semibold',
+  }
+
+  // Time wheels: left (hours) and right (minutes) get joined rounded corners
+  const hourClassNames = {
+    optionItem: 'text-gray-400 text-2xl font-semibold',
+    highlightWrapper: 'bg-gray-100 rounded-l-2xl ml-3 text-gray-900',
+    highlightItem: 'text-2xl font-bold',
+  }
+  const minuteClassNames = {
+    optionItem: 'text-gray-400 text-2xl font-semibold',
+    highlightWrapper: 'bg-gray-100 rounded-r-2xl mr-3 text-gray-900',
+    highlightItem: 'text-2xl font-bold',
   }
 
   return (
@@ -206,71 +224,77 @@ export function BookingDrawer({
 
           {/* Date wheel */}
           {step === 'date' && (
-            <WheelPickerWrapper className="htk-wheel-wrapper">
-              <WheelPicker
-                options={DATE_OPTIONS}
-                value={draftDate}
-                onValueChange={(v) => setDraftDate(v)}
-                visibleCount={8}
-                optionItemHeight={44}
-                infinite={false}
-                classNames={wheelClassNames}
-              />
-            </WheelPickerWrapper>
+            <div style={{ height: wheelHeight }}>
+              <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white h-full overflow-hidden">
+                <WheelPicker
+                  options={DATE_OPTIONS}
+                  value={draftDate}
+                  onValueChange={(v) => setDraftDate(v)}
+                  visibleCount={VISIBLE_COUNT}
+                  optionItemHeight={ITEM_HEIGHT}
+                  infinite={false}
+                  classNames={dateClassNames}
+                />
+              </WheelPickerWrapper>
+            </div>
           )}
 
           {/* Start time wheels */}
           {step === 'start' && (
-            <WheelPickerWrapper className="htk-wheel-wrapper">
-              <WheelPicker
-                options={HOUR_OPTIONS}
-                value={draftStartHour}
-                onValueChange={(v) => setDraftStartHour(v)}
-                visibleCount={8}
-                optionItemHeight={44}
-                infinite={true}
-                classNames={wheelClassNames}
-              />
-              <WheelPicker
-                options={MINUTE_OPTIONS}
-                value={draftStartMinute}
-                onValueChange={(v) => setDraftStartMinute(v)}
-                visibleCount={8}
-                optionItemHeight={44}
-                infinite={true}
-                classNames={wheelClassNames}
-              />
-            </WheelPickerWrapper>
+            <div style={{ height: wheelHeight }}>
+              <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white h-full overflow-hidden">
+                <WheelPicker
+                  options={HOUR_OPTIONS}
+                  value={draftStartHour}
+                  onValueChange={(v) => setDraftStartHour(v)}
+                  visibleCount={VISIBLE_COUNT}
+                  optionItemHeight={ITEM_HEIGHT}
+                  infinite={true}
+                  classNames={hourClassNames}
+                />
+                <WheelPicker
+                  options={MINUTE_OPTIONS}
+                  value={draftStartMinute}
+                  onValueChange={(v) => setDraftStartMinute(v)}
+                  visibleCount={VISIBLE_COUNT}
+                  optionItemHeight={ITEM_HEIGHT}
+                  infinite={true}
+                  classNames={minuteClassNames}
+                />
+              </WheelPickerWrapper>
+            </div>
           )}
 
           {/* End time wheels */}
           {step === 'end' && (
-            <WheelPickerWrapper className="htk-wheel-wrapper">
-              <WheelPicker
-                options={HOUR_OPTIONS}
-                value={draftEndHour}
-                onValueChange={(v) => setDraftEndHour(v)}
-                visibleCount={8}
-                optionItemHeight={44}
-                infinite={true}
-                classNames={wheelClassNames}
-              />
-              <WheelPicker
-                options={MINUTE_OPTIONS}
-                value={draftEndMinute}
-                onValueChange={(v) => setDraftEndMinute(v)}
-                visibleCount={8}
-                optionItemHeight={44}
-                infinite={true}
-                classNames={wheelClassNames}
-              />
-            </WheelPickerWrapper>
+            <div style={{ height: wheelHeight }}>
+              <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white h-full overflow-hidden">
+                <WheelPicker
+                  options={HOUR_OPTIONS}
+                  value={draftEndHour}
+                  onValueChange={(v) => setDraftEndHour(v)}
+                  visibleCount={VISIBLE_COUNT}
+                  optionItemHeight={ITEM_HEIGHT}
+                  infinite={true}
+                  classNames={hourClassNames}
+                />
+                <WheelPicker
+                  options={MINUTE_OPTIONS}
+                  value={draftEndMinute}
+                  onValueChange={(v) => setDraftEndMinute(v)}
+                  visibleCount={VISIBLE_COUNT}
+                  optionItemHeight={ITEM_HEIGHT}
+                  infinite={true}
+                  classNames={minuteClassNames}
+                />
+              </WheelPickerWrapper>
+            </div>
           )}
 
           <button
             type="button"
             onClick={handleNext}
-            className="mt-6 flex w-full min-h-[52px] cursor-pointer items-center justify-center rounded-xl text-sm font-semibold text-gray-900 transition-opacity"
+            className="mt-6 flex w-full min-h-[52px] cursor-pointer items-center justify-center rounded-xl text-base font-semibold text-gray-900 transition-opacity"
             style={{ backgroundColor: '#F1E334' }}
           >
             {nextLabel}

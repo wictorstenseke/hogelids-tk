@@ -141,21 +141,6 @@ label[for] {
 }
 
 /* react-wheel-picker overrides */
-.htk-wheel-wrapper {
-  height: 352px; /* 8 items × 44px */
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.htk-wheel-highlight {
-  border-top: 1.5px solid #e5e7eb;
-  border-bottom: 1.5px solid #e5e7eb;
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
-}
-
-.htk-wheel-option {
+[data-rwp-option] {
   font-family: 'Barlow', system-ui, sans-serif;
-  font-size: 1rem;
-  color: #374151;
 }
