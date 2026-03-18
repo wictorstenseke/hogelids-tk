@@ -1,9 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
   BOOKINGS_QUERY_KEY,
   type BookingWithId,
 } from '../../services/BookingService'
+import { BookingForm } from './BookingForm'
+import { SuccessDialog } from './SuccessDialog'
 
 function formatDateRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
@@ -71,6 +74,11 @@ function BookingItem({
 
 export function HomePage() {
   const guestEmail = localStorage.getItem('htk_guest_email')
+  const queryClient = useQueryClient()
+  const [successBooking, setSuccessBooking] = useState<{
+    startTime: Date
+    endTime: Date
+  } | null>(null)
 
   const {
     data: bookings,
@@ -81,6 +89,11 @@ export function HomePage() {
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
   })
+
+  function handleSuccess(startTime: Date, endTime: Date) {
+    void queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+    setSuccessBooking({ startTime, endTime })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,45 +115,60 @@ export function HomePage() {
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-lg px-4 py-6">
-        <h2 className="mb-4 text-lg font-semibold text-gray-800">
-          Kommande bokningar
-        </h2>
+      <main className="mx-auto max-w-lg px-4 py-6 space-y-6">
+        <BookingForm
+          existingBookings={bookings ?? []}
+          onSuccess={handleSuccess}
+        />
 
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-            <span className="ml-3 text-sm text-gray-500">
-              Laddar bokningar…
-            </span>
-          </div>
-        )}
+        <div>
+          <h2 className="mb-4 text-lg font-semibold text-gray-800">
+            Kommande bokningar
+          </h2>
 
-        {isError && (
-          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-4 text-sm text-red-700">
-            Kunde inte hämta bokningar.{' '}
-            {error instanceof Error ? error.message : 'Okänt fel.'}
-          </div>
-        )}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
+              <span className="ml-3 text-sm text-gray-500">
+                Laddar bokningar…
+              </span>
+            </div>
+          )}
 
-        {!isLoading && !isError && bookings && bookings.length === 0 && (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-10 text-center text-sm text-gray-400">
-            Inga kommande bokningar.
-          </div>
-        )}
+          {isError && (
+            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-4 text-sm text-red-700">
+              Kunde inte hämta bokningar.{' '}
+              {error instanceof Error ? error.message : 'Okänt fel.'}
+            </div>
+          )}
 
-        {!isLoading && !isError && bookings && bookings.length > 0 && (
-          <ul className="space-y-2">
-            {bookings.map((booking) => (
-              <BookingItem
-                key={booking.id}
-                booking={booking}
-                guestEmail={guestEmail}
-              />
-            ))}
-          </ul>
-        )}
+          {!isLoading && !isError && bookings && bookings.length === 0 && (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-10 text-center text-sm text-gray-400">
+              Inga kommande bokningar.
+            </div>
+          )}
+
+          {!isLoading && !isError && bookings && bookings.length > 0 && (
+            <ul className="space-y-2">
+              {bookings.map((booking) => (
+                <BookingItem
+                  key={booking.id}
+                  booking={booking}
+                  guestEmail={guestEmail}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
       </main>
+
+      {successBooking && (
+        <SuccessDialog
+          startTime={successBooking.startTime}
+          endTime={successBooking.endTime}
+          onClose={() => setSuccessBooking(null)}
+        />
+      )}
     </div>
   )
 }

@@ -5,15 +5,23 @@ import type { BookingWithId } from './BookingService'
 
 vi.mock('../lib/firebase', () => ({ db: {} }))
 
-function makeBooking(startHour: number, endHour: number, date = '2026-03-18'): BookingWithId {
+function makeBooking(
+  startHour: number,
+  endHour: number,
+  date = '2026-03-18'
+): BookingWithId {
   return {
     id: 'test-id',
     type: 'guest',
     ownerEmail: 'test@example.com',
     ownerUid: null,
     ownerDisplayName: 'Test User',
-    startTime: Timestamp.fromDate(new Date(`${date}T${String(startHour).padStart(2, '0')}:00:00`)),
-    endTime: Timestamp.fromDate(new Date(`${date}T${String(endHour).padStart(2, '0')}:00:00`)),
+    startTime: Timestamp.fromDate(
+      new Date(`${date}T${String(startHour).padStart(2, '0')}:00:00`)
+    ),
+    endTime: Timestamp.fromDate(
+      new Date(`${date}T${String(endHour).padStart(2, '0')}:00:00`)
+    ),
     createdAt: Timestamp.fromDate(new Date()),
   }
 }
@@ -77,14 +85,22 @@ describe('hasConflict', () => {
   })
 
   it('multiple bookings, one conflicts → true', () => {
-    const bookings = [makeBooking(8, 10), makeBooking(10, 12), makeBooking(14, 16)]
+    const bookings = [
+      makeBooking(8, 10),
+      makeBooking(10, 12),
+      makeBooking(14, 16),
+    ]
     const start = new Date(`${date}T11:00:00`)
     const end = new Date(`${date}T13:00:00`)
     expect(hasConflict(bookings, start, end)).toBe(true)
   })
 
   it('multiple bookings, none conflict → false', () => {
-    const bookings = [makeBooking(8, 10), makeBooking(10, 12), makeBooking(14, 16)]
+    const bookings = [
+      makeBooking(8, 10),
+      makeBooking(10, 12),
+      makeBooking(14, 16),
+    ]
     const start = new Date(`${date}T12:00:00`)
     const end = new Date(`${date}T14:00:00`)
     expect(hasConflict(bookings, start, end)).toBe(false)

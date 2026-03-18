@@ -25,7 +25,11 @@ export interface BookingWithId extends Booking {
 
 export const BOOKINGS_QUERY_KEY = ['bookings', 'upcoming'] as const
 
-export function hasConflict(bookings: BookingWithId[], start: Date, end: Date): boolean {
+export function hasConflict(
+  bookings: BookingWithId[],
+  start: Date,
+  end: Date
+): boolean {
   return bookings.some((booking) => {
     const a = booking.startTime.toDate().getTime()
     const b = booking.endTime.toDate().getTime()
