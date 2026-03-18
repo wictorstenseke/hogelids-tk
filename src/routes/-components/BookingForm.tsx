@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import { sv } from 'date-fns/locale'
+import { format } from 'date-fns'
+import 'react-datepicker/dist/react-datepicker.css'
 import * as GuestSession from '../../lib/GuestSession'
 import {
   hasConflict,
@@ -7,6 +11,11 @@ import {
   type BookingWithId,
 } from '../../services/BookingService'
 import type { AuthUser } from '../../lib/useAuth'
+import { useIsDesktop } from '../../lib/useIsDesktop'
+import { TimeSelect } from './TimeSelect'
+import { BookingDrawer } from './BookingDrawer'
+
+registerLocale('sv', sv)
 
 interface BookingFormProps {
   existingBookings: BookingWithId[]
@@ -24,17 +33,30 @@ function addHours(timeValue: string, hours: number): string {
   return `${padTwo(Math.floor(totalMinutes / 60))}:${padTwo(totalMinutes % 60)}`
 }
 
+function formatDateLabel(dateValue: string): string {
+  if (!dateValue) return ''
+  const d = new Date(`${dateValue}T12:00:00`)
+  const str = d.toLocaleDateString('sv-SE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
 export function BookingForm({
   existingBookings,
   onSuccess,
   user,
 }: BookingFormProps) {
+  const isDesktop = useIsDesktop()
   const [email, setEmail] = useState(GuestSession.getEmail() ?? '')
   const [dateValue, setDateValue] = useState('')
   const [startTimeValue, setStartTimeValue] = useState('')
   const [endTimeValue, setEndTimeValue] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const startDate =
     dateValue && startTimeValue
@@ -50,12 +72,9 @@ export function BookingForm({
     return hasConflict(existingBookings, startDate, endDate)
   })()
 
-  function handleStartTimeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
+  function handleStartTimeChange(val: string) {
     setStartTimeValue(val)
-    if (val) {
-      setEndTimeValue(addHours(val, 2))
-    }
+    if (val) setEndTimeValue(addHours(val, 2))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -117,6 +136,18 @@ export function BookingForm({
   const inputClass =
     'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
 
+  const mobileSummaryEmpty = !dateValue && !startTimeValue
+  const mobileSummary = mobileSummaryEmpty
+    ? 'Välj datum och tid'
+    : [
+        dateValue ? formatDateLabel(dateValue) : null,
+        startTimeValue && endTimeValue
+          ? `${startTimeValue}–${endTimeValue}`
+          : startTimeValue || null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+
   return (
     <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100 overflow-hidden">
       <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-gray-900">
@@ -149,56 +180,72 @@ export function BookingForm({
           </div>
         )}
 
-        {/* Date */}
-        <div className="min-w-0">
-          <label
-            htmlFor="booking-date"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Datum
-          </label>
-          <input
-            id="booking-date"
-            type="date"
-            value={dateValue}
-            onChange={(e) => setDateValue(e.target.value)}
-            className={inputClass}
-          />
-        </div>
+        {/* ── DESKTOP: DatePicker + TimeSelect ── */}
+        {isDesktop && (
+          <>
+            <div className="min-w-0">
+              <label
+                htmlFor="booking-date-desktop"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Datum
+              </label>
+              <DatePicker
+                id="booking-date-desktop"
+                selected={dateValue ? new Date(`${dateValue}T12:00:00`) : null}
+                onChange={(date: Date | null) => {
+                  if (date) setDateValue(format(date, 'yyyy-MM-dd'))
+                }}
+                locale="sv"
+                dateFormat="yyyy-MM-dd"
+                placeholderText="Välj datum"
+                autoComplete="off"
+              />
+            </div>
 
-        {/* Start time */}
-        <div className="min-w-0">
-          <label
-            htmlFor="booking-start-time"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Starttid
-          </label>
-          <input
-            id="booking-start-time"
-            type="time"
-            value={startTimeValue}
-            onChange={handleStartTimeChange}
-            className={inputClass}
-          />
-        </div>
+            <div className="min-w-0">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Starttid
+              </label>
+              <TimeSelect
+                value={startTimeValue}
+                onChange={handleStartTimeChange}
+                placeholder="Välj starttid"
+              />
+            </div>
 
-        {/* End time — shown after start is set */}
-        {startTimeValue && (
+            {startTimeValue && (
+              <div className="min-w-0">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Sluttid
+                </label>
+                <TimeSelect
+                  value={endTimeValue}
+                  onChange={setEndTimeValue}
+                  placeholder="Välj sluttid"
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── MOBILE: summary row → opens BookingDrawer ── */}
+        {!isDesktop && (
           <div className="min-w-0">
-            <label
-              htmlFor="booking-end-time"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Sluttid
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Datum och tid
             </label>
-            <input
-              id="booking-end-time"
-              type="time"
-              value={endTimeValue}
-              onChange={(e) => setEndTimeValue(e.target.value)}
-              className={inputClass}
-            />
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className={`w-full min-h-[44px] rounded-lg border bg-gray-50 px-3 py-2.5 text-left text-sm transition-colors ${
+                mobileSummaryEmpty
+                  ? 'border-gray-200 text-gray-400'
+                  : 'border-gray-200 text-gray-900'
+              }`}
+            >
+              {mobileSummary}
+            </button>
           </div>
         )}
 
@@ -226,6 +273,19 @@ export function BookingForm({
           {isSubmitting ? 'Bokar…' : 'Boka bana'}
         </button>
       </form>
+
+      {/* Mobile booking drawer */}
+      {drawerOpen && (
+        <BookingDrawer
+          dateValue={dateValue}
+          startTimeValue={startTimeValue}
+          endTimeValue={endTimeValue}
+          onDateChange={setDateValue}
+          onStartTimeChange={handleStartTimeChange}
+          onEndTimeChange={setEndTimeValue}
+          onClose={() => setDrawerOpen(false)}
+        />
+      )}
     </section>
   )
 }
