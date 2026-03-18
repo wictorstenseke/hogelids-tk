@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { IconChevronLeft } from '@tabler/icons-react'
+import { IconSquareRoundedChevronLeft } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
@@ -8,6 +8,7 @@ import { isAdminRole } from '../../services/AuthService'
 import type { UserProfile, UserRole } from '../../services/AuthService'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { updateAppSettings } from '../../services/AppSettingsService'
+import { useToast } from '../../lib/ToastContext'
 import {
   listAllUsers,
   updateUserRole,
@@ -100,9 +101,11 @@ interface UserRowProps {
 function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const { addToast } = useToast()
   const [selectedRole, setSelectedRole] = useState<UserRole>(profile.role)
   const [isSaving, setIsSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const hasPendingChange = selectedRole !== profile.role
 
   // Sync selectedRole when profile.role changes externally (e.g. after query invalidation),
   // but not while a save is in progress to avoid resetting the select mid-save.
@@ -115,20 +118,20 @@ function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
   async function handleSave() {
     if (!user) return
     setIsSaving(true)
-    setSaveError(null)
     try {
       await updateUserRole(user.uid, profile.uid, selectedRole)
       await queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
+      addToast(`Roll ändrad till ${ROLE_LABELS[selectedRole]}`)
     } catch (err) {
       console.error('Failed to update user role:', err)
-      setSaveError('Kunde inte spara. Försök igen.')
+      addToast('Kunde inte spara. Försök igen.', 'error')
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <div className="px-4 py-3 space-y-1">
+    <div className="px-4 py-3 space-y-2">
       <div className="flex min-h-[44px] items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
@@ -136,28 +139,17 @@ function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
           </p>
           <p className="text-xs text-gray-500 truncate">{profile.email}</p>
         </div>
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="shrink-0">
           {isSuperuser && !isSelf ? (
-            <>
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                className="rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none min-h-[44px]"
-              >
-                <option value="user">Användare</option>
-                <option value="admin">Admin</option>
-                <option value="superuser">Superadmin</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={isSaving || selectedRole === profile.role}
-                className="min-h-[44px] cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: '#F1E334' }}
-              >
-                {isSaving ? 'Sparar…' : 'Spara'}
-              </button>
-            </>
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value as UserRole)}
+              className="rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none min-h-[44px]"
+            >
+              <option value="user">Användare</option>
+              <option value="admin">Admin</option>
+              <option value="superuser">Superadmin</option>
+            </select>
           ) : (
             <span className="text-sm text-gray-600">
               {ROLE_LABELS[profile.role]}
@@ -165,7 +157,33 @@ function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
           )}
         </div>
       </div>
-      {saveError && <p className="text-xs text-red-600">{saveError}</p>}
+
+      {/* Confirm strip — shown only when role selection differs from saved */}
+      {isSuperuser && !isSelf && hasPendingChange && (
+        <div className="flex items-center justify-end gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5">
+          <span className="mr-auto text-xs text-gray-700">Ändra roll?</span>
+          <button
+            type="button"
+            onClick={() => setSelectedRole(profile.role)}
+            disabled={isSaving}
+            className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+          >
+            Avbryt
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={isSaving}
+            className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-gray-900 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
+          >
+            {isSaving ? (
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              'Spara'
+            )}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -175,6 +193,7 @@ export function AdminPage() {
   const role = useRole()
   const navigate = useNavigate()
   const { settings } = useAppSettings()
+  const { addToast } = useToast()
 
   const {
     data: users,
@@ -187,7 +206,6 @@ export function AdminPage() {
   })
 
   const isAdmin = isAdminRole(role)
-  // Still loading auth or waiting for role to resolve
   const isLoading = authLoading || (!!user && role === null)
 
   // Local overrides for banner text fields — null means "not yet edited by user"
@@ -202,18 +220,16 @@ export function AdminPage() {
     string | null
   >(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [bookingToggleError, setBookingToggleError] = useState<string | null>(
-    null
-  )
-  const [bannerVisibleToggleError, setBannerVisibleToggleError] = useState<
-    string | null
-  >(null)
 
   const bannerText = bannerTextOverride ?? settings?.bannerText ?? ''
   const bannerLinkText =
     bannerLinkTextOverride ?? settings?.bannerLinkText ?? ''
   const bannerLinkUrl = bannerLinkUrlOverride ?? settings?.bannerLinkUrl ?? ''
+
+  const hasBannerChanges =
+    bannerText !== (settings?.bannerText ?? '') ||
+    bannerLinkText !== (settings?.bannerLinkText ?? '') ||
+    bannerLinkUrl !== (settings?.bannerLinkUrl ?? '')
 
   useEffect(() => {
     if (isLoading) return
@@ -228,16 +244,16 @@ export function AdminPage() {
 
   async function handleSaveBannerText() {
     setIsSaving(true)
-    setSaveError(null)
     try {
       await updateAppSettings({
         bannerText,
         bannerLinkText: bannerLinkText,
         bannerLinkUrl: bannerLinkUrl,
       })
+      addToast('Bannertext sparad')
     } catch (err) {
       console.error('Failed to save banner text:', err)
-      setSaveError('Kunde inte spara. Försök igen.')
+      addToast('Kunde inte spara. Försök igen.', 'error')
     } finally {
       setIsSaving(false)
     }
@@ -249,9 +265,9 @@ export function AdminPage() {
         <div className="flex items-center gap-3">
           <Link
             to="/"
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white transition-colors hover:bg-white/30 hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white transition-colors hover:bg-white/30"
           >
-            <IconChevronLeft size={20} stroke={2} />
+            <IconSquareRoundedChevronLeft size={24} stroke={1.5} />
           </Link>
           <h1 className="text-2xl font-bold text-white">Admin</h1>
         </div>
@@ -265,21 +281,19 @@ export function AdminPage() {
               id="booking-enabled-toggle"
               checked={settings?.bookingEnabled ?? true}
               onChange={(value) => {
-                setBookingToggleError(null)
-                void updateAppSettings({ bookingEnabled: value }).catch(
-                  (err) => {
+                void updateAppSettings({ bookingEnabled: value })
+                  .then(() =>
+                    addToast(
+                      value ? 'Bokningar aktiverade' : 'Bokningar inaktiverade'
+                    )
+                  )
+                  .catch((err) => {
                     console.error('Failed to update bookingEnabled:', err)
-                    setBookingToggleError('Kunde inte spara ändringen.')
-                  }
-                )
+                    addToast('Kunde inte spara ändringen.', 'error')
+                  })
               }}
             />
           </SettingsRow>
-          {bookingToggleError && (
-            <p className="px-4 pb-3 text-xs text-red-600">
-              {bookingToggleError}
-            </p>
-          )}
         </SettingsSection>
 
         <SettingsSection title="Banner">
@@ -288,21 +302,17 @@ export function AdminPage() {
               id="banner-visible-toggle"
               checked={settings?.bannerVisible ?? false}
               onChange={(value) => {
-                setBannerVisibleToggleError(null)
-                void updateAppSettings({ bannerVisible: value }).catch(
-                  (err) => {
+                void updateAppSettings({ bannerVisible: value })
+                  .then(() =>
+                    addToast(value ? 'Banner visas nu' : 'Banner dold')
+                  )
+                  .catch((err) => {
                     console.error('Failed to update bannerVisible:', err)
-                    setBannerVisibleToggleError('Kunde inte spara ändringen.')
-                  }
-                )
+                    addToast('Kunde inte spara ändringen.', 'error')
+                  })
               }}
             />
           </SettingsRow>
-          {bannerVisibleToggleError && (
-            <p className="px-4 pb-3 text-xs text-red-600">
-              {bannerVisibleToggleError}
-            </p>
-          )}
 
           <SettingsRow label="Bannertext">
             <input
@@ -334,17 +344,16 @@ export function AdminPage() {
             />
           </SettingsRow>
 
-          <div className="px-4 py-3 space-y-2">
+          <div className="px-4 py-3">
             <button
               type="button"
               onClick={() => void handleSaveBannerText()}
-              disabled={isSaving}
-              className="min-h-[44px] cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSaving || !hasBannerChanges}
+              className="min-h-[44px] cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#F1E334' }}
             >
               {isSaving ? 'Sparar…' : 'Spara'}
             </button>
-            {saveError && <p className="text-xs text-red-600">{saveError}</p>}
           </div>
         </SettingsSection>
 
