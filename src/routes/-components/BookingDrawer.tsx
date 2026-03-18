@@ -218,7 +218,7 @@ export function BookingDrawer({
 
           {/* Date + start time: three wheels */}
           {step === 'datetime' && (
-            <WheelPickerWrapper className="htk-datetime-picker rounded-2xl border border-gray-200 bg-white overflow-hidden">
+            <WheelPickerWrapper className="htk-datetime-picker rounded-2xl border border-gray-200 bg-white overflow-hidden pr-2">
               <WheelPicker
                 options={DATE_OPTIONS}
                 value={draftDate}
@@ -251,7 +251,7 @@ export function BookingDrawer({
 
           {/* End time: two wheels */}
           {step === 'end' && (
-            <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+            <WheelPickerWrapper className="rounded-2xl border border-gray-200 bg-white overflow-hidden pr-2">
               <WheelPicker
                 options={HOUR_OPTIONS}
                 value={draftEndHour}
