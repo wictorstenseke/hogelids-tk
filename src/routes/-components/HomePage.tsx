@@ -5,6 +5,7 @@ import {
   BOOKINGS_QUERY_KEY,
   type BookingWithId,
 } from '../../services/BookingService'
+import { getEmail } from '../../lib/GuestSession'
 import { BookingForm } from './BookingForm'
 import { SuccessDialog } from './SuccessDialog'
 
@@ -73,7 +74,7 @@ function BookingItem({
 }
 
 export function HomePage() {
-  const guestEmail = localStorage.getItem('htk_guest_email')
+  const guestEmail = getEmail()
   const queryClient = useQueryClient()
   const [successBooking, setSuccessBooking] = useState<{
     startTime: Date
