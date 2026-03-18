@@ -9,6 +9,16 @@ vi.mock('../../services/BookingService', () => ({
   getUpcomingBookings: vi.fn(() => new Promise(() => {})), // stays loading
 }))
 
+// Mock Firebase Auth so tests don't need a real Firebase connection
+vi.mock('../../lib/useAuth', () => ({
+  useAuth: vi.fn(() => ({ user: null, loading: false })),
+}))
+
+vi.mock('../../services/AuthService', () => ({
+  signOut: vi.fn(),
+  resendVerificationEmail: vi.fn(),
+}))
+
 function renderWithQueryClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },

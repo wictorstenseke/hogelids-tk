@@ -7,8 +7,12 @@ import {
   type BookingWithId,
 } from '../../services/BookingService'
 import { getEmail } from '../../lib/GuestSession'
+import { useAuth } from '../../lib/useAuth'
+import { signOut, resendVerificationEmail } from '../../services/AuthService'
 import { BookingForm } from './BookingForm'
 import { SuccessDialog } from './SuccessDialog'
+import { AuthModal } from './AuthModal'
+import { VerificationBanner } from './VerificationBanner'
 
 function formatDateRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
@@ -119,6 +123,8 @@ function BookingItem({
 export function HomePage() {
   const guestEmail = getEmail()
   const queryClient = useQueryClient()
+  const { user, loading: authLoading } = useAuth()
+  const [authModal, setAuthModal] = useState<'sign-in' | 'sign-up' | null>(null)
   const [successBooking, setSuccessBooking] = useState<{
     startTime: Date
     endTime: Date
@@ -144,19 +150,64 @@ export function HomePage() {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="mx-auto max-w-lg px-4 py-5">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-              style={{ backgroundColor: '#F1E334' }}
-            >
-              <span className="text-sm font-bold text-gray-900">H</span>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: '#F1E334' }}
+              >
+                <span className="text-sm font-bold text-gray-900">H</span>
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900">
+                Högelids Tennisklubb
+              </h1>
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900">
-              Högelids Tennisklubb
-            </h1>
+
+            {/* Auth controls */}
+            {!authLoading && (
+              <div className="flex shrink-0 items-center gap-2">
+                {user ? (
+                  <>
+                    <span className="hidden text-sm text-gray-600 sm:block">
+                      {user.displayName}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void signOut()}
+                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                    >
+                      Logga ut
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setAuthModal('sign-in')}
+                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                    >
+                      Logga in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthModal('sign-up')}
+                      className="flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: '#F1E334' }}
+                    >
+                      Skapa konto
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>
+
+      {/* Verification banner */}
+      {user && !user.emailVerified && (
+        <VerificationBanner onResend={resendVerificationEmail} />
+      )}
 
       {/* Main content */}
       <main className="mx-auto max-w-lg px-4 py-6 space-y-6">
@@ -212,6 +263,10 @@ export function HomePage() {
           endTime={successBooking.endTime}
           onClose={() => setSuccessBooking(null)}
         />
+      )}
+
+      {authModal && (
+        <AuthModal initialView={authModal} onClose={() => setAuthModal(null)} />
       )}
     </div>
   )
