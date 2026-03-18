@@ -4,6 +4,7 @@ import {
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   updateProfile,
+  reload,
 } from 'firebase/auth'
 import { setDoc, doc, Timestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
@@ -27,6 +28,7 @@ export async function signUp(
   const user = credential.user
 
   await updateProfile(user, { displayName })
+  await reload(user) // force onAuthStateChanged to re-fire with updated displayName
   await setDoc(doc(db, 'users', user.uid), {
     email,
     displayName,
