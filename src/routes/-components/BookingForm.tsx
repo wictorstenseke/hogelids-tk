@@ -11,6 +11,7 @@ import {
   type BookingWithId,
 } from '../../services/BookingService'
 import type { AuthUser } from '../../lib/useAuth'
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import { TimeSelect } from './TimeSelect'
 import { BookingDrawer } from './BookingDrawer'
@@ -219,6 +220,34 @@ export function BookingForm({
                 placeholderText="Välj datum"
                 autoComplete="off"
                 customInput={<DateDisplayInput />}
+                renderCustomHeader={({
+                  date,
+                  decreaseMonth,
+                  increaseMonth,
+                }) => (
+                  <div className="flex items-center justify-between px-3 pb-2">
+                    <button
+                      type="button"
+                      onClick={decreaseMonth}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                    >
+                      <IconChevronLeft size={18} stroke={2} />
+                    </button>
+                    <span className="font-display text-base font-bold uppercase tracking-wide text-gray-900">
+                      {date.toLocaleDateString('sv-SE', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={increaseMonth}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                    >
+                      <IconChevronRight size={18} stroke={2} />
+                    </button>
+                  </div>
+                )}
               />
             </div>
 
