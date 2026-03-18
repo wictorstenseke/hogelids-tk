@@ -8,6 +8,12 @@ vi.mock('../../services/BookingService', () => ({
   BOOKINGS_QUERY_KEY: ['bookings', 'upcoming'],
   getUpcomingBookings: vi.fn(() => new Promise(() => {})), // stays loading
   getEarliestBookingYear: vi.fn(() => new Promise(() => {})), // stays loading
+  getBookingsByYear: vi.fn(() => new Promise(() => {})),
+}))
+
+vi.mock('../../services/ProfileService', () => ({
+  PROFILE_QUERY_KEY: 'profile',
+  getProfile: vi.fn(() => new Promise(() => {})),
 }))
 
 // Mock Firebase Auth so tests don't need a real Firebase connection

@@ -30,7 +30,7 @@ function getBookingLabel(
 ): string {
   if (user) {
     if (booking.type === 'member' && user.uid === booking.ownerUid) {
-      return 'Din bokning'
+      return user.displayName ?? 'Din bokning'
     }
     if (booking.type === 'member') {
       return booking.ownerDisplayName
@@ -87,36 +87,34 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
   return (
     <li>
       {/* Main row */}
-      <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm border border-gray-100">
-        <span className="text-sm font-medium text-gray-800 shrink-0">
+      <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm border border-gray-100">
+        <span className="shrink-0 text-sm font-medium text-gray-800">
           {formatTimeRange(booking)}
         </span>
-        <div className="ml-3 flex min-w-0 items-center gap-2">
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-              isOwnBooking
-                ? 'bg-[#F1E334] text-gray-900'
-                : 'bg-gray-100 text-gray-600'
+        <span
+          className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+            isOwnBooking
+              ? 'bg-[#F1E334] text-gray-900'
+              : 'bg-gray-100 text-gray-600'
+          }`}
+        >
+          {label}
+        </span>
+        {canDelete && (
+          <button
+            onClick={() => setConfirmPending((v) => !v)}
+            disabled={isDeleting}
+            aria-label="Radera bokning"
+            title="Radera bokning"
+            className={`ml-auto flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              confirmPending
+                ? 'bg-red-100 text-red-600'
+                : 'text-gray-300 hover:bg-red-50 hover:text-red-400'
             }`}
           >
-            {label}
-          </span>
-          {canDelete && (
-            <button
-              onClick={() => setConfirmPending((v) => !v)}
-              disabled={isDeleting}
-              aria-label="Radera bokning"
-              title="Radera bokning"
-              className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                confirmPending
-                  ? 'bg-red-100 text-red-600'
-                  : 'text-gray-300 hover:bg-red-50 hover:text-red-400'
-              }`}
-            >
-              <IconTrash size={15} stroke={1.75} />
-            </button>
-          )}
-        </div>
+            <IconTrash size={15} stroke={1.75} />
+          </button>
+        )}
       </div>
 
       {/* Confirm strip — below the row, no overflow risk */}
