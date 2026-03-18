@@ -6,7 +6,10 @@ import {
   useEffect,
   useState,
 } from 'react'
-import { IconSquareRoundedCheck, IconSquareRoundedX } from '@tabler/icons-react'
+import {
+  IconSquareRoundedCheckFilled,
+  IconSquareRoundedXFilled,
+} from '@tabler/icons-react'
 
 interface ToastItem {
   id: string
@@ -54,15 +57,18 @@ function ToastEntry({
       className={[
         'flex min-w-[220px] items-center gap-2.5 rounded-xl bg-white px-4 py-3 shadow-lg',
         'border-2',
-        isError ? 'border-red-500' : 'border-green-500',
+        isError ? 'border-red-500' : 'border-green-600',
         'transition-all duration-300',
         visible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0',
       ].join(' ')}
     >
       {isError ? (
-        <IconSquareRoundedX size={18} className="shrink-0 text-red-500" />
+        <IconSquareRoundedXFilled size={18} className="shrink-0 text-red-500" />
       ) : (
-        <IconSquareRoundedCheck size={18} className="shrink-0 text-green-500" />
+        <IconSquareRoundedCheckFilled
+          size={18}
+          className="shrink-0 text-green-600"
+        />
       )}
       <span className="text-sm font-medium text-gray-900">{toast.message}</span>
     </div>
