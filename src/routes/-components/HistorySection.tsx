@@ -41,7 +41,7 @@ export function HistorySection({
   const [selectedYear, setSelectedYear] = useState(currentYear)
 
   const years: number[] = []
-  for (let y = earliestYear; y <= currentYear; y++) {
+  for (let y = currentYear; y >= earliestYear; y--) {
     years.push(y)
   }
 
@@ -52,16 +52,18 @@ export function HistorySection({
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-semibold text-gray-800">Historik</h2>
+      <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
+        Historik
+      </h2>
 
       {/* Year picker */}
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+      <div className="mb-4 flex flex-wrap gap-2">
         {years.map((year) => (
           <button
             key={year}
             type="button"
             onClick={() => setSelectedYear(year)}
-            className="flex min-h-[44px] shrink-0 items-center rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
+            className="flex min-h-[44px] items-center rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
             style={
               selectedYear === year
                 ? { backgroundColor: '#F1E334', color: '#111827' }
@@ -76,12 +78,12 @@ export function HistorySection({
       {isLoading && (
         <div className="flex items-center justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-          <span className="ml-3 text-sm text-gray-500">Laddar historik…</span>
+          <span className="ml-3 text-sm text-white/80">Laddar historik…</span>
         </div>
       )}
 
       {!isLoading && bookings && bookings.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-10 text-center text-sm text-gray-400">
+        <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-4 py-10 text-center text-sm text-white/70">
           Inga bokningar det här året.
         </div>
       )}

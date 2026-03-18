@@ -173,7 +173,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f4ee]">
+    <div className="min-h-screen">
       {/* Header */}
       <header
         className="bg-white"
@@ -183,38 +183,16 @@ export function HomePage() {
           <div className="flex items-center justify-between gap-3">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <svg
-                width="40"
-                height="40"
-                viewBox="0 0 40 40"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <circle cx="20" cy="20" r="20" fill="#F1E334" />
-                <path
-                  d="M10 9C14 13.5 15.5 16.7 15.5 20C15.5 23.3 14 26.5 10 31"
-                  stroke="#0F0F0F"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                <path
-                  d="M30 9C26 13.5 24.5 16.7 24.5 20C24.5 23.3 26 26.5 30 31"
-                  stroke="#0F0F0F"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-              </svg>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-                  Boka bana
-                </p>
-                <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-gray-900">
-                  Högelids Tennisklubb
-                </h1>
-              </div>
+              <img
+                src="/htk-logo.svg"
+                alt="Högelids Tennisklubb"
+                width="44"
+                height="44"
+                className="shrink-0"
+              />
+              <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-gray-900">
+                Högelids Tennisklubb
+              </h1>
             </div>
 
             {/* Auth controls */}
@@ -287,14 +265,14 @@ export function HomePage() {
         />
 
         <div>
-          <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-gray-800">
+          <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
             Kommande bokningar
           </h2>
 
           {isLoading && (
             <div className="flex items-center justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-              <span className="ml-3 text-sm text-gray-500">
+              <span className="ml-3 text-sm text-white/80">
                 Laddar bokningar…
               </span>
             </div>
@@ -308,7 +286,7 @@ export function HomePage() {
           )}
 
           {!isLoading && !isError && bookings && bookings.length === 0 && (
-            <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-10 text-center text-sm text-gray-400">
+            <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-4 py-10 text-center text-sm text-white/70">
               Inga kommande bokningar.
             </div>
           )}

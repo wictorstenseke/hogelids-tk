@@ -2,7 +2,8 @@
 
 body {
   margin: 0;
-  background-color: #f4f4ee;
+  background-image: linear-gradient(to bottom, #2a7d44e6, #2a7d44, #2a7d44);
+  background-attachment: fixed;
   font-family: 'Barlow', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
