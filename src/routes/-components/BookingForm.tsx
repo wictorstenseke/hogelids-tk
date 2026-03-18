@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { forwardRef, useState } from 'react'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import { sv } from 'date-fns/locale'
 import { format } from 'date-fns'
@@ -16,6 +16,24 @@ import { TimeSelect } from './TimeSelect'
 import { BookingDrawer } from './BookingDrawer'
 
 registerLocale('sv', sv)
+
+const DateDisplayInput = forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement>
+>(({ value, onClick, placeholder }, ref) => (
+  <input
+    ref={ref}
+    readOnly
+    value={
+      value
+        ? (value as string).charAt(0).toUpperCase() + (value as string).slice(1)
+        : ''
+    }
+    onClick={onClick}
+    placeholder={placeholder}
+    className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30 cursor-pointer"
+  />
+))
 
 interface BookingFormProps {
   existingBookings: BookingWithId[]
@@ -149,7 +167,7 @@ export function BookingForm({
         .join(' · ')
 
   return (
-    <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100 overflow-hidden">
+    <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100">
       <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-gray-900">
         Ny bokning
       </h2>
@@ -197,9 +215,10 @@ export function BookingForm({
                   if (date) setDateValue(format(date, 'yyyy-MM-dd'))
                 }}
                 locale="sv"
-                dateFormat="yyyy-MM-dd"
+                dateFormat="EEEE d MMMM"
                 placeholderText="Välj datum"
                 autoComplete="off"
+                customInput={<DateDisplayInput />}
               />
             </div>
 

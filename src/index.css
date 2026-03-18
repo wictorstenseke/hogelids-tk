@@ -53,12 +53,17 @@ label[for] {
 
 .react-datepicker {
   font-family: 'Barlow', system-ui, sans-serif !important;
+  font-size: 1rem !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 0.75rem !important;
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
   overflow: hidden;
+}
+
+.react-datepicker__month-container {
+  width: 100%;
 }
 
 .react-datepicker__header {
@@ -70,22 +75,50 @@ label[for] {
 .react-datepicker__current-month {
   font-family: 'Barlow Condensed', system-ui, sans-serif !important;
   font-weight: 700 !important;
-  font-size: 1rem !important;
+  font-size: 1.125rem !important;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #111827 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.react-datepicker__day-names {
+  display: flex !important;
+  justify-content: space-around !important;
+  margin: 0 !important;
+  padding: 0 0.5rem !important;
 }
 
 .react-datepicker__day-name {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  margin: 0 !important;
   color: #6b7280 !important;
   font-weight: 600;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
 }
 
+.react-datepicker__week {
+  display: flex !important;
+  justify-content: space-around !important;
+  padding: 0 0.5rem !important;
+}
+
 .react-datepicker__day {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  margin: 0.1rem 0 !important;
   border-radius: 0.5rem !important;
   color: #374151 !important;
+  font-size: 0.9375rem !important;
+  line-height: 1 !important;
 }
 
 .react-datepicker__day:hover {
