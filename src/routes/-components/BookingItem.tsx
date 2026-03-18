@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { IconTrash } from '@tabler/icons-react'
 import {
   deleteGuestBooking,
   deleteMemberBooking,
@@ -84,14 +85,15 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
   }
 
   return (
-    <li className="space-y-1">
+    <li>
+      {/* Main row */}
       <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm border border-gray-100">
-        <span className="text-sm font-medium text-gray-800">
+        <span className="text-sm font-medium text-gray-800 shrink-0">
           {formatTimeRange(booking)}
         </span>
-        <div className="ml-4 flex shrink-0 items-center gap-2">
+        <div className="ml-3 flex min-w-0 items-center gap-2">
           <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
               isOwnBooking
                 ? 'bg-[#F1E334] text-gray-900'
                 : 'bg-gray-100 text-gray-600'
@@ -99,43 +101,53 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
           >
             {label}
           </span>
-          {canDelete && !confirmPending && (
+          {canDelete && (
             <button
-              onClick={() => setConfirmPending(true)}
+              onClick={() => setConfirmPending((v) => !v)}
               disabled={isDeleting}
-              aria-label="Avboka"
-              title="Avboka"
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Radera bokning"
+              title="Radera bokning"
+              className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                confirmPending
+                  ? 'bg-red-100 text-red-600'
+                  : 'text-gray-300 hover:bg-red-50 hover:text-red-400'
+              }`}
             >
-              <span className="text-lg leading-none">×</span>
+              <IconTrash size={15} stroke={1.75} />
             </button>
-          )}
-          {canDelete && confirmPending && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => void handleDelete()}
-                disabled={isDeleting}
-                className="flex min-h-[36px] cursor-pointer items-center rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
-              >
-                {isDeleting ? (
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                ) : (
-                  'Radera bokning'
-                )}
-              </button>
-              <button
-                onClick={() => setConfirmPending(false)}
-                disabled={isDeleting}
-                className="flex min-h-[36px] cursor-pointer items-center rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
-              >
-                Avbryt
-              </button>
-            </div>
           )}
         </div>
       </div>
+
+      {/* Confirm strip — below the row, no overflow risk */}
+      {canDelete && confirmPending && (
+        <div className="mt-1 flex items-center justify-end gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5">
+          <span className="mr-auto text-xs text-red-700">
+            Radera bokningen?
+          </span>
+          <button
+            onClick={() => setConfirmPending(false)}
+            disabled={isDeleting}
+            className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+          >
+            Avbryt
+          </button>
+          <button
+            onClick={() => void handleDelete()}
+            disabled={isDeleting}
+            className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-red-500 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+          >
+            {isDeleting ? (
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              'Radera'
+            )}
+          </button>
+        </div>
+      )}
+
       {deleteError && (
-        <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="mt-1 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
           {deleteError}
         </div>
       )}

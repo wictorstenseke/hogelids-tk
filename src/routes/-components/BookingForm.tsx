@@ -118,14 +118,18 @@ export function BookingForm({
     'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
 
   return (
-    <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100">
+    <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100 overflow-hidden">
       <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-gray-900">
         Ny bokning
       </h2>
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-4 w-full min-w-0"
+      >
         {/* Email — guests only */}
         {!user && (
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="booking-email"
               className="mb-1 block text-sm font-medium text-gray-700"
@@ -146,7 +150,7 @@ export function BookingForm({
         )}
 
         {/* Date */}
-        <div>
+        <div className="min-w-0">
           <label
             htmlFor="booking-date"
             className="mb-1 block text-sm font-medium text-gray-700"
@@ -163,7 +167,7 @@ export function BookingForm({
         </div>
 
         {/* Start time */}
-        <div>
+        <div className="min-w-0">
           <label
             htmlFor="booking-start-time"
             className="mb-1 block text-sm font-medium text-gray-700"
@@ -181,7 +185,7 @@ export function BookingForm({
 
         {/* End time — shown after start is set */}
         {startTimeValue && (
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="booking-end-time"
               className="mb-1 block text-sm font-medium text-gray-700"
