@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   getBookingsByYear,
@@ -56,7 +56,9 @@ function YearBookings({
     gcTime: Infinity,
   })
 
-  onResult({ year, data, isLoading })
+  useEffect(() => {
+    onResult({ year, data, isLoading })
+  }, [year, data, isLoading, onResult])
 
   return null
 }
