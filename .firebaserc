@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "hogelids-tk-dev"
+    "default": "hogelids-tk-dev",
+    "prod": "hogelids-tk-prod"
   }
 }
