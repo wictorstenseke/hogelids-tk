@@ -133,7 +133,7 @@ export function HomePage() {
             <div className="flex items-center gap-3">
               <Link
                 to="/"
-                className="block shrink-0 rounded-lg transition-[filter,transform] duration-200 [filter:drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:[filter:drop-shadow(0px_5px_8px_rgba(0,0,0,0.25))] hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                className="block shrink-0 rounded-lg transition-[filter,transform] duration-200 filter-[drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:filter-[drop-shadow(0px_5px_8px_rgba(0,0,0,0.25))] hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
                 <img
                   src="/htk-logo.svg"
@@ -186,11 +186,12 @@ export function HomePage() {
 
         {appSettings && !appSettings.bookingEnabled ? (
           <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-6 py-10 text-center">
-            <p className="text-lg font-semibold text-white">
-              Bokning är stängd
+            <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
+              Bokning stängd tills vidare
             </p>
             <p className="mt-2 text-sm text-white/70">
-              Det går inte att göra bokningar just nu. Försök igen senare.
+              Säsongen har inte dragit igång än. Bokning öppnar när banorna är i
+              bruk.
             </p>
           </div>
         ) : (
@@ -224,7 +225,7 @@ export function HomePage() {
 
           {!isLoading && !isError && bookings && bookings.length === 0 && (
             <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
-              Inga kommande bokningar.
+              Banan är ledig! Passa på att boka.
             </div>
           )}
 

@@ -289,9 +289,9 @@ function StatistikTab({
 
   return (
     <div>
-      <p className="text-4xl font-bold text-white">
+      <p className="text-3xl font-bold text-white">
         {stats.totalBookings}
-        <span className="ml-2 text-xl font-semibold text-white/70">
+        <span className="ml-2 text-lg font-semibold text-white/70">
           bokningar
         </span>
       </p>

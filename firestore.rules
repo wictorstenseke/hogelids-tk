@@ -40,10 +40,10 @@ service cloud.firestore {
     }
 
     // App settings
-    // - All authenticated users can read (controls UI for all users)
+    // - Anyone can read (guests need bookingEnabled to respect admin toggle)
     // - Admins and superusers can write
     match /settings/{docId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
