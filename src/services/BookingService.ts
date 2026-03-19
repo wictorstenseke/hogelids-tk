@@ -136,7 +136,7 @@ export async function getAllBookings(): Promise<BookingWithId[]> {
   const q = query(
     bookingsRef,
     where('endTime', '<', now),
-    orderBy('startTime', 'asc')
+    orderBy('endTime', 'asc')
   )
   const snapshot = await getDocs(q)
   return snapshot.docs.map((docSnap) => {
