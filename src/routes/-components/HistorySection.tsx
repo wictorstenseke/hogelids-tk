@@ -37,7 +37,6 @@ function formatHistoryDateRange(booking: BookingWithId): string {
   const end = booking.endTime.toDate()
 
   const dateStr = start.toLocaleDateString('sv-SE', {
-    weekday: 'long',
     day: 'numeric',
     month: 'long',
   })
@@ -51,9 +50,7 @@ function formatHistoryDateRange(booking: BookingWithId): string {
     minute: '2-digit',
   })
 
-  const capitalized = dateStr.charAt(0).toUpperCase() + dateStr.slice(1)
-
-  return `${capitalized} · ${startTime}–${endTime}`
+  return `${dateStr} · ${startTime}–${endTime}`
 }
 
 type Tab = 'statistik' | 'historik'
@@ -114,6 +111,15 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
     (a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime()
   )
 
+  const byYear = new Map<number, BookingWithId[]>()
+  for (const b of combinedBookings) {
+    const y = b.startTime.toDate().getFullYear()
+    const list = byYear.get(y) ?? []
+    list.push(b)
+    byYear.set(y, list)
+  }
+  const yearGroups = Array.from(byYear.entries()).sort(([a], [b]) => b - a)
+
   return (
     <>
       {selectedYears.map((year) => (
@@ -133,21 +139,30 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
         </div>
       )}
 
-      {!isLoading && combinedBookings.length > 0 && (
-        <ul className="space-y-2">
-          {combinedBookings.map((booking) => (
-            <li key={booking.id}>
-              <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
-                <span className="text-sm text-gray-700">
-                  {formatHistoryDateRange(booking)}
-                </span>
-                <span className="ml-4 shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
-                  {booking.ownerDisplayName}
-                </span>
-              </div>
-            </li>
+      {!isLoading && yearGroups.length > 0 && (
+        <div className="space-y-6">
+          {yearGroups.map(([year, bookings]) => (
+            <div key={year}>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/70">
+                {year}
+              </p>
+              <ul className="border-t border-white/10">
+                {bookings.map((booking) => (
+                  <li key={booking.id} className="border-b border-white/10">
+                    <div className="flex items-center gap-3 py-2.5">
+                      <span className="shrink-0 text-sm font-semibold text-white/90">
+                        {formatHistoryDateRange(booking)}
+                      </span>
+                      <span className="ml-auto shrink-0 rounded-md bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                        {booking.ownerDisplayName}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </>
   )
@@ -246,6 +261,18 @@ function StatistikTab({
       <div className="flex items-center justify-center py-12">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
         <span className="ml-3 text-sm text-white/80">Laddar statistik…</span>
+      </div>
+    )
+  }
+
+  const noYearsSelected = !allSelected && selectedYears.length === 0
+
+  if (noYearsSelected) {
+    return (
+      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center">
+        <p className="text-sm font-medium text-white/80">
+          Välj ett eller flera år ovan för att se statistik.
+        </p>
       </div>
     )
   }
@@ -419,18 +446,24 @@ export function HistorySection({
       </h2>
 
       {/* Segmented control */}
-      <div className="mb-4 flex rounded-xl bg-white/10 p-1">
+      <div className="relative mb-4 flex rounded-xl bg-white/10 p-1">
+        <div
+          className="absolute top-1 h-[calc(100%-8px)] w-[calc(50%-6px)] rounded-lg bg-[#F1E334] transition-[left] duration-300 ease-out"
+          style={{
+            left: activeTab === 'historik' ? 'calc(50% + 2px)' : '4px',
+          }}
+          aria-hidden
+        />
         {(['statistik', 'historik'] as Tab[]).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className="flex-1 rounded-lg py-2 text-sm font-semibold transition-colors"
-            style={
+            className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 ${
               activeTab === tab
-                ? { backgroundColor: '#F1E334', color: '#111827' }
-                : { color: 'rgba(255,255,255,0.6)' }
-            }
+                ? 'text-gray-900 hover:brightness-110 active:brightness-95'
+                : 'text-white/60 hover:text-white/90 active:text-white'
+            }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
@@ -448,15 +481,11 @@ export function HistorySection({
           <button
             type="button"
             onClick={() => setSelectedYears([...years])}
-            className="grow rounded-xl px-3 py-1.5 text-center text-sm font-semibold transition-colors"
-            style={
+            className={`grow rounded-xl px-3 py-1.5 text-center text-sm font-semibold transition-all duration-200 ${
               allSelected
-                ? { backgroundColor: '#F1E334', color: '#111827' }
-                : {
-                    backgroundColor: 'rgba(255,255,255,0.12)',
-                    color: 'rgba(255,255,255,0.6)',
-                  }
-            }
+                ? 'bg-[#F1E334] text-gray-900 hover:brightness-110 active:brightness-95'
+                : 'bg-white/12 text-white/60 hover:bg-white/20 hover:text-white/80 active:bg-white/25'
+            }`}
           >
             Visa alla
           </button>
@@ -468,15 +497,11 @@ export function HistorySection({
                 key={year}
                 type="button"
                 onClick={() => toggleYear(year)}
-                className="grow rounded-xl px-3 py-1.5 text-center text-sm font-semibold transition-colors"
-                style={
+                className={`grow rounded-xl px-3 py-1.5 text-center text-sm font-semibold transition-all duration-200 ${
                   isSelected
-                    ? { backgroundColor: '#F1E334', color: '#111827' }
-                    : {
-                        backgroundColor: 'rgba(255,255,255,0.12)',
-                        color: 'rgba(255,255,255,0.5)',
-                      }
-                }
+                    ? 'bg-[#F1E334] text-gray-900 hover:brightness-110 active:brightness-95'
+                    : 'bg-white/12 text-white/50 hover:bg-white/20 hover:text-white/80 active:bg-white/25'
+                }`}
               >
                 {year}
               </button>
@@ -489,7 +514,7 @@ export function HistorySection({
           type="button"
           onClick={() => setShowAllYears((v) => !v)}
           aria-label={showAllYears ? 'Visa färre år' : 'Visa fler år'}
-          className={`flex shrink-0 items-center justify-center rounded-xl bg-white/10 p-2 text-white/90 transition-colors hover:bg-white/15 hover:text-white${!hasMoreYears ? ' invisible' : ''}`}
+          className={`flex shrink-0 items-center justify-center rounded-xl bg-white/10 p-2 text-white/90 transition-all duration-200 hover:bg-white/20 hover:scale-105 active:scale-95${!hasMoreYears ? ' invisible' : ''}`}
         >
           {showAllYears ? (
             <IconSquareRoundedMinus size={18} stroke={1.75} />
