@@ -11,7 +11,14 @@ import {
   createMemberBooking,
   type BookingWithId,
 } from '../../services/BookingService'
+import { createLadderMatch } from '../../services/LadderService'
 import type { AuthUser } from '../../lib/useAuth'
+
+export interface LadderMeta {
+  ladderId: string
+  playerAId: string
+  playerBId: string
+}
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import { TimeSelect } from './TimeSelect'
@@ -43,6 +50,7 @@ interface BookingFormProps {
   existingBookings: BookingWithId[]
   onSuccess: (startTime: Date, endTime: Date) => void
   user: AuthUser | null
+  ladderMeta?: LadderMeta
 }
 
 function padTwo(n: number): string {
@@ -59,6 +67,7 @@ export function BookingForm({
   existingBookings,
   onSuccess,
   user,
+  ladderMeta,
 }: BookingFormProps) {
   const isDesktop = useIsDesktop()
   const { addToast } = useToast()
@@ -125,7 +134,18 @@ export function BookingForm({
 
     setIsSubmitting(true)
     try {
-      if (user) {
+      if (user && ladderMeta) {
+        await createLadderMatch(
+          ladderMeta.ladderId,
+          ladderMeta.playerAId,
+          ladderMeta.playerBId,
+          user.uid,
+          user.email,
+          user.displayName,
+          start,
+          end
+        )
+      } else if (user) {
         await createMemberBooking(
           user.uid,
           user.email,
@@ -162,7 +182,18 @@ export function BookingForm({
     const start = new Date(`${date}T${startTime}`)
     const end = new Date(`${date}T${endTime}`)
 
-    if (user) {
+    if (user && ladderMeta) {
+      await createLadderMatch(
+        ladderMeta.ladderId,
+        ladderMeta.playerAId,
+        ladderMeta.playerBId,
+        user.uid,
+        user.email,
+        user.displayName,
+        start,
+        end
+      )
+    } else if (user) {
       await createMemberBooking(
         user.uid,
         user.email,

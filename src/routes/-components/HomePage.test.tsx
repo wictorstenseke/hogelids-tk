@@ -48,6 +48,10 @@ vi.mock('../../lib/useIsDesktop', () => ({
   useIsDesktop: vi.fn(() => true),
 }))
 
+vi.mock('../../services/LadderService', () => ({
+  createLadderMatch: vi.fn(() => Promise.resolve('mock-id')),
+}))
+
 vi.mock('../../lib/useRole', () => ({
   useRole: vi.fn(() => null),
 }))
