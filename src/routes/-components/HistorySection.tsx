@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {
   getBookingsByYear,
   getAllBookings,
   type BookingWithId,
@@ -133,6 +143,49 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
   )
 }
 
+const LINE_COLORS = [
+  '#F1E334',
+  '#60a5fa',
+  '#f97316',
+  '#34d399',
+  '#e879f9',
+  '#fb7185',
+]
+
+function getMonthAbbr(monthIndex: number): string {
+  return new Date(2000, monthIndex, 1).toLocaleDateString('sv-SE', {
+    month: 'short',
+  })
+}
+
+function buildChartData(
+  byYearByMonth: Record<number, Record<number, number>>,
+  selectedYears: number[]
+): Record<string, string | number>[] {
+  // Collect all active month indices across all selected years
+  const activeMonthsSet = new Set<number>()
+  for (const year of selectedYears) {
+    const byMonth = byYearByMonth[year]
+    if (byMonth) {
+      for (const monthKey of Object.keys(byMonth)) {
+        activeMonthsSet.add(Number(monthKey))
+      }
+    }
+  }
+
+  const activeMonths = Array.from(activeMonthsSet).sort((a, b) => a - b)
+
+  return activeMonths.map((monthIndex) => {
+    const row: Record<string, string | number> = {
+      month: getMonthAbbr(monthIndex),
+    }
+    for (const year of selectedYears) {
+      row[year] = byYearByMonth[year]?.[monthIndex] ?? 0
+    }
+    return row
+  })
+}
+
 function StatistikTab({ selectedYears }: { selectedYears: number[] }) {
   const { data: allBookings, isLoading } = useQuery({
     queryKey: ['bookings', 'all'],
@@ -151,6 +204,8 @@ function StatistikTab({ selectedYears }: { selectedYears: number[] }) {
   }
 
   const stats = computeStats(allBookings ?? [], selectedYears)
+  const chartData = buildChartData(stats.byYearByMonth, selectedYears)
+  const hasData = selectedYears.length > 0 && chartData.length > 0
 
   return (
     <div className="rounded-xl bg-white/10 px-6 py-8">
@@ -160,6 +215,60 @@ function StatistikTab({ selectedYears }: { selectedYears: number[] }) {
           bokningar
         </span>
       </p>
+
+      {hasData && (
+        <div className="mt-6">
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255,255,255,0.1)"
+              />
+              <XAxis
+                dataKey="month"
+                tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+              />
+              <YAxis
+                allowDecimals={false}
+                tickFormatter={(v: number) => Math.round(v).toString()}
+                tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#0f2d19',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: 13,
+                }}
+                labelStyle={{ color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}
+                itemStyle={{ color: '#fff' }}
+              />
+              <Legend
+                wrapperStyle={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}
+              />
+              {selectedYears.map((year, i) => (
+                <Line
+                  key={year}
+                  type="monotone"
+                  dataKey={year}
+                  stroke={LINE_COLORS[i % LINE_COLORS.length]}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   )
 }
