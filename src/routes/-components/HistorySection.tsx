@@ -180,7 +180,7 @@ function buildChartData(
       month: getMonthAbbr(monthIndex),
     }
     for (const year of selectedYears) {
-      row[year] = byYearByMonth[year]?.[monthIndex] ?? 0
+      row[String(year)] = byYearByMonth[year]?.[monthIndex] ?? 0
     }
     return row
   })
@@ -258,7 +258,7 @@ function StatistikTab({ selectedYears }: { selectedYears: number[] }) {
                 <Line
                   key={year}
                   type="monotone"
-                  dataKey={year}
+                  dataKey={String(year)}
                   stroke={LINE_COLORS[i % LINE_COLORS.length]}
                   strokeWidth={2}
                   dot={{ r: 3 }}
