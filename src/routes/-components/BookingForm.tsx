@@ -18,6 +18,8 @@ export interface LadderMeta {
   ladderId: string
   playerAId: string
   playerBId: string
+  playerAName: string
+  playerBName: string
 }
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import { useIsDesktop } from '../../lib/useIsDesktop'
@@ -139,6 +141,8 @@ export function BookingForm({
           ladderMeta.ladderId,
           ladderMeta.playerAId,
           ladderMeta.playerBId,
+          ladderMeta.playerAName,
+          ladderMeta.playerBName,
           user.uid,
           user.email,
           user.displayName,
@@ -187,6 +191,8 @@ export function BookingForm({
         ladderMeta.ladderId,
         ladderMeta.playerAId,
         ladderMeta.playerBId,
+        ladderMeta.playerAName,
+        ladderMeta.playerBName,
         user.uid,
         user.email,
         user.displayName,

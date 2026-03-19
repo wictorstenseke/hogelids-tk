@@ -11,6 +11,7 @@ function makeParticipants(
 ): LadderParticipant[] {
   return entries.map(({ uid, position, paused = false }) => ({
     uid,
+    displayName: uid,
     position,
     wins: 0,
     losses: 0,
@@ -117,6 +118,7 @@ describe('applyMatchResult', () => {
     return entries.map(
       ({ uid, position, wins = 0, losses = 0, paused = false }) => ({
         uid,
+        displayName: uid,
         position,
         wins,
         losses,

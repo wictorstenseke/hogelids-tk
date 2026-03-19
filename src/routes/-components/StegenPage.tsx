@@ -17,8 +17,6 @@ import {
   type LadderMatch,
 } from '../../services/LadderService'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
-import { listAllUsers, USERS_QUERY_KEY } from '../../services/UserService'
-import type { UserProfile } from '../../services/AuthService'
 import { useState } from 'react'
 import { BookingForm } from './BookingForm'
 import {
@@ -32,10 +30,6 @@ function getActiveParticipants(participants: LadderParticipant[]) {
   return participants
     .filter((p) => !p.paused)
     .sort((a, b) => a.position - b.position)
-}
-
-function getDisplayName(uid: string, users: UserProfile[]): string {
-  return users.find((u) => u.uid === uid)?.displayName ?? uid
 }
 
 function formatMatchTime(match: LadderMatch): string {
@@ -52,14 +46,12 @@ function formatMatchTime(match: LadderMatch): string {
 interface RankingsTableProps {
   ladder: Ladder
   currentUid: string
-  users: UserProfile[]
   onChallenge: (opponentUid: string) => void
 }
 
 function RankingsTable({
   ladder,
   currentUid,
-  users,
   onChallenge,
 }: RankingsTableProps) {
   const active = getActiveParticipants(ladder.participants)
@@ -121,7 +113,7 @@ function RankingsTable({
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-medium text-gray-900">
-                      {getDisplayName(participant.uid, users)}
+                      {participant.displayName || participant.uid}
                     </span>
                     {isMe && (
                       <span className="ml-2 inline-flex items-center rounded-full bg-[#F1E334] px-2 py-0.5 text-xs font-semibold text-gray-800">
@@ -150,19 +142,20 @@ function RankingsTable({
 interface MatchCardProps {
   match: LadderMatch
   currentUid: string
-  users: UserProfile[]
   onReport: (match: LadderMatch) => void
 }
 
-function MatchCard({ match, currentUid, users, onReport }: MatchCardProps) {
-  const playerA = getDisplayName(match.playerAId, users)
-  const playerB = getDisplayName(match.playerBId, users)
+function MatchCard({ match, currentUid, onReport }: MatchCardProps) {
+  const playerA = match.playerAName
+  const playerB = match.playerBName
   const isInvolved =
     match.playerAId === currentUid || match.playerBId === currentUid
 
   if (match.ladderStatus === 'completed') {
     const winnerName = match.winnerId
-      ? getDisplayName(match.winnerId, users)
+      ? match.winnerId === match.playerAId
+        ? playerA
+        : playerB
       : '?'
     const loserName = match.winnerId === match.playerAId ? playerB : playerA
     return (
@@ -209,12 +202,11 @@ function MatchCard({ match, currentUid, users, onReport }: MatchCardProps) {
 
 interface ReportFormProps {
   match: LadderMatch
-  users: UserProfile[]
   ladderId: string
   onDone: () => void
 }
 
-function ReportForm({ match, users, ladderId, onDone }: ReportFormProps) {
+function ReportForm({ match, ladderId, onDone }: ReportFormProps) {
   const { addToast } = useToast()
   const queryClient = useQueryClient()
   const [winnerId, setWinnerId] = useState('')
@@ -265,7 +257,7 @@ function ReportForm({ match, users, ladderId, onDone }: ReportFormProps) {
               className="h-4 w-4 accent-gray-900"
             />
             <span className="text-sm text-gray-900">
-              {getDisplayName(uid, users)}
+              {uid === match.playerAId ? match.playerAName : match.playerBName}
             </span>
           </label>
         ))}
@@ -316,13 +308,6 @@ export function StegenPage() {
     queryKey: LADDER_QUERY_KEY,
     queryFn: getActiveLadder,
     enabled: !!user,
-  })
-
-  const { data: users = [] } = useQuery({
-    queryKey: USERS_QUERY_KEY,
-    queryFn: listAllUsers,
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5,
   })
 
   const { data: matches = [] } = useQuery({
@@ -385,7 +370,7 @@ export function StegenPage() {
     if (!ladder) return
     setIsJoining(true)
     try {
-      await joinLadder(ladder.id, user!.uid)
+      await joinLadder(ladder.id, user!.uid, user!.displayName)
       await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Du har gått med i stegen!')
     } catch (err) {
@@ -415,10 +400,6 @@ export function StegenPage() {
     challengeOpponentUid && ladder
       ? ladder.participants.find((p) => p.uid === challengeOpponentUid)
       : null
-
-  const opponentProfile = challengeOpponentUid
-    ? users.find((u) => u.uid === challengeOpponentUid)
-    : null
 
   return (
     <main className="min-h-screen px-4 py-8">
@@ -496,8 +477,7 @@ export function StegenPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-gray-900">
                     Utmana{' '}
-                    {opponentProfile?.displayName ??
-                      getDisplayName(challengeOpponentUid, users)}
+                    {challengeOpponent?.displayName ?? challengeOpponentUid}
                   </p>
                   <button
                     type="button"
@@ -521,6 +501,9 @@ export function StegenPage() {
                     ladderId: ladder.id,
                     playerAId: user.uid,
                     playerBId: challengeOpponentUid,
+                    playerAName: user.displayName,
+                    playerBName:
+                      challengeOpponent?.displayName ?? challengeOpponentUid,
                   }}
                 />
               </div>
@@ -534,7 +517,6 @@ export function StegenPage() {
               <RankingsTable
                 ladder={ladder}
                 currentUid={user.uid}
-                users={users}
                 onChallenge={(uid) => {
                   setChallengeOpponentUid(uid)
                   setReportingMatch(null)
@@ -554,7 +536,6 @@ export function StegenPage() {
                       <ReportForm
                         key={match.id}
                         match={match}
-                        users={users}
                         ladderId={ladder.id}
                         onDone={() => setReportingMatch(null)}
                       />
@@ -563,7 +544,6 @@ export function StegenPage() {
                         key={match.id}
                         match={match}
                         currentUid={user.uid}
-                        users={users}
                         onReport={(m) => {
                           setReportingMatch(m)
                           setChallengeOpponentUid(null)
@@ -587,7 +567,6 @@ export function StegenPage() {
                       key={match.id}
                       match={match}
                       currentUid={user.uid}
-                      users={users}
                       onReport={() => {}}
                     />
                   ))}

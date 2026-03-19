@@ -14,6 +14,7 @@ import { db } from '../lib/firebase'
 
 export interface LadderParticipant {
   uid: string
+  displayName: string
   position: number // 1-indexed; lower = higher ranked
   wins: number
   losses: number
@@ -60,7 +61,11 @@ export async function createLadder(year: number): Promise<string> {
   return docRef.id
 }
 
-export async function joinLadder(ladderId: string, uid: string): Promise<void> {
+export async function joinLadder(
+  ladderId: string,
+  uid: string,
+  displayName: string
+): Promise<void> {
   const ladderRef = doc(db, 'ladders', ladderId)
   const snapshot = await getDoc(ladderRef)
   if (!snapshot.exists()) throw new Error('Ladder not found')
@@ -77,13 +82,16 @@ export async function joinLadder(ladderId: string, uid: string): Promise<void> {
   if (existing) {
     // Rejoin: move to bottom, keep stats, mark active
     const updated = participants.map((p) =>
-      p.uid === uid ? { ...p, paused: false, position: activeCount + 1 } : p
+      p.uid === uid
+        ? { ...p, displayName, paused: false, position: activeCount + 1 }
+        : p
     )
     await updateDoc(ladderRef, { participants: updated })
   } else {
     // New join: add at bottom
     const newParticipant: LadderParticipant = {
       uid,
+      displayName,
       position: activeCount + 1,
       wins: 0,
       losses: 0,
@@ -126,6 +134,8 @@ export interface LadderMatch {
   ladderId: string
   playerAId: string // challenger
   playerBId: string // challenged
+  playerAName: string
+  playerBName: string
   ladderStatus: 'planned' | 'completed'
   winnerId: string | null
   ladderComment: string | null
@@ -153,6 +163,8 @@ export async function getLadderMatches(
       ladderId: d['ladderId'] as string,
       playerAId: d['playerAId'] as string,
       playerBId: d['playerBId'] as string,
+      playerAName: (d['playerAName'] ?? d['playerAId']) as string,
+      playerBName: (d['playerBName'] ?? d['playerBId']) as string,
       ladderStatus: (d['ladderStatus'] ?? 'planned') as 'planned' | 'completed',
       winnerId: (d['winnerId'] ?? null) as string | null,
       ladderComment: (d['ladderComment'] ?? null) as string | null,
@@ -170,6 +182,8 @@ export async function createLadderMatch(
   ladderId: string,
   playerAId: string,
   playerBId: string,
+  playerAName: string,
+  playerBName: string,
   ownerUid: string,
   ownerEmail: string,
   ownerDisplayName: string,
@@ -189,6 +203,8 @@ export async function createLadderMatch(
     ladderId,
     playerAId,
     playerBId,
+    playerAName,
+    playerBName,
     ladderStatus: 'planned',
     winnerId: null,
     ladderComment: null,
