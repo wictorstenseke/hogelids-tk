@@ -25,6 +25,7 @@ import {
   getAllBookings,
   type BookingWithId,
 } from '../../services/BookingService'
+import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { computeStats } from './historyStats'
 
 interface HistorySectionProps {
@@ -41,16 +42,7 @@ function formatHistoryDateRange(booking: BookingWithId): string {
     month: 'long',
   })
 
-  const startTime = start.toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-  const endTime = end.toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-
-  return `${dateStr} · ${startTime}–${endTime}`
+  return `${dateStr} · ${formatTimeDisplay(start)} – ${formatTimeDisplay(end)}`
 }
 
 type Tab = 'statistik' | 'historik'
@@ -150,7 +142,7 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
                 {bookings.map((booking) => (
                   <li key={booking.id} className="border-b border-white/10">
                     <div className="flex items-center gap-3 py-2.5">
-                      <span className="shrink-0 text-sm font-semibold text-white/90">
+                      <span className="shrink-0 text-sm font-semibold tabular-nums tracking-[-0.02em] text-white/90">
                         {formatHistoryDateRange(booking)}
                       </span>
                       <span className="ml-auto shrink-0 rounded-md bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white/80">

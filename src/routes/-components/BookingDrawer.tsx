@@ -3,6 +3,7 @@ import { IconX, IconSquareRoundedXFilled } from '@tabler/icons-react'
 import { WheelPicker, WheelPickerWrapper } from '@ncdai/react-wheel-picker'
 import '@ncdai/react-wheel-picker/style.css'
 import type { WheelPickerOption } from '@ncdai/react-wheel-picker'
+import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { type BookingWithId } from '../../services/BookingService'
 
 type Step = 'datetime' | 'end' | 'summary'
@@ -76,10 +77,6 @@ function formatDateFull(dateValue: string): string {
     month: 'long',
   })
   return str.charAt(0).toUpperCase() + str.slice(1)
-}
-
-function formatTimeLabel(d: Date): string {
-  return `${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 interface BookingDrawerProps {
@@ -212,7 +209,7 @@ export function BookingDrawer({
 
   function conflictLabel(booking: BookingWithId | null) {
     if (!booking) return null
-    return `Upptaget ${formatTimeLabel(booking.startTime.toDate())} – ${formatTimeLabel(booking.endTime.toDate())}`
+    return `Upptaget ${formatTimeDisplay(booking.startTime.toDate())} – ${formatTimeDisplay(booking.endTime.toDate())}`
   }
 
   // Also block if end ≤ start (wraps midnight)

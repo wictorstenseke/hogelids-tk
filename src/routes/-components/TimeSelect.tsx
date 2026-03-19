@@ -15,6 +15,11 @@ function generateTimeSlots(): string[] {
 
 const TIME_SLOTS = generateTimeSlots()
 
+/** Show HH.mm while values stay HH:mm for Date parsing. */
+function slotDisplayLabel(slot: string): string {
+  return slot.replace(':', '.')
+}
+
 function getNearestSlotIndex(): number {
   const now = new Date()
   const totalMins = now.getHours() * 60 + now.getMinutes()
@@ -82,7 +87,7 @@ export function TimeSelect({
         }`}
       >
         {value ? (
-          <span className="text-white">{value}</span>
+          <span className="text-white">{slotDisplayLabel(value)}</span>
         ) : (
           <span className="text-white/40">{placeholder}</span>
         )}
@@ -106,7 +111,7 @@ export function TimeSelect({
                 }`}
                 style={{ height: ITEM_HEIGHT }}
               >
-                {slot}
+                {slotDisplayLabel(slot)}
               </button>
             </li>
           ))}

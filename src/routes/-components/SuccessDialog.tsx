@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { shouldShowNudge } from '../../lib/GuestSession'
 import { NudgePrompt } from './NudgePrompt'
 
@@ -22,14 +23,8 @@ export function SuccessDialog({
   })
   const capitalized = dateStr.charAt(0).toUpperCase() + dateStr.slice(1)
 
-  const startTimeStr = startTime.toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-  const endTimeStr = endTime.toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const startTimeStr = formatTimeDisplay(startTime)
+  const endTimeStr = formatTimeDisplay(endTime)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -57,7 +52,7 @@ export function SuccessDialog({
         <div className="mb-8 space-y-1 text-center">
           <p className="text-base font-medium text-gray-800">{capitalized}</p>
           <p className="text-base text-gray-600">
-            {startTimeStr}–{endTimeStr}
+            {startTimeStr} – {endTimeStr}
           </p>
         </div>
 

@@ -7,21 +7,14 @@ import {
   BOOKINGS_QUERY_KEY,
   type BookingWithId,
 } from '../../services/BookingService'
+import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import type { AuthUser } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
 
 function formatTimeRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
   const end = booking.endTime.toDate()
-  const startTime = start.toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-  const endTime = end.toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-  return `${startTime} - ${endTime}`
+  return `${formatTimeDisplay(start)} – ${formatTimeDisplay(end)}`
 }
 
 function getBookingLabel(
