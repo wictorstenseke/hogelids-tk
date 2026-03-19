@@ -21,7 +21,7 @@ function formatTimeRange(booking: BookingWithId): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-  return `${startTime}–${endTime}`
+  return `${startTime} - ${endTime}`
 }
 
 function getBookingLabel(
@@ -91,7 +91,7 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
     >
       {/* Main row */}
       <div className="flex items-center gap-3 py-2.5">
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-white/90">
+        <span className="shrink-0 text-sm font-semibold tabular-nums tracking-[-0.02em] text-white/90">
           {formatTimeRange(booking)}
         </span>
         <span

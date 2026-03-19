@@ -340,9 +340,9 @@ export function StegenPage() {
     refetchInterval: 30_000,
   })
 
-  if (authLoading) return null
-
   const ladderEnabled = settings?.ladderEnabled ?? true
+
+  if (authLoading) return null
 
   if (!user || !ladderEnabled) {
     return (
@@ -368,8 +368,6 @@ export function StegenPage() {
       </main>
     )
   }
-
-  if (ladderLoading) return null
 
   const myParticipant = ladder?.participants.find((p) => p.uid === user.uid)
   const isActive = !!myParticipant && !myParticipant.paused
@@ -477,7 +475,11 @@ export function StegenPage() {
           )}
         </div>
 
-        {!ladder ? (
+        {ladderLoading ? (
+          <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
+            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600" />
+          </div>
+        ) : !ladder ? (
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
             <IconTrophy
               size={32}

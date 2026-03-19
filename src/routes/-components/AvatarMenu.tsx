@@ -3,11 +3,13 @@ import {
   IconUserFilled,
   IconLogout,
   IconShieldCheckFilled,
+  IconTrophyFilled,
 } from '@tabler/icons-react'
 import { useNavigate } from '@tanstack/react-router'
 import type { AuthUser } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
+import { useAppSettings } from '../../lib/useAppSettings'
 
 interface AvatarMenuProps {
   user: AuthUser
@@ -31,6 +33,8 @@ export function AvatarMenu({
   const role = useRole()
   const navigate = useNavigate()
   const isAdmin = isAdminRole(role)
+  const { settings } = useAppSettings()
+  const ladderEnabled = settings?.ladderEnabled ?? true
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -82,6 +86,19 @@ export function AvatarMenu({
             <IconUserFilled size={16} className="shrink-0 text-gray-400" />
             Min profil
           </button>
+          {ladderEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                void navigate({ to: '/stegen' })
+              }}
+              className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <IconTrophyFilled size={16} className="shrink-0 text-gray-400" />
+              Stegen
+            </button>
+          )}
           {isAdmin && (
             <button
               type="button"

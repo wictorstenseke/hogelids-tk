@@ -9,6 +9,7 @@ import {
   type BookingWithId,
 } from '../../services/BookingService'
 import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
+import { getActiveLadder, LADDER_QUERY_KEY } from '../../services/LadderService'
 import { getEmail } from '../../lib/GuestSession'
 import { useAuth } from '../../lib/useAuth'
 import { signOut } from '../../services/AuthService'
@@ -89,13 +90,18 @@ export function HomePage() {
     gcTime: Infinity,
   })
 
-  // Prefetch profile as soon as user is known — profile modal opens instantly
+  // Prefetch profile and ladder as soon as user is known
   useEffect(() => {
     if (!user) return
     void queryClient.prefetchQuery({
       queryKey: [PROFILE_QUERY_KEY, user.uid],
       queryFn: () => getProfile(user.uid),
       staleTime: 1000 * 60 * 10,
+    })
+    void queryClient.prefetchQuery({
+      queryKey: LADDER_QUERY_KEY,
+      queryFn: getActiveLadder,
+      staleTime: 1000 * 60 * 5,
     })
   }, [user, queryClient])
 

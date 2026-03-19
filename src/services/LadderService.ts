@@ -4,6 +4,7 @@ import {
   query,
   where,
   doc,
+  addDoc,
   updateDoc,
   writeBatch,
   Timestamp,
@@ -45,6 +46,18 @@ export async function getActiveLadder(): Promise<Ladder | null> {
     createdAt: data['createdAt'] as Timestamp,
     participants: (data['participants'] ?? []) as LadderParticipant[],
   }
+}
+
+export async function createLadder(year: number): Promise<string> {
+  const laddersRef = collection(db, 'ladders')
+  const docRef = await addDoc(laddersRef, {
+    name: `Stegen ${year}`,
+    year,
+    status: 'active',
+    participants: [],
+    createdAt: Timestamp.fromDate(new Date()),
+  })
+  return docRef.id
 }
 
 export async function joinLadder(ladderId: string, uid: string): Promise<void> {

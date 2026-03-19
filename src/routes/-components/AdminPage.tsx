@@ -19,6 +19,11 @@ import {
   updateUserRole,
   USERS_QUERY_KEY,
 } from '../../services/UserService'
+import {
+  createLadder,
+  getActiveLadder,
+  LADDER_QUERY_KEY,
+} from '../../services/LadderService'
 
 // A simple toggle switch component.
 interface ToggleProps {
@@ -317,6 +322,30 @@ export function AdminPage() {
     enabled: isAdminRole(role),
   })
 
+  const queryClient = useQueryClient()
+
+  const { data: activeLadder } = useQuery({
+    queryKey: LADDER_QUERY_KEY,
+    queryFn: getActiveLadder,
+    enabled: isAdminRole(role),
+  })
+
+  const [isCreatingLadder, setIsCreatingLadder] = useState(false)
+
+  async function handleCreateLadder() {
+    setIsCreatingLadder(true)
+    try {
+      await createLadder(new Date().getFullYear())
+      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
+      addToast('Stege skapad!')
+    } catch (err) {
+      console.error('Failed to create ladder:', err)
+      addToast('Kunde inte skapa stege. Försök igen.', 'error')
+    } finally {
+      setIsCreatingLadder(false)
+    }
+  }
+
   const isAdmin = isAdminRole(role)
   const isLoading = authLoading || (!!user && role === null)
 
@@ -425,6 +454,22 @@ export function AdminPage() {
               }}
             />
           </SettingsRow>
+          {!activeLadder && (
+            <SettingsRow
+              label="Ingen aktiv stege"
+              description="Skapa en stege för att aktivera rankinglistan"
+            >
+              <button
+                type="button"
+                onClick={() => void handleCreateLadder()}
+                disabled={isCreatingLadder}
+                className="min-h-[44px] cursor-pointer rounded-lg px-4 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ backgroundColor: '#F1E334' }}
+              >
+                {isCreatingLadder ? 'Skapar…' : 'Skapa stege'}
+              </button>
+            </SettingsRow>
+          )}
         </SettingsSection>
 
         <SettingsSection title="Banner">
