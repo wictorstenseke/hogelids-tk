@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   getBookingsByYear,
@@ -70,13 +70,13 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
     new Map()
   )
 
-  const handleResult = (result: YearQueryResult) => {
+  const handleResult = useCallback((result: YearQueryResult) => {
     setResults((prev) => {
       const next = new Map(prev)
       next.set(result.year, result)
       return next
     })
-  }
+  }, [])
 
   const isLoading = selectedYears.some((y) => {
     const r = results.get(y)

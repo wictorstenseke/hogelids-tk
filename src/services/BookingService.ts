@@ -135,7 +135,7 @@ export async function getAllBookings(): Promise<BookingWithId[]> {
   const now = Timestamp.fromDate(new Date())
   const q = query(
     bookingsRef,
-    where('startTime', '<', now),
+    where('endTime', '<', now),
     orderBy('startTime', 'asc')
   )
   const snapshot = await getDocs(q)
