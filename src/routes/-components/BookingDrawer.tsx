@@ -270,14 +270,14 @@ export function BookingDrawer({
       >
         <div className="px-5 pb-10 pt-5">
           {/* Header */}
-          <div
-            className={`mb-5 flex items-center ${step === 'summary' ? 'justify-end' : 'justify-between'}`}
-          >
-            {step !== 'summary' && (
-              <h2 className="font-display text-[20px] font-bold uppercase tracking-wide text-gray-900">
-                {step === 'datetime' ? 'Datum & starttid' : 'Sluttid'}
-              </h2>
-            )}
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="font-display text-[20px] font-bold uppercase tracking-wide text-gray-900">
+              {step === 'datetime'
+                ? 'Datum & starttid'
+                : step === 'end'
+                  ? 'Sluttid'
+                  : 'Din bokning'}
+            </h2>
             <button
               type="button"
               onClick={handleClose}

@@ -8,6 +8,7 @@ import {
   type BookingWithId,
 } from '../../services/BookingService'
 import type { AuthUser } from '../../lib/useAuth'
+import { useToast } from '../../lib/ToastContext'
 
 function formatTimeRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
@@ -62,13 +63,12 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
     (booking.type === 'member' && !!user && user.uid === booking.ownerUid)
 
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
   const [confirmPending, setConfirmPending] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   async function handleDelete() {
     setIsDeleting(true)
-    setDeleteError(null)
     try {
       if (booking.type === 'member') {
         await deleteMemberBooking(booking.id)
@@ -76,8 +76,9 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
         await deleteGuestBooking(booking.id)
       }
       await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+      addToast('Bokning raderad')
     } catch {
-      setDeleteError('Kunde inte ta bort bokningen.')
+      addToast('Kunde inte ta bort bokningen.', 'error')
       setConfirmPending(false)
     } finally {
       setIsDeleting(false)
@@ -85,17 +86,19 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
   }
 
   return (
-    <li>
+    <li
+      className={`border-b ${confirmPending ? 'border-b-transparent' : 'border-white/10'}`}
+    >
       {/* Main row */}
-      <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm border border-gray-100">
-        <span className="shrink-0 text-sm font-medium text-gray-800">
+      <div className="flex items-center gap-3 py-2.5">
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-white/90">
           {formatTimeRange(booking)}
         </span>
         <span
-          className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+          className={`shrink-0 rounded-md px-2.5 py-0.5 text-xs font-semibold ${
             isOwnBooking
               ? 'bg-[#F1E334] text-gray-900'
-              : 'bg-gray-100 text-gray-600'
+              : 'bg-white/15 text-white/80'
           }`}
         >
           {label}
@@ -108,8 +111,8 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
             title="Radera bokning"
             className={`ml-auto flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               confirmPending
-                ? 'bg-red-100 text-red-600'
-                : 'text-gray-300 hover:bg-red-50 hover:text-red-400'
+                ? 'bg-white/20 text-white'
+                : 'text-white/30 hover:bg-white/10 hover:text-white/70'
             }`}
           >
             <IconTrash size={15} stroke={1.75} />
@@ -117,36 +120,40 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
         )}
       </div>
 
-      {/* Confirm strip — below the row, no overflow risk */}
-      {canDelete && confirmPending && (
-        <div className="mt-1 flex items-center justify-end gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5">
-          <span className="mr-auto text-xs text-red-700">
-            Radera bokningen?
-          </span>
-          <button
-            onClick={() => setConfirmPending(false)}
-            disabled={isDeleting}
-            className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
-          >
-            Avbryt
-          </button>
-          <button
-            onClick={() => void handleDelete()}
-            disabled={isDeleting}
-            className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-red-500 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
-          >
-            {isDeleting ? (
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            ) : (
-              'Radera'
-            )}
-          </button>
-        </div>
-      )}
-
-      {deleteError && (
-        <div className="mt-1 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-          {deleteError}
+      {/* Confirm strip */}
+      {canDelete && (
+        <div
+          className={`-mx-4 grid transition-all duration-200 ease-in-out ${
+            confirmPending
+              ? 'grid-rows-[1fr] opacity-100'
+              : 'grid-rows-[0fr] opacity-0'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="flex items-center gap-2 bg-[#112e18] px-4 py-2.5">
+              <span className="mr-auto text-xs font-medium text-white/70">
+                Radera bokningen?
+              </span>
+              <button
+                onClick={() => setConfirmPending(false)}
+                disabled={isDeleting}
+                className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-white/10 px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/20 disabled:opacity-50"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={() => void handleDelete()}
+                disabled={isDeleting}
+                className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-red-500 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                ) : (
+                  'Radera'
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </li>

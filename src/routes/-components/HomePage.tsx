@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
@@ -130,11 +131,16 @@ export function HomePage() {
           <div className="flex items-center justify-between gap-3">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <img
-                src="/htk-logo.svg"
-                alt="HTK Logo"
-                className="h-auto w-[48px] sm:w-[56px] shrink-0 [filter:drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:[filter:drop-shadow(0px_4px_6px_2px_rgba(0,0,0,0.25))] transition-[filter] duration-200"
-              />
+              <Link
+                to="/"
+                className="block shrink-0 rounded-lg transition-[filter,transform] duration-200 [filter:drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:[filter:drop-shadow(0px_5px_8px_rgba(0,0,0,0.25))] hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+              >
+                <img
+                  src="/htk-logo.svg"
+                  alt="HTK Logo"
+                  className="h-auto w-[48px] sm:w-[56px]"
+                />
+              </Link>
               <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-white">
                 Högelids Tennisklubb
               </h1>
@@ -195,7 +201,7 @@ export function HomePage() {
           />
         )}
 
-        <div>
+        <div className="rounded-2xl bg-[#194b29] px-4 py-4">
           <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
             Kommande bokningar
           </h2>
@@ -210,26 +216,26 @@ export function HomePage() {
           )}
 
           {isError && (
-            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-4 text-sm text-red-700">
+            <div className="rounded-xl border border-red-400/40 bg-red-900/30 px-4 py-4 text-sm text-red-200">
               Kunde inte hämta bokningar.{' '}
               {error instanceof Error ? error.message : 'Okänt fel.'}
             </div>
           )}
 
           {!isLoading && !isError && bookings && bookings.length === 0 && (
-            <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-4 py-10 text-center text-sm text-white/70">
+            <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
               Inga kommande bokningar.
             </div>
           )}
 
           {!isLoading && !isError && groups.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {groups.map((group) => (
                 <div key={group.dateKey}>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/60">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/70">
                     {group.dateLabel}
                   </p>
-                  <ul className="space-y-1">
+                  <ul className="border-t border-white/10">
                     {group.bookings.map((booking) => (
                       <BookingItem
                         key={booking.id}

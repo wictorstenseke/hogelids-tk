@@ -4,6 +4,7 @@ import { sv } from 'date-fns/locale'
 import { format } from 'date-fns'
 import 'react-datepicker/dist/react-datepicker.css'
 import * as GuestSession from '../../lib/GuestSession'
+import { useToast } from '../../lib/ToastContext'
 import {
   hasConflict,
   createGuestBooking,
@@ -19,21 +20,23 @@ import { BookingDrawer } from './BookingDrawer'
 registerLocale('sv', sv)
 
 const DateDisplayInput = forwardRef<
-  HTMLInputElement,
-  React.InputHTMLAttributes<HTMLInputElement>
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { placeholder?: string }
 >(({ value, onClick, placeholder }, ref) => (
-  <input
+  <button
     ref={ref}
-    readOnly
-    value={
-      value
-        ? (value as string).charAt(0).toUpperCase() + (value as string).slice(1)
-        : ''
-    }
+    type="button"
     onClick={onClick}
-    placeholder={placeholder}
-    className="w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30 cursor-pointer"
-  />
+    className="w-full min-h-[44px] rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30 hover:border-white/40 cursor-pointer"
+  >
+    {value ? (
+      <span className="text-white">
+        {(value as string).charAt(0).toUpperCase() + (value as string).slice(1)}
+      </span>
+    ) : (
+      <span className="text-white/40">{placeholder}</span>
+    )}
+  </button>
 ))
 
 interface BookingFormProps {
@@ -58,6 +61,7 @@ export function BookingForm({
   user,
 }: BookingFormProps) {
   const isDesktop = useIsDesktop()
+  const { addToast } = useToast()
   const [email, setEmail] = useState(GuestSession.getEmail() ?? '')
 
   // Desktop state
@@ -134,12 +138,14 @@ export function BookingForm({
         GuestSession.setEmail(effectiveEmail)
         GuestSession.incrementBookingCount()
       }
+      addToast('Bokning skapad!')
       onSuccess(start, end)
     } catch (err) {
-      setSubmitError(
+      addToast(
         err instanceof Error
           ? err.message
-          : 'Något gick fel. Försök igen senare.'
+          : 'Något gick fel. Försök igen senare.',
+        'error'
       )
     } finally {
       setIsSubmitting(false)
@@ -169,15 +175,16 @@ export function BookingForm({
       GuestSession.setEmail(effectiveEmail)
       GuestSession.incrementBookingCount()
     }
+    addToast('Bokning skapad!')
     onSuccess(start, end)
   }
 
   const inputClass =
-    'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
+    'w-full min-h-[44px] rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
 
   return (
-    <section className="rounded-xl bg-white px-4 py-5 shadow-sm border border-gray-100">
-      <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-gray-900">
+    <section className="rounded-2xl bg-[#194b29] px-4 py-5">
+      <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
         Ny bokning
       </h2>
       <form
@@ -190,7 +197,7 @@ export function BookingForm({
           <div className="min-w-0">
             <label
               htmlFor="booking-email"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="mb-1 block text-sm font-medium text-white/70"
             >
               E-post
             </label>
@@ -213,7 +220,7 @@ export function BookingForm({
             <div className="min-w-0">
               <label
                 htmlFor="booking-date-desktop"
-                className="mb-1 block text-sm font-medium text-gray-700"
+                className="mb-1 block text-sm font-medium text-white/70"
               >
                 Datum
               </label>
@@ -261,7 +268,7 @@ export function BookingForm({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-white/70">
                   Starttid
                 </label>
                 <TimeSelect
@@ -272,7 +279,7 @@ export function BookingForm({
               </div>
 
               <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-white/70">
                   Sluttid
                 </label>
                 <TimeSelect
@@ -288,14 +295,14 @@ export function BookingForm({
 
             {/* Inline conflict error — desktop only */}
             {conflictDetected && (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-300">
                 Det finns redan en bokning som överlappar med vald tid.
               </p>
             )}
 
             {/* Submit error — desktop only */}
             {submitError && (
-              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-xl bg-white/95 px-4 py-3 text-sm text-red-700">
                 {submitError}
               </div>
             )}

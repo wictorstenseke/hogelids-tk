@@ -3,6 +3,20 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HomePage } from './HomePage'
 
+vi.mock('../../lib/ToastContext', () => ({
+  useToast: vi.fn(() => ({ showToast: vi.fn() })),
+  ToastProvider: ({ children }: { children: React.ReactNode }) => children,
+}))
+
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLAnchorElement> & { to?: string }) => (
+    <a {...props}>{children}</a>
+  ),
+}))
+
 // Mock Firestore so tests don't need a real Firebase connection
 vi.mock('../../services/BookingService', () => ({
   BOOKINGS_QUERY_KEY: ['bookings', 'upcoming'],

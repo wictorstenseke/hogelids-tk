@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { IconUser, IconLogout, IconShieldCheck } from '@tabler/icons-react'
+import {
+  IconUserFilled,
+  IconLogout,
+  IconShieldCheckFilled,
+} from '@tabler/icons-react'
 import { useNavigate } from '@tanstack/react-router'
 import type { AuthUser } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
@@ -75,7 +79,7 @@ export function AvatarMenu({
             }}
             className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            <IconUser size={16} stroke={2} className="shrink-0 text-gray-400" />
+            <IconUserFilled size={16} className="shrink-0 text-gray-400" />
             Min profil
           </button>
           {isAdmin && (
@@ -87,9 +91,8 @@ export function AvatarMenu({
               }}
               className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              <IconShieldCheck
+              <IconShieldCheckFilled
                 size={16}
-                stroke={2}
                 className="shrink-0 text-gray-400"
               />
               Admin

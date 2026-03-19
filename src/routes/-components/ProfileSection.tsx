@@ -63,18 +63,13 @@ export function ProfileSection({ user }: ProfileSectionProps) {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-semibold text-gray-800">Profil</h2>
-
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
           <span className="ml-3 text-sm text-gray-500">Laddar profil…</span>
         </div>
       ) : (
-        <form
-          onSubmit={(e) => void handleSubmit(e)}
-          className="space-y-4 rounded-xl bg-white p-4 shadow-sm"
-        >
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           {/* Display name */}
           <div className="space-y-1">
             <label

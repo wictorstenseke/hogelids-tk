@@ -139,22 +139,24 @@ export function AuthModal({
         ].join(' ')}
       >
         <div className="px-6 pb-10 pt-6">
-          {/* Close button */}
-          <div className="mb-5 flex items-center justify-end">
+          <header className="mb-6 flex items-center justify-between">
+            <h2 className="font-display text-xl font-bold uppercase text-gray-900">
+              {view === 'sign-in' && 'Logga in'}
+              {view === 'sign-up' && 'Skapa konto'}
+              {view === 'forgot-password' && 'Glömt lösenord?'}
+            </h2>
             <button
               type="button"
               onClick={handleClose}
               aria-label="Stäng"
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800"
+              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800"
             >
               <IconX size={18} stroke={2} />
             </button>
-          </div>
+          </header>
 
           {view === 'sign-in' && (
             <>
-              <h2 className="mb-6 text-xl font-bold text-gray-900">Logga in</h2>
-
               <form
                 onSubmit={(e) => void handleSignIn(e)}
                 className="space-y-4"
@@ -209,8 +211,7 @@ export function AuthModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
-                  style={{ backgroundColor: '#F1E334' }}
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
                 >
                   {loading ? 'Laddar…' : 'Logga in'}
                 </button>
@@ -242,10 +243,6 @@ export function AuthModal({
 
           {view === 'sign-up' && (
             <>
-              <h2 className="mb-6 text-xl font-bold text-gray-900">
-                Skapa konto
-              </h2>
-
               <form
                 onSubmit={(e) => void handleSignUp(e)}
                 className="space-y-4"
@@ -320,8 +317,7 @@ export function AuthModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
-                  style={{ backgroundColor: '#F1E334' }}
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
                 >
                   {loading ? 'Laddar…' : 'Skapa konto'}
                 </button>
@@ -344,9 +340,6 @@ export function AuthModal({
 
           {view === 'forgot-password' && (
             <>
-              <h2 className="mb-2 text-xl font-bold text-gray-900">
-                Glömt lösenord?
-              </h2>
               <p className="mb-6 text-sm text-gray-500">
                 Ange din e-postadress så skickar vi en länk för att återställa
                 lösenordet.
@@ -391,8 +384,7 @@ export function AuthModal({
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
-                    style={{ backgroundColor: '#F1E334' }}
+                    className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
                   >
                     {loading ? 'Laddar…' : 'Skicka återställningslänk'}
                   </button>

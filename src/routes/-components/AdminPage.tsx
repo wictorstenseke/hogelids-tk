@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { IconSquareRoundedChevronLeft } from '@tabler/icons-react'
+import {
+  IconCheck,
+  IconSelector,
+  IconSquareRoundedChevronLeft,
+} from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
@@ -91,6 +96,113 @@ const ROLE_LABELS: Record<UserRole, string> = {
   superuser: 'Superadmin',
 }
 
+// Custom role dropdown — styled to match admin card, touch-friendly.
+interface RoleSelectOption {
+  value: UserRole
+  label: string
+}
+
+interface RoleSelectProps {
+  value: UserRole
+  onChange: (value: UserRole) => void
+  options: RoleSelectOption[]
+}
+
+function RoleSelect({ value, onChange, options }: RoleSelectProps) {
+  const [open, setOpen] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0 })
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        !document.getElementById('role-select-dropdown')?.contains(target)
+      ) {
+        setOpen(false)
+      }
+    }
+    if (open) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPosition({
+        top: rect.bottom + 6,
+        left: rect.right - 140,
+      })
+    }
+  }, [open])
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? value
+
+  const dropdown = open && (
+    <ul
+      id="role-select-dropdown"
+      role="listbox"
+      className="fixed z-9999 min-w-[140px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+      style={{ top: position.top, left: position.left }}
+    >
+      {options.map((opt) => (
+        <li key={opt.value} role="option" aria-selected={opt.value === value}>
+          <button
+            type="button"
+            onClick={() => {
+              onChange(opt.value)
+              setOpen(false)
+            }}
+            className={[
+              'flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-medium transition-colors',
+              opt.value === value
+                ? 'bg-[#F1E334] text-gray-900'
+                : 'text-gray-700 hover:bg-gray-50',
+            ].join(' ')}
+          >
+            <span>{opt.label}</span>
+            {opt.value === value && (
+              <IconCheck size={18} stroke={2} className="shrink-0" />
+            )}
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={[
+          'flex min-h-[44px] min-w-[120px] items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors',
+          open
+            ? 'border-[#F1E334] bg-white ring-2 ring-[#F1E334]/25'
+            : 'border-gray-300 bg-gray-50 text-gray-900 hover:border-gray-400 hover:bg-gray-100',
+        ].join(' ')}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`Roll: ${selectedLabel}`}
+      >
+        <span>{selectedLabel}</span>
+        <IconSelector
+          size={18}
+          stroke={1.5}
+          className={[
+            'shrink-0 text-gray-500 transition-transform',
+            open && 'rotate-180',
+          ].join(' ')}
+        />
+      </button>
+      {dropdown && createPortal(dropdown, document.body)}
+    </div>
+  )
+}
+
 // A single user row in the user management list.
 interface UserRowProps {
   profile: UserProfile
@@ -141,17 +253,17 @@ function UserRow({ profile, isSelf, isSuperuser }: UserRowProps) {
         </div>
         <div className="shrink-0">
           {isSuperuser && !isSelf ? (
-            <select
+            <RoleSelect
               value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-              className="rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none min-h-[44px]"
-            >
-              <option value="user">Användare</option>
-              <option value="admin">Admin</option>
-              <option value="superuser">Superadmin</option>
-            </select>
+              onChange={setSelectedRole}
+              options={[
+                { value: 'user', label: ROLE_LABELS.user },
+                { value: 'admin', label: ROLE_LABELS.admin },
+                { value: 'superuser', label: ROLE_LABELS.superuser },
+              ]}
+            />
           ) : (
-            <span className="text-sm text-gray-600">
+            <span className="inline-flex min-h-[44px] items-center rounded-lg bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600">
               {ROLE_LABELS[profile.role]}
             </span>
           )}
@@ -314,15 +426,16 @@ export function AdminPage() {
             />
           </SettingsRow>
 
-          <SettingsRow label="Bannertext">
-            <input
-              type="text"
+          <div className="space-y-2 px-4 py-3">
+            <p className="text-sm font-medium text-gray-900">Bannertext</p>
+            <textarea
+              rows={3}
               value={bannerText}
               onChange={(e) => setBannerTextOverride(e.target.value)}
               placeholder="Skriv ett meddelande…"
-              className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none sm:w-64"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
             />
-          </SettingsRow>
+          </div>
 
           <SettingsRow label="Länktext" description="Valfri">
             <input
@@ -344,7 +457,7 @@ export function AdminPage() {
             />
           </SettingsRow>
 
-          <div className="px-4 py-3">
+          <div className="flex justify-end px-4 py-3">
             <button
               type="button"
               onClick={() => void handleSaveBannerText()}
@@ -352,7 +465,7 @@ export function AdminPage() {
               className="min-h-[44px] cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#F1E334' }}
             >
-              {isSaving ? 'Sparar…' : 'Spara'}
+              {isSaving ? 'Sparar innehåll…' : 'Spara innehåll'}
             </button>
           </div>
         </SettingsSection>

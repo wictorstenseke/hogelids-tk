@@ -68,7 +68,7 @@ export function TimeSelect({
   }
 
   const baseInputClass =
-    'w-full min-h-[44px] rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
+    'w-full min-h-[44px] rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -78,13 +78,13 @@ export function TimeSelect({
         className={`${baseInputClass} ${
           open
             ? 'border-[#F1E334] ring-2 ring-[#F1E334]/30'
-            : 'text-gray-900 hover:border-gray-300'
+            : 'hover:border-white/40'
         }`}
       >
         {value ? (
-          <span className="text-gray-900">{value}</span>
+          <span className="text-white">{value}</span>
         ) : (
-          <span className="text-gray-400">{placeholder}</span>
+          <span className="text-white/40">{placeholder}</span>
         )}
       </button>
 
