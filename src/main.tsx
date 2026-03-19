@@ -16,13 +16,6 @@ if (import.meta.env.DEV) {
     w.seedBookings = seedBookings
     w.seedHistoricalBookings = seedHistoricalBookings
   })
-
-  import('./lib/migrate').then(({ migrateReservations }) => {
-    const w = window as Window & {
-      migrateReservations?: typeof migrateReservations
-    }
-    w.migrateReservations = migrateReservations
-  })
 }
 
 const router = createRouter({ routeTree, basepath: '/hogelids-tk/' })
