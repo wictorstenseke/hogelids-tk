@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { IconSquareRoundedChevronLeft, IconTrophy } from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
+import { useAppSettings } from '../../lib/useAppSettings'
 import {
   getActiveLadder,
   joinLadder,
@@ -302,6 +303,7 @@ export function StegenPage() {
   const { user, loading: authLoading } = useAuth()
   const { addToast } = useToast()
   const queryClient = useQueryClient()
+  const { settings } = useAppSettings()
 
   const [challengeOpponentUid, setChallengeOpponentUid] = useState<
     string | null
@@ -340,7 +342,9 @@ export function StegenPage() {
 
   if (authLoading) return null
 
-  if (!user) {
+  const ladderEnabled = settings?.ladderEnabled ?? true
+
+  if (!user || !ladderEnabled) {
     return (
       <main className="min-h-screen px-4 py-8">
         <div className="mx-auto max-w-lg">
@@ -355,7 +359,9 @@ export function StegenPage() {
           </div>
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
             <p className="text-sm text-gray-600">
-              Du behöver vara inloggad för att se stegen.
+              {!user
+                ? 'Du behöver vara inloggad för att se stegen.'
+                : 'Stegen är inte tillgänglig just nu.'}
             </p>
           </div>
         </div>

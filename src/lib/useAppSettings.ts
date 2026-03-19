@@ -27,6 +27,8 @@ export function useAppSettings(): UseAppSettingsResult {
           setSettings({
             bookingEnabled:
               data.bookingEnabled ?? APP_SETTINGS_DEFAULTS.bookingEnabled,
+            ladderEnabled:
+              data.ladderEnabled ?? APP_SETTINGS_DEFAULTS.ladderEnabled,
             bannerVisible:
               data.bannerVisible ?? APP_SETTINGS_DEFAULTS.bannerVisible,
             bannerText: data.bannerText ?? APP_SETTINGS_DEFAULTS.bannerText,

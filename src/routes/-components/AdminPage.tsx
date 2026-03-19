@@ -406,6 +406,25 @@ export function AdminPage() {
               }}
             />
           </SettingsRow>
+          <SettingsRow
+            label="Stegen"
+            description="Visa tennisranking för medlemmar"
+          >
+            <Toggle
+              id="ladder-enabled-toggle"
+              checked={settings?.ladderEnabled ?? true}
+              onChange={(value) => {
+                void updateAppSettings({ ladderEnabled: value })
+                  .then(() =>
+                    addToast(value ? 'Stegen aktiverad' : 'Stegen inaktiverad')
+                  )
+                  .catch((err) => {
+                    console.error('Failed to update ladderEnabled:', err)
+                    addToast('Kunde inte spara ändringen.', 'error')
+                  })
+              }}
+            />
+          </SettingsRow>
         </SettingsSection>
 
         <SettingsSection title="Banner">

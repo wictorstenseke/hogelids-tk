@@ -3,6 +3,7 @@ import { db } from '../lib/firebase'
 
 export interface AppSettings {
   bookingEnabled: boolean
+  ladderEnabled: boolean
   bannerVisible: boolean
   bannerText: string
   bannerLinkText?: string
@@ -20,6 +21,7 @@ export type AppSettingsUpdate = Partial<
 
 export const APP_SETTINGS_DEFAULTS: AppSettings = {
   bookingEnabled: true,
+  ladderEnabled: true,
   bannerVisible: false,
   bannerText: '',
 }
