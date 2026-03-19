@@ -145,8 +145,6 @@ export function HistorySection({
   const toggleYear = (year: number) => {
     setSelectedYears((prev) => {
       if (prev.includes(year)) {
-        // Keep at least one year selected
-        if (prev.length === 1) return prev
         return prev.filter((y) => y !== year)
       }
       return [...prev, year]
