@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   getBookingsByYear,
+  getAllBookings,
   type BookingWithId,
 } from '../../services/BookingService'
+import { computeStats } from './historyStats'
 
 interface HistorySectionProps {
   currentYear: number
@@ -131,6 +133,37 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
   )
 }
 
+function StatistikTab({ selectedYears }: { selectedYears: number[] }) {
+  const { data: allBookings, isLoading } = useQuery({
+    queryKey: ['bookings', 'all'],
+    queryFn: getAllBookings,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
+        <span className="ml-3 text-sm text-white/80">Laddar statistik…</span>
+      </div>
+    )
+  }
+
+  const stats = computeStats(allBookings ?? [], selectedYears)
+
+  return (
+    <div className="rounded-xl bg-white/10 px-6 py-8">
+      <p className="text-4xl font-bold text-white">
+        {stats.totalBookings}
+        <span className="ml-2 text-xl font-semibold text-white/70">
+          bokningar
+        </span>
+      </p>
+    </div>
+  )
+}
+
 export function HistorySection({
   currentYear,
   earliestYear,
@@ -205,9 +238,7 @@ export function HistorySection({
 
       {/* Tab content */}
       {activeTab === 'statistik' && (
-        <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-4 py-10 text-center text-sm text-white/40">
-          Statistik laddas…
-        </div>
+        <StatistikTab selectedYears={selectedYears} />
       )}
 
       {activeTab === 'historik' && (

@@ -130,6 +130,30 @@ export async function getEarliestBookingYear(): Promise<number> {
   return endTime.toDate().getFullYear()
 }
 
+export async function getAllBookings(): Promise<BookingWithId[]> {
+  const bookingsRef = collection(db, 'bookings')
+  const now = Timestamp.fromDate(new Date())
+  const q = query(
+    bookingsRef,
+    where('startTime', '<', now),
+    orderBy('startTime', 'asc')
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map((docSnap) => {
+    const data = docSnap.data()
+    return {
+      id: docSnap.id,
+      type: data['type'] as 'guest' | 'member',
+      ownerEmail: data['ownerEmail'] as string,
+      ownerUid: data['ownerUid'] as string | null,
+      ownerDisplayName: data['ownerDisplayName'] as string,
+      startTime: data['startTime'] as Timestamp,
+      endTime: data['endTime'] as Timestamp,
+      createdAt: data['createdAt'] as Timestamp,
+    }
+  })
+}
+
 export async function getUpcomingBookings(): Promise<BookingWithId[]> {
   const bookingsRef = collection(db, 'bookings')
   const now = Timestamp.fromDate(new Date())
