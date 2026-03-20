@@ -22,7 +22,6 @@ import {
 } from 'recharts'
 import {
   getBookingsByYear,
-  getAllBookings,
   type BookingWithId,
 } from '../../services/BookingService'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
@@ -241,20 +240,27 @@ function StatistikTab({
   allYears: number[]
   allSelected: boolean
 }) {
-  const { data: allBookings, isLoading } = useQuery({
-    queryKey: ['bookings', 'all'],
-    queryFn: getAllBookings,
-    staleTime: Infinity,
-    gcTime: Infinity,
+  const [results, setResults] = useState<Map<number, YearQueryResult>>(
+    new Map()
+  )
+
+  const handleResult = useCallback((result: YearQueryResult) => {
+    setResults((prev) => {
+      const next = new Map(prev)
+      next.set(result.year, result)
+      return next
+    })
+  }, [])
+
+  const isLoading = allYears.some((y) => {
+    const r = results.get(y)
+    return !r || r.isLoading
   })
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-        <span className="ml-3 text-sm text-white/80">Laddar statistik…</span>
-      </div>
-    )
+  const allBookings: BookingWithId[] = []
+  for (const year of allYears) {
+    const r = results.get(year)
+    if (r?.data) allBookings.push(...r.data)
   }
 
   const noYearsSelected = !allSelected && selectedYears.length === 0
@@ -279,72 +285,91 @@ function StatistikTab({
     ? yearChartData.length > 0
     : monthChartData.length > 0
 
-  return (
-    <div>
-      <p className="text-3xl font-bold text-white">
-        {stats.totalBookings}
-        <span className="ml-2 text-lg font-semibold text-white/70">
-          bokningar
-        </span>
-      </p>
-
-      {hasData && (
-        <div className="mt-6">
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart
-              data={allSelected ? yearChartData : monthChartData}
-              margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
-            >
-              <CartesianGrid {...CHART_STYLE.grid} />
-              <XAxis
-                dataKey={allSelected ? 'year' : 'month'}
-                tick={CHART_STYLE.tick}
-                axisLine={CHART_STYLE.axis}
-                tickLine={CHART_STYLE.axis}
-              />
-              <YAxis
-                allowDecimals={false}
-                tickFormatter={(v: number) => Math.round(v).toString()}
-                tick={CHART_STYLE.tick}
-                axisLine={CHART_STYLE.axis}
-                tickLine={CHART_STYLE.axis}
-              />
-              <Tooltip {...CHART_STYLE.tooltip} />
-              {allSelected ? (
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="#F1E334"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-              ) : (
-                <>
-                  <Legend
-                    wrapperStyle={{
-                      color: 'rgba(255,255,255,0.8)',
-                      fontSize: 13,
-                    }}
-                  />
-                  {selectedYears.map((year, i) => (
-                    <Line
-                      key={year}
-                      type="monotone"
-                      dataKey={String(year)}
-                      stroke={LINE_COLORS[i % LINE_COLORS.length]}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      activeDot={{ r: 5 }}
-                    />
-                  ))}
-                </>
-              )}
-            </LineChart>
-          </ResponsiveContainer>
+  if (isLoading) {
+    return (
+      <>
+        {allYears.map((year) => (
+          <YearBookings key={year} year={year} onResult={handleResult} />
+        ))}
+        <div className="flex items-center justify-center py-12">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
+          <span className="ml-3 text-sm text-white/80">Laddar statistik…</span>
         </div>
-      )}
-    </div>
+      </>
+    )
+  }
+
+  return (
+    <>
+      {allYears.map((year) => (
+        <YearBookings key={year} year={year} onResult={handleResult} />
+      ))}
+      <div>
+        <p className="text-3xl font-bold text-white">
+          {stats.totalBookings}
+          <span className="ml-2 text-lg font-semibold text-white/70">
+            bokningar
+          </span>
+        </p>
+
+        {hasData && (
+          <div className="mt-6">
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart
+                data={allSelected ? yearChartData : monthChartData}
+                margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+              >
+                <CartesianGrid {...CHART_STYLE.grid} />
+                <XAxis
+                  dataKey={allSelected ? 'year' : 'month'}
+                  tick={CHART_STYLE.tick}
+                  axisLine={CHART_STYLE.axis}
+                  tickLine={CHART_STYLE.axis}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tickFormatter={(v: number) => Math.round(v).toString()}
+                  tick={CHART_STYLE.tick}
+                  axisLine={CHART_STYLE.axis}
+                  tickLine={CHART_STYLE.axis}
+                />
+                <Tooltip {...CHART_STYLE.tooltip} />
+                {allSelected ? (
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#F1E334"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                ) : (
+                  <>
+                    <Legend
+                      wrapperStyle={{
+                        color: 'rgba(255,255,255,0.8)',
+                        fontSize: 13,
+                      }}
+                    />
+                    {selectedYears.map((year, i) => (
+                      <Line
+                        key={year}
+                        type="monotone"
+                        dataKey={String(year)}
+                        stroke={LINE_COLORS[i % LINE_COLORS.length]}
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    ))}
+                  </>
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 

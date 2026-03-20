@@ -321,8 +321,6 @@ export function StegenPage() {
   const { data: existingBookings = [] } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
-    staleTime: 0,
-    refetchInterval: 30_000,
   })
 
   const ladderEnabled = settings?.ladderEnabled ?? true

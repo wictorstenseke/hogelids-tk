@@ -98,7 +98,7 @@ function SettingsRow({ label, description, children }: SettingsRowProps) {
 const ROLE_LABELS: Record<UserRole, string> = {
   user: 'Användare',
   admin: 'Admin',
-  superuser: 'Superadmin',
+  superuser: 'Superuser',
 }
 
 // Custom role dropdown — styled to match admin card, touch-friendly.
@@ -435,8 +435,11 @@ export function AdminPage() {
               }}
             />
           </SettingsRow>
+        </SettingsSection>
+
+        <SettingsSection title="Stegen">
           <SettingsRow
-            label="Stegen"
+            label="Visa stegen"
             description="Visa tennisranking för medlemmar"
           >
             <Toggle
