@@ -492,6 +492,9 @@ export function StegenPage() {
                     void queryClient.invalidateQueries({
                       queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
                     })
+                    void queryClient.invalidateQueries({
+                      queryKey: BOOKINGS_QUERY_KEY,
+                    })
                     addToast('Match bokad!')
                   }}
                   user={user}
