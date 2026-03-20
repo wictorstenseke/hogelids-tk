@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import { Timestamp } from 'firebase/firestore'
-import { hasConflict, mapBookingSnapshot } from './BookingService'
+import {
+  hasConflict,
+  mapBookingSnapshot,
+  findConflictingBooking,
+} from './BookingService'
 import type { BookingWithId } from './BookingService'
 
 vi.mock('../lib/firebase', () => ({ db: {} }))
@@ -104,6 +108,39 @@ describe('hasConflict', () => {
     const start = new Date(`${date}T12:00:00`)
     const end = new Date(`${date}T14:00:00`)
     expect(hasConflict(bookings, start, end)).toBe(false)
+  })
+})
+
+describe('findConflictingBooking', () => {
+  it('returns null when no bookings', () => {
+    const start = new Date(`${date}T10:00:00`)
+    const end = new Date(`${date}T12:00:00`)
+    expect(findConflictingBooking([], start, end)).toBeNull()
+  })
+
+  it('returns the conflicting booking when there is an overlap', () => {
+    const booking = makeBooking(10, 12)
+    const start = new Date(`${date}T11:00:00`)
+    const end = new Date(`${date}T13:00:00`)
+    const result = findConflictingBooking([booking], start, end)
+    expect(result).not.toBeNull()
+    expect(result?.id).toBe('test-id')
+  })
+
+  it('returns null for adjacent bookings (no overlap)', () => {
+    const booking = makeBooking(10, 12)
+    const start = new Date(`${date}T12:00:00`)
+    const end = new Date(`${date}T14:00:00`)
+    expect(findConflictingBooking([booking], start, end)).toBeNull()
+  })
+
+  it('returns the first conflicting booking among multiple', () => {
+    const b1 = { ...makeBooking(8, 10), id: 'first' }
+    const b2 = { ...makeBooking(11, 13), id: 'second' }
+    const start = new Date(`${date}T09:00:00`)
+    const end = new Date(`${date}T12:00:00`)
+    const result = findConflictingBooking([b1, b2], start, end)
+    expect(result?.id).toBe('first')
   })
 })
 

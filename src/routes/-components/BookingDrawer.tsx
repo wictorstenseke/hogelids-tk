@@ -4,7 +4,10 @@ import { WheelPicker, WheelPickerWrapper } from '@ncdai/react-wheel-picker'
 import '@ncdai/react-wheel-picker/style.css'
 import type { WheelPickerOption } from '@ncdai/react-wheel-picker'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
-import { type BookingWithId } from '../../services/BookingService'
+import {
+  type BookingWithId,
+  findConflictingBooking,
+} from '../../services/BookingService'
 
 type Step = 'datetime' | 'end' | 'summary'
 
@@ -193,19 +196,14 @@ export function BookingDrawer({
     ? new Date(`${draftDate}T${draftEndHour}:${draftEndMinute}`)
     : null
 
-  function findConflict(end: Date | null) {
-    if (!startDate || !end) return null
-    return (
-      existingBookings.find((b) => {
-        const a = b.startTime.toDate().getTime()
-        const bEnd = b.endTime.toDate().getTime()
-        return startDate.getTime() < bEnd && end.getTime() > a
-      }) ?? null
-    )
-  }
-
-  const datetimeConflictBooking = findConflict(tentativeEndDate)
-  const summaryConflictBooking = findConflict(endDate)
+  const datetimeConflictBooking =
+    startDate && tentativeEndDate
+      ? findConflictingBooking(existingBookings, startDate, tentativeEndDate)
+      : null
+  const summaryConflictBooking =
+    startDate && endDate
+      ? findConflictingBooking(existingBookings, startDate, endDate)
+      : null
 
   function conflictLabel(booking: BookingWithId | null) {
     if (!booking) return null
@@ -246,7 +244,7 @@ export function BookingDrawer({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 motion-reduce:backdrop-blur-none ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={handleClose}
         aria-hidden="true"
       />
