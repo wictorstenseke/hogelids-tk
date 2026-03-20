@@ -32,6 +32,9 @@ coverage
 # Git worktrees
 .worktrees
 
+# AI-generated implementation plans (ephemeral, not for version history)
+docs/superpowers/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
