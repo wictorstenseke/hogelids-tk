@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IconX } from '@tabler/icons-react'
+import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 import { signIn, signUp, sendPasswordReset } from '../../services/AuthService'
 
 type View = 'sign-in' | 'sign-up' | 'forgot-password'
@@ -59,7 +60,7 @@ export function AuthModal({
 
   function handleClose() {
     setVisible(false)
-    setTimeout(onClose, 280)
+    setTimeout(onClose, overlayCloseDelayMs(768))
   }
 
   // Form fields
@@ -119,7 +120,7 @@ export function AuthModal({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 motion-reduce:backdrop-blur-none md:duration-150 ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={handleClose}
         aria-hidden="true"
       />
@@ -132,10 +133,12 @@ export function AuthModal({
           'fixed z-50 w-full bg-white shadow-2xl',
           'bottom-0 left-0 right-0 rounded-t-3xl',
           'transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
-          visible ? 'translate-y-0' : 'translate-y-full',
+          visible
+            ? 'translate-y-0 md:opacity-100'
+            : 'translate-y-full md:opacity-0',
           'md:bottom-auto md:left-1/2 md:right-auto md:top-1/2',
           'md:-translate-x-1/2 md:-translate-y-1/2',
-          'md:max-w-sm md:rounded-2xl md:transition-none',
+          'md:max-w-sm md:rounded-2xl md:transition-opacity md:duration-150 md:ease-out',
         ].join(' ')}
       >
         <div className="px-6 pb-10 pt-6">

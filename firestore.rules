@@ -25,7 +25,9 @@ service cloud.firestore {
       allow delete: if resource.data.type == 'guest'
                     || (resource.data.type == 'member'
                         && request.auth != null
-                        && request.auth.uid == resource.data.ownerUid);
+                        && (request.auth.uid == resource.data.ownerUid
+                            || request.auth.uid == resource.data.playerAId
+                            || request.auth.uid == resource.data.playerBId));
       allow update: if request.auth != null;
     }
 

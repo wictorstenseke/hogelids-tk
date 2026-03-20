@@ -1,6 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { IconSquareRoundedChevronLeft, IconTrophy } from '@tabler/icons-react'
+import {
+  IconSquareRoundedChevronLeft,
+  IconSquareRoundedChevronRight,
+  IconTrash,
+  IconTrophy,
+} from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
 import { useAppSettings } from '../../lib/useAppSettings'
@@ -19,6 +24,7 @@ import {
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { useState } from 'react'
 import { BookingForm } from './BookingForm'
+import { ConfirmSheetDialog } from './ConfirmSheetDialog'
 import {
   getUpcomingBookings,
   BOOKINGS_QUERY_KEY,
@@ -32,13 +38,29 @@ function getActiveParticipants(participants: LadderParticipant[]) {
     .sort((a, b) => a.position - b.position)
 }
 
-function formatMatchTime(match: LadderMatch): string {
+function formatMatchDateHeading(match: LadderMatch): string {
   const date = match.startTime.toDate()
   return date.toLocaleDateString('sv-SE', {
-    weekday: 'short',
     day: 'numeric',
-    month: 'short',
+    month: 'long',
+    year: 'numeric',
   })
+}
+
+function MatchPlayersLine({
+  playerA,
+  playerB,
+}: {
+  playerA: string
+  playerB: string
+}) {
+  return (
+    <p className="text-sm text-gray-900">
+      <span className="font-semibold">{playerA}</span>{' '}
+      <span className="font-normal text-gray-400">mot</span>{' '}
+      <span className="font-semibold">{playerB}</span>
+    </p>
+  )
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -141,15 +163,11 @@ function RankingsTable({
 
 interface MatchCardProps {
   match: LadderMatch
-  currentUid: string
-  onReport: (match: LadderMatch) => void
 }
 
-function MatchCard({ match, currentUid, onReport }: MatchCardProps) {
+function MatchCard({ match }: MatchCardProps) {
   const playerA = match.playerAName
   const playerB = match.playerBName
-  const isInvolved =
-    match.playerAId === currentUid || match.playerBId === currentUid
 
   if (match.ladderStatus === 'completed') {
     const winnerName = match.winnerId
@@ -159,43 +177,120 @@ function MatchCard({ match, currentUid, onReport }: MatchCardProps) {
       : '?'
     const loserName = match.winnerId === match.playerAId ? playerB : playerA
     return (
-      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">{winnerName}</span> vinner mot{' '}
-            <span className="font-medium">{loserName}</span>
-          </p>
-          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 shrink-0">
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400">
+              {formatMatchDateHeading(match)}
+            </p>
+            <div className="mt-0.5">
+              {match.winnerId ? (
+                <MatchPlayersLine playerA={winnerName} playerB={loserName} />
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Inget resultat registrerat
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
             Avklarad
           </span>
         </div>
-        <p className="text-xs text-gray-400">{formatMatchTime(match)}</p>
         {match.ladderComment && (
-          <p className="text-xs text-gray-500 italic">{match.ladderComment}</p>
+          <p className="mt-2 text-xs text-gray-500 italic">
+            {match.ladderComment}
+          </p>
         )}
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 space-y-1">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-gray-700">
-          <span className="font-medium">{playerA}</span>{' '}
-          <span className="text-gray-400">vs</span>{' '}
-          <span className="font-medium">{playerB}</span>
-        </p>
-        {isInvolved && (
-          <button
-            type="button"
-            onClick={() => onReport(match)}
-            className="shrink-0 min-h-[36px] cursor-pointer rounded-lg bg-gray-900 px-3 text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
-          >
-            Rapportera
-          </button>
-        )}
+    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+      <p className="text-xs text-gray-400">{formatMatchDateHeading(match)}</p>
+      <div className="mt-0.5">
+        <MatchPlayersLine playerA={playerA} playerB={playerB} />
       </div>
-      <p className="text-xs text-gray-400">{formatMatchTime(match)}</p>
+    </div>
+  )
+}
+
+interface PlannedMatchReportRowProps {
+  match: LadderMatch
+  ladderId: string
+  expanded: boolean
+  onExpand: () => void
+  onCollapse: () => void
+}
+
+function PlannedMatchReportRow({
+  match,
+  ladderId,
+  expanded,
+  onExpand,
+  onCollapse,
+}: PlannedMatchReportRowProps) {
+  const playerA = match.playerAName
+  const playerB = match.playerBName
+
+  function toggleHeader() {
+    if (expanded) onCollapse()
+    else onExpand()
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <button
+        type="button"
+        onClick={() => toggleHeader()}
+        aria-expanded={expanded}
+        aria-label={
+          expanded
+            ? 'Stäng rapportformulär'
+            : 'Rapportera resultat, öppna formulär'
+        }
+        className="flex min-h-[44px] w-full items-center gap-2 py-3 pl-4 pr-3 text-left transition-colors hover:bg-gray-50/80"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-gray-400">
+            {formatMatchDateHeading(match)}
+          </p>
+          <div className="mt-0.5">
+            <MatchPlayersLine playerA={playerA} playerB={playerB} />
+          </div>
+        </div>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800">
+          <IconSquareRoundedChevronRight
+            size={24}
+            stroke={1.5}
+            className={`transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}
+            aria-hidden
+          />
+        </span>
+      </button>
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        }`}
+      >
+        <div
+          className={`min-h-0 overflow-hidden ${expanded ? '' : 'pointer-events-none'}`}
+        >
+          <div
+            className="border-t border-gray-100 px-4 pb-4 pt-3"
+            aria-hidden={!expanded}
+            inert={expanded ? undefined : true}
+          >
+            <ReportForm
+              match={match}
+              ladderId={ladderId}
+              onDone={onCollapse}
+              embedded
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -204,14 +299,21 @@ interface ReportFormProps {
   match: LadderMatch
   ladderId: string
   onDone: () => void
+  embedded?: boolean
 }
 
-function ReportForm({ match, ladderId, onDone }: ReportFormProps) {
+function ReportForm({
+  match,
+  ladderId,
+  onDone,
+  embedded = false,
+}: ReportFormProps) {
   const { addToast } = useToast()
   const queryClient = useQueryClient()
   const [winnerId, setWinnerId] = useState('')
   const [comment, setComment] = useState('')
   const [saving, setSaving] = useState(false)
+  const [cancelChallengeOpen, setCancelChallengeOpen] = useState(false)
 
   const loserId =
     winnerId === match.playerAId ? match.playerBId : match.playerAId
@@ -236,56 +338,107 @@ function ReportForm({ match, ladderId, onDone }: ReportFormProps) {
     }
   }
 
+  const players: { uid: string; name: string }[] = [
+    { uid: match.playerAId, name: match.playerAName },
+    { uid: match.playerBId, name: match.playerBName },
+  ]
+
   return (
-    <form
-      onSubmit={(e) => void handleSubmit(e)}
-      className="rounded-xl border border-gray-200 bg-white px-4 py-4 space-y-4"
-    >
-      <p className="text-sm font-semibold text-gray-900">Rapportera resultat</p>
-      <fieldset className="space-y-2">
-        {[match.playerAId, match.playerBId].map((uid) => (
-          <label
-            key={uid}
-            className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 transition-colors has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50"
+    <>
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className={
+          embedded
+            ? 'space-y-4'
+            : 'space-y-4 rounded-xl border border-gray-200 bg-white px-4 py-4'
+        }
+      >
+        {!embedded && (
+          <p className="text-sm font-semibold text-gray-900">
+            Rapportera resultat
+          </p>
+        )}
+        <p className="text-sm font-semibold text-gray-900">Vinnare</p>
+        <div
+          className="grid grid-cols-2 gap-2"
+          role="group"
+          aria-label="Välj vinnare"
+        >
+          {players.map(({ uid, name }) => {
+            const selected = winnerId === uid
+            return (
+              <button
+                key={uid}
+                type="button"
+                onClick={() => setWinnerId(uid)}
+                aria-pressed={selected}
+                className={`min-h-[44px] cursor-pointer rounded-lg border px-2 py-2 text-center text-sm font-medium transition-colors ${
+                  selected
+                    ? 'border-gray-900 bg-gray-50 text-gray-900'
+                    : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50/80'
+                }`}
+              >
+                {name}
+              </button>
+            )
+          })}
+        </div>
+        <textarea
+          rows={2}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder={
+            embedded
+              ? 'Skriv gärna ett kort matchreferat'
+              : 'Kommentar (valfri)'
+          }
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCancelChallengeOpen(true)}
+            disabled={saving}
+            aria-label="Avbryt utmaning"
+            title="Avbryt utmaning"
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <input
-              type="radio"
-              name="winner"
-              value={uid}
-              checked={winnerId === uid}
-              onChange={() => setWinnerId(uid)}
-              className="h-4 w-4 accent-gray-900"
-            />
-            <span className="text-sm text-gray-900">
-              {uid === match.playerAId ? match.playerAName : match.playerBName}
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <textarea
-        rows={2}
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        placeholder="Kommentar (valfri)"
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
-      />
-      <div className="flex gap-2 justify-end">
-        <button
-          type="button"
-          onClick={onDone}
-          className="min-h-[44px] cursor-pointer rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-        >
-          Avbryt
-        </button>
-        <button
-          type="submit"
-          disabled={!winnerId || saving}
-          className="min-h-[44px] cursor-pointer rounded-lg bg-gray-900 px-5 text-sm font-semibold text-white hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Sparar…' : 'Spara'}
-        </button>
-      </div>
-    </form>
+            <IconTrash size={20} stroke={1.75} aria-hidden />
+          </button>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={onDone}
+              className="min-h-[44px] cursor-pointer rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Avbryt
+            </button>
+            <button
+              type="submit"
+              disabled={!winnerId || saving}
+              className="min-h-[44px] cursor-pointer rounded-lg bg-gray-900 px-5 text-sm font-semibold text-white hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Sparar…' : 'Spara'}
+            </button>
+          </div>
+        </div>
+      </form>
+      {cancelChallengeOpen && (
+        <ConfirmSheetDialog
+          titleId="cancel-challenge-title"
+          title="Avbryt utmaning?"
+          description="Vill du stänga utan att spara resultat? Du kan rapportera matchen igen senare."
+          cancelLabel="Tillbaka"
+          confirmLabel="Avbryt utmaning"
+          confirmDanger
+          onCancel={() => setCancelChallengeOpen(false)}
+          onConfirm={() => {
+            setCancelChallengeOpen(false)
+            onDone()
+          }}
+        />
+      )}
+    </>
   )
 }
 
@@ -532,26 +685,27 @@ export function StegenPage() {
                   Kommande matcher
                 </h2>
                 <div className="space-y-2">
-                  {plannedMatches.map((match) =>
-                    reportingMatch?.id === match.id ? (
-                      <ReportForm
-                        key={match.id}
-                        match={match}
-                        ladderId={ladder.id}
-                        onDone={() => setReportingMatch(null)}
-                      />
-                    ) : (
-                      <MatchCard
-                        key={match.id}
-                        match={match}
-                        currentUid={user.uid}
-                        onReport={(m) => {
-                          setReportingMatch(m)
-                          setChallengeOpponentUid(null)
-                        }}
-                      />
-                    )
-                  )}
+                  {plannedMatches.map((match) => {
+                    const isInvolved =
+                      match.playerAId === user.uid ||
+                      match.playerBId === user.uid
+                    if (isInvolved) {
+                      return (
+                        <PlannedMatchReportRow
+                          key={match.id}
+                          match={match}
+                          ladderId={ladder.id}
+                          expanded={reportingMatch?.id === match.id}
+                          onExpand={() => {
+                            setReportingMatch(match)
+                            setChallengeOpponentUid(null)
+                          }}
+                          onCollapse={() => setReportingMatch(null)}
+                        />
+                      )
+                    }
+                    return <MatchCard key={match.id} match={match} />
+                  })}
                 </div>
               </section>
             )}
@@ -564,12 +718,7 @@ export function StegenPage() {
                 </h2>
                 <div className="space-y-2">
                   {completedMatches.map((match) => (
-                    <MatchCard
-                      key={match.id}
-                      match={match}
-                      currentUid={user.uid}
-                      onReport={() => {}}
-                    />
+                    <MatchCard key={match.id} match={match} />
                   ))}
                 </div>
               </section>

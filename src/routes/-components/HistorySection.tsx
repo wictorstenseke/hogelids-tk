@@ -145,7 +145,9 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
                         {formatHistoryDateRange(booking)}
                       </span>
                       <span className="ml-auto shrink-0 rounded-md bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white/80">
-                        {booking.ownerDisplayName}
+                        {booking.playerAId
+                          ? `${booking.playerAName} vs ${booking.playerBName}`
+                          : booking.ownerDisplayName}
                       </span>
                     </div>
                   </li>

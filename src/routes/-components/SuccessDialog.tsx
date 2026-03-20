@@ -30,7 +30,7 @@ export function SuccessDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm motion-reduce:backdrop-blur-none"
         onClick={onClose}
         aria-hidden="true"
       />
