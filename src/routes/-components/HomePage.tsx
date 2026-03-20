@@ -74,6 +74,7 @@ export function HomePage() {
   } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
+    staleTime: 1000 * 60 * 2,
   })
 
   const { settings: appSettings } = useAppSettings()

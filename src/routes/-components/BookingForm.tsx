@@ -1,4 +1,5 @@
 import React, { forwardRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import { sv } from 'date-fns/locale'
 import { format } from 'date-fns'
@@ -10,6 +11,7 @@ import {
   createGuestBooking,
   createMemberBooking,
   type BookingWithId,
+  BOOKINGS_QUERY_KEY,
 } from '../../services/BookingService'
 import { createLadderMatch } from '../../services/LadderService'
 import type { AuthUser } from '../../lib/useAuth'
@@ -73,6 +75,7 @@ export function BookingForm({
 }: BookingFormProps) {
   const isDesktop = useIsDesktop()
   const { addToast } = useToast()
+  const queryClient = useQueryClient()
   const [email, setEmail] = useState(GuestSession.getEmail() ?? '')
 
   // Desktop state
@@ -129,12 +132,16 @@ export function BookingForm({
       return
     }
 
-    if (hasConflict(existingBookings, start, end)) {
+    setIsSubmitting(true)
+    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
+    const freshBookings =
+      queryClient.getQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY) ??
+      existingBookings
+    if (hasConflict(freshBookings, start, end)) {
       setSubmitError('Det finns redan en bokning som överlappar med vald tid.')
+      setIsSubmitting(false)
       return
     }
-
-    setIsSubmitting(true)
     try {
       if (user && ladderMeta) {
         await createLadderMatch(
@@ -185,6 +192,14 @@ export function BookingForm({
     const effectiveEmail = user ? user.email : email.trim()
     const start = new Date(`${date}T${startTime}`)
     const end = new Date(`${date}T${endTime}`)
+
+    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
+    const freshBookings =
+      queryClient.getQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY) ??
+      existingBookings
+    if (hasConflict(freshBookings, start, end)) {
+      throw new Error('Det finns redan en bokning som överlappar med vald tid.')
+    }
 
     if (user && ladderMeta) {
       await createLadderMatch(
