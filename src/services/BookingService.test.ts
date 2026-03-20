@@ -4,6 +4,8 @@ import {
   hasConflict,
   mapBookingSnapshot,
   findConflictingBooking,
+  isOwnBooking,
+  canDeleteBooking,
 } from './BookingService'
 import type { BookingWithId } from './BookingService'
 
@@ -31,6 +33,34 @@ function makeBooking(
 }
 
 const date = '2026-03-18'
+
+function makeMemberBooking(
+  overrides: Partial<BookingWithId> = {}
+): BookingWithId {
+  return {
+    id: 'b1',
+    type: 'member',
+    ownerEmail: 'member@htk.se',
+    ownerUid: 'uid-member',
+    ownerDisplayName: 'Test Member',
+    startTime: Timestamp.fromDate(new Date(`${date}T10:00:00`)),
+    endTime: Timestamp.fromDate(new Date(`${date}T12:00:00`)),
+    createdAt: Timestamp.fromDate(new Date()),
+    ...overrides,
+  }
+}
+
+function makeGuestBooking(
+  overrides: Partial<BookingWithId> = {}
+): BookingWithId {
+  return {
+    ...makeMemberBooking(),
+    type: 'guest',
+    ownerEmail: 'guest@example.com',
+    ownerUid: null,
+    ...overrides,
+  }
+}
 
 describe('hasConflict', () => {
   it('no bookings → false', () => {
@@ -204,5 +234,85 @@ describe('mapBookingSnapshot', () => {
     expect(result.playerBId).toBe('uid-b')
     expect(result.playerAName).toBe('Player A')
     expect(result.playerBName).toBe('Player B')
+  })
+})
+
+describe('isOwnBooking', () => {
+  it('guest matches by email', () => {
+    const b = makeGuestBooking({ ownerEmail: 'g@example.com' })
+    expect(isOwnBooking(b, null, 'g@example.com')).toBe(true)
+  })
+
+  it('guest email mismatch → false', () => {
+    const b = makeGuestBooking({ ownerEmail: 'g@example.com' })
+    expect(isOwnBooking(b, null, 'other@example.com')).toBe(false)
+  })
+
+  it('member matches by ownerUid', () => {
+    const b = makeMemberBooking({ ownerUid: 'uid-1' })
+    expect(isOwnBooking(b, { uid: 'uid-1' }, null)).toBe(true)
+  })
+
+  it('member uid mismatch → false', () => {
+    const b = makeMemberBooking({ ownerUid: 'uid-1' })
+    expect(isOwnBooking(b, { uid: 'uid-2' }, null)).toBe(false)
+  })
+
+  it('ladder participant A is own booking', () => {
+    const b = makeMemberBooking({ playerAId: 'uid-a', playerBId: 'uid-b' })
+    expect(isOwnBooking(b, { uid: 'uid-a' }, null)).toBe(true)
+  })
+
+  it('ladder participant B is own booking', () => {
+    const b = makeMemberBooking({ playerAId: 'uid-a', playerBId: 'uid-b' })
+    expect(isOwnBooking(b, { uid: 'uid-b' }, null)).toBe(true)
+  })
+
+  it('non-participant is not own booking', () => {
+    const b = makeMemberBooking({ playerAId: 'uid-a', playerBId: 'uid-b' })
+    expect(isOwnBooking(b, { uid: 'uid-c' }, null)).toBe(false)
+  })
+
+  it('no user and no guestEmail → false', () => {
+    const b = makeMemberBooking()
+    expect(isOwnBooking(b, null, null)).toBe(false)
+  })
+})
+
+describe('canDeleteBooking', () => {
+  it('any user can delete a guest booking', () => {
+    const b = makeGuestBooking()
+    expect(canDeleteBooking(b, null)).toBe(true)
+    expect(canDeleteBooking(b, { uid: 'uid-anyone' })).toBe(true)
+  })
+
+  it('member can delete own member booking', () => {
+    const b = makeMemberBooking({ ownerUid: 'uid-1' })
+    expect(canDeleteBooking(b, { uid: 'uid-1' })).toBe(true)
+  })
+
+  it("member cannot delete another member's booking", () => {
+    const b = makeMemberBooking({ ownerUid: 'uid-1' })
+    expect(canDeleteBooking(b, { uid: 'uid-2' })).toBe(false)
+  })
+
+  it('unauthenticated user cannot delete member booking', () => {
+    const b = makeMemberBooking()
+    expect(canDeleteBooking(b, null)).toBe(false)
+  })
+
+  it('ladder participant A can delete', () => {
+    const b = makeMemberBooking({ playerAId: 'uid-a', playerBId: 'uid-b' })
+    expect(canDeleteBooking(b, { uid: 'uid-a' })).toBe(true)
+  })
+
+  it('ladder participant B can delete', () => {
+    const b = makeMemberBooking({ playerAId: 'uid-a', playerBId: 'uid-b' })
+    expect(canDeleteBooking(b, { uid: 'uid-b' })).toBe(true)
+  })
+
+  it('non-participant cannot delete ladder booking', () => {
+    const b = makeMemberBooking({ playerAId: 'uid-a', playerBId: 'uid-b' })
+    expect(canDeleteBooking(b, { uid: 'uid-c' })).toBe(false)
   })
 })

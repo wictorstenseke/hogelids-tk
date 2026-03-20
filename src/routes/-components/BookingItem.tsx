@@ -5,11 +5,15 @@ import {
   deleteGuestBooking,
   deleteMemberBooking,
   BOOKINGS_QUERY_KEY,
+  isOwnBooking,
+  canDeleteBooking,
   type BookingWithId,
 } from '../../services/BookingService'
+import { LADDER_MATCHES_QUERY_KEY } from '../../services/LadderService'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import type { AuthUser } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
+import { ConfirmSheetDialog } from './ConfirmSheetDialog'
 
 function formatTimeRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
@@ -22,6 +26,9 @@ function getBookingLabel(
   guestEmail: string | null,
   user: AuthUser | null
 ): string {
+  if (booking.playerAId) {
+    return `${booking.playerAName} vs ${booking.playerBName}`
+  }
   if (user) {
     if (booking.type === 'member' && user.uid === booking.ownerUid) {
       return user.displayName ?? 'Din bokning'
@@ -47,17 +54,15 @@ interface BookingItemProps {
 }
 
 export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
+  const isLadder = !!booking.playerAId
   const label = getBookingLabel(booking, guestEmail, user)
-  const isOwnBooking =
-    (!!guestEmail && booking.ownerEmail === guestEmail) ||
-    (!!user && booking.type === 'member' && user.uid === booking.ownerUid)
-  const canDelete =
-    booking.type === 'guest' ||
-    (booking.type === 'member' && !!user && user.uid === booking.ownerUid)
+  const ownBooking = isOwnBooking(booking, user, guestEmail)
+  const deletable = canDeleteBooking(booking, user)
 
   const queryClient = useQueryClient()
   const { addToast } = useToast()
   const [confirmPending, setConfirmPending] = useState(false)
+  const [ladderCancelOpen, setLadderCancelOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   async function handleDelete() {
@@ -69,7 +74,12 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
         await deleteGuestBooking(booking.id)
       }
       await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
-      addToast('Bokning raderad')
+      if (isLadder && booking.ladderId) {
+        await queryClient.invalidateQueries({
+          queryKey: LADDER_MATCHES_QUERY_KEY(booking.ladderId),
+        })
+      }
+      addToast(isLadder ? 'Utmaning avbruten' : 'Bokning raderad')
     } catch {
       addToast('Kunde inte ta bort bokningen.', 'error')
       setConfirmPending(false)
@@ -83,26 +93,33 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
       className={`border-b ${confirmPending ? 'border-b-transparent' : 'border-white/10'}`}
     >
       {/* Main row */}
-      <div className="flex items-center gap-3 py-2.5">
+      <div className="flex min-w-0 items-center gap-3 py-2.5">
         <span className="shrink-0 text-sm font-semibold tabular-nums tracking-[-0.02em] text-white/90">
           {formatTimeRange(booking)}
         </span>
-        <span
-          className={`shrink-0 rounded-md px-2.5 py-0.5 text-xs font-semibold ${
-            isOwnBooking
-              ? 'bg-[#F1E334] text-gray-900'
-              : 'bg-white/15 text-white/80'
-          }`}
-        >
-          {label}
-        </span>
-        {canDelete && (
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <span
+            title={label}
+            className={`inline-block max-w-full truncate rounded-md px-2.5 py-0.5 text-xs font-semibold ${
+              ownBooking
+                ? 'bg-[#F1E334] text-gray-900'
+                : 'bg-white/15 text-white/80'
+            }`}
+          >
+            {label}
+          </span>
+        </div>
+        {deletable && (
           <button
-            onClick={() => setConfirmPending((v) => !v)}
+            onClick={() =>
+              isLadder
+                ? setLadderCancelOpen(true)
+                : setConfirmPending((v) => !v)
+            }
             disabled={isDeleting}
-            aria-label="Radera bokning"
-            title="Radera bokning"
-            className={`ml-auto flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+            aria-label={isLadder ? 'Avbryt utmaning' : 'Radera bokning'}
+            title={isLadder ? 'Avbryt utmaning' : 'Radera bokning'}
+            className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               confirmPending
                 ? 'bg-white/20 text-white'
                 : 'text-white/30 hover:bg-white/10 hover:text-white/70'
@@ -113,8 +130,8 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
         )}
       </div>
 
-      {/* Confirm strip */}
-      {canDelete && (
+      {/* Confirm strip — regular bookings only */}
+      {deletable && !isLadder && (
         <div
           className={`-mx-4 grid transition-all duration-200 ease-in-out ${
             confirmPending
@@ -148,6 +165,23 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirm sheet — ladder bookings only */}
+      {ladderCancelOpen && (
+        <ConfirmSheetDialog
+          titleId="cancel-ladder-booking-title"
+          title="Avbryt utmaning?"
+          description="Bokningen och utmaningen tas bort. Ni kan utmana varandra igen."
+          cancelLabel="Tillbaka"
+          confirmLabel="Avbryt utmaning"
+          confirmDanger
+          onCancel={() => setLadderCancelOpen(false)}
+          onConfirm={() => {
+            setLadderCancelOpen(false)
+            void handleDelete()
+          }}
+        />
       )}
     </li>
   )

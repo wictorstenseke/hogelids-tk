@@ -183,3 +183,31 @@ export async function getUpcomingBookings(): Promise<BookingWithId[]> {
   const snapshot = await getDocs(q)
   return snapshot.docs.map(mapBookingSnapshot)
 }
+
+export function isOwnBooking(
+  booking: BookingWithId,
+  user: { uid: string } | null,
+  guestEmail: string | null
+): boolean {
+  if (guestEmail && booking.ownerEmail === guestEmail) return true
+  if (!user) return false
+  return (
+    booking.type === 'member' &&
+    (user.uid === booking.ownerUid ||
+      user.uid === booking.playerAId ||
+      user.uid === booking.playerBId)
+  )
+}
+
+export function canDeleteBooking(
+  booking: BookingWithId,
+  user: { uid: string } | null
+): boolean {
+  if (booking.type === 'guest') return true
+  if (!user) return false
+  return (
+    user.uid === booking.ownerUid ||
+    user.uid === booking.playerAId ||
+    user.uid === booking.playerBId
+  )
+}
