@@ -189,7 +189,7 @@ export function isOwnBooking(
   user: { uid: string } | null,
   guestEmail: string | null
 ): boolean {
-  if (guestEmail && booking.ownerEmail === guestEmail) return true
+  if (guestEmail && !user && booking.ownerEmail === guestEmail) return true
   if (!user) return false
   return (
     booking.type === 'member' &&
@@ -203,8 +203,8 @@ export function canDeleteBooking(
   booking: BookingWithId,
   user: { uid: string } | null
 ): boolean {
-  if (booking.type === 'guest') return true
-  if (!user) return false
+  if (booking.type === 'guest') return true // anyone can delete guest bookings
+  if (!user) return false // only members reach here
   return (
     user.uid === booking.ownerUid ||
     user.uid === booking.playerAId ||

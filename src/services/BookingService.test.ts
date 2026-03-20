@@ -277,6 +277,12 @@ describe('isOwnBooking', () => {
     const b = makeMemberBooking()
     expect(isOwnBooking(b, null, null)).toBe(false)
   })
+
+  it('logged-in user with matching uid does not own a guest booking', () => {
+    // Guest booking whose ownerUid happens to match the logged-in user's uid
+    const b = makeGuestBooking({ ownerUid: 'uid-1' })
+    expect(isOwnBooking(b, { uid: 'uid-1' }, null)).toBe(false)
+  })
 })
 
 describe('canDeleteBooking', () => {
