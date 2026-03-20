@@ -9,6 +9,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
@@ -24,6 +25,12 @@ export interface Booking {
 
 export interface BookingWithId extends Booking {
   id: string
+  // Only present on ladder match bookings
+  ladderId?: string
+  playerAId?: string
+  playerBId?: string
+  playerAName?: string
+  playerBName?: string
 }
 
 export const BOOKINGS_QUERY_KEY = ['bookings', 'upcoming'] as const
@@ -40,6 +47,31 @@ export function hasConflict(
     const d = end.getTime()
     return a < d && c < b
   })
+}
+
+export function mapBookingSnapshot(
+  docSnap: QueryDocumentSnapshot
+): BookingWithId {
+  const data = docSnap.data()
+  return {
+    id: docSnap.id,
+    type: data['type'] as 'guest' | 'member',
+    ownerEmail: data['ownerEmail'] as string,
+    ownerUid: data['ownerUid'] as string | null,
+    ownerDisplayName: data['ownerDisplayName'] as string,
+    startTime: data['startTime'] as Timestamp,
+    endTime: data['endTime'] as Timestamp,
+    createdAt: data['createdAt'] as Timestamp,
+    ...(data['ladderId']
+      ? {
+          ladderId: data['ladderId'] as string,
+          playerAId: data['playerAId'] as string,
+          playerBId: data['playerBId'] as string,
+          playerAName: data['playerAName'] as string,
+          playerBName: data['playerBName'] as string,
+        }
+      : {}),
+  }
 }
 
 export async function createGuestBooking(
@@ -103,19 +135,7 @@ export async function getBookingsByYear(
     orderBy('endTime', 'asc')
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((docSnap) => {
-    const data = docSnap.data()
-    return {
-      id: docSnap.id,
-      type: data['type'] as 'guest' | 'member',
-      ownerEmail: data['ownerEmail'] as string,
-      ownerUid: data['ownerUid'] as string | null,
-      ownerDisplayName: data['ownerDisplayName'] as string,
-      startTime: data['startTime'] as Timestamp,
-      endTime: data['endTime'] as Timestamp,
-      createdAt: data['createdAt'] as Timestamp,
-    }
-  })
+  return snapshot.docs.map(mapBookingSnapshot)
 }
 
 export async function getEarliestBookingYear(): Promise<number> {
@@ -139,19 +159,7 @@ export async function getAllBookings(): Promise<BookingWithId[]> {
     orderBy('endTime', 'asc')
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((docSnap) => {
-    const data = docSnap.data()
-    return {
-      id: docSnap.id,
-      type: data['type'] as 'guest' | 'member',
-      ownerEmail: data['ownerEmail'] as string,
-      ownerUid: data['ownerUid'] as string | null,
-      ownerDisplayName: data['ownerDisplayName'] as string,
-      startTime: data['startTime'] as Timestamp,
-      endTime: data['endTime'] as Timestamp,
-      createdAt: data['createdAt'] as Timestamp,
-    }
-  })
+  return snapshot.docs.map(mapBookingSnapshot)
 }
 
 export async function getUpcomingBookings(): Promise<BookingWithId[]> {
@@ -163,17 +171,5 @@ export async function getUpcomingBookings(): Promise<BookingWithId[]> {
     orderBy('startTime', 'asc')
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((doc) => {
-    const data = doc.data()
-    return {
-      id: doc.id,
-      type: data['type'] as 'guest' | 'member',
-      ownerEmail: data['ownerEmail'] as string,
-      ownerUid: data['ownerUid'] as string | null,
-      ownerDisplayName: data['ownerDisplayName'] as string,
-      startTime: data['startTime'] as Timestamp,
-      endTime: data['endTime'] as Timestamp,
-      createdAt: data['createdAt'] as Timestamp,
-    }
-  })
+  return snapshot.docs.map(mapBookingSnapshot)
 }

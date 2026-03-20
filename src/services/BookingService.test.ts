@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { Timestamp } from 'firebase/firestore'
-import { hasConflict } from './BookingService'
+import { hasConflict, mapBookingSnapshot } from './BookingService'
 import type { BookingWithId } from './BookingService'
 
 vi.mock('../lib/firebase', () => ({ db: {} }))
@@ -104,5 +104,68 @@ describe('hasConflict', () => {
     const start = new Date(`${date}T12:00:00`)
     const end = new Date(`${date}T14:00:00`)
     expect(hasConflict(bookings, start, end)).toBe(false)
+  })
+})
+
+describe('mapBookingSnapshot', () => {
+  it('maps a regular booking snapshot correctly', () => {
+    const start = new Date('2026-03-20T10:00:00')
+    const end = new Date('2026-03-20T12:00:00')
+    const created = new Date('2026-03-01T08:00:00')
+
+    // Minimal mock of a Firestore QueryDocumentSnapshot
+    const fakeSnap = {
+      id: 'abc123',
+      data: () => ({
+        type: 'member',
+        ownerEmail: 'test@htk.se',
+        ownerUid: 'uid-1',
+        ownerDisplayName: 'Anna Karlsson',
+        startTime: Timestamp.fromDate(start),
+        endTime: Timestamp.fromDate(end),
+        createdAt: Timestamp.fromDate(created),
+      }),
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = mapBookingSnapshot(fakeSnap as any)
+
+    expect(result.id).toBe('abc123')
+    expect(result.type).toBe('member')
+    expect(result.ownerEmail).toBe('test@htk.se')
+    expect(result.ownerUid).toBe('uid-1')
+    expect(result.startTime.toDate()).toEqual(start)
+    expect(result.endTime.toDate()).toEqual(end)
+    expect(result.ladderId).toBeUndefined()
+  })
+
+  it('maps a ladder booking snapshot and includes ladder fields', () => {
+    const fakeSnap = {
+      id: 'ladder-booking-1',
+      data: () => ({
+        type: 'member',
+        ownerEmail: 'a@htk.se',
+        ownerUid: 'uid-a',
+        ownerDisplayName: 'Player A',
+        startTime: Timestamp.fromDate(new Date('2026-03-20T14:00:00')),
+        endTime: Timestamp.fromDate(new Date('2026-03-20T15:00:00')),
+        createdAt: Timestamp.fromDate(new Date()),
+        ladderId: 'ladder-99',
+        playerAId: 'uid-a',
+        playerBId: 'uid-b',
+        playerAName: 'Player A',
+        playerBName: 'Player B',
+      }),
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = mapBookingSnapshot(fakeSnap as any)
+
+    expect(result.id).toBe('ladder-booking-1')
+    expect(result.ladderId).toBe('ladder-99')
+    expect(result.playerAId).toBe('uid-a')
+    expect(result.playerBId).toBe('uid-b')
+    expect(result.playerAName).toBe('Player A')
+    expect(result.playerBName).toBe('Player B')
   })
 })
