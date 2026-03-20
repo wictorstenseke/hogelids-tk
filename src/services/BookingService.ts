@@ -42,11 +42,11 @@ export function findConflictingBooking(
 ): BookingWithId | null {
   return (
     bookings.find((booking) => {
-      const a = booking.startTime.toDate().getTime()
-      const b = booking.endTime.toDate().getTime()
-      const c = start.getTime()
-      const d = end.getTime()
-      return a < d && c < b
+      const existingStart = booking.startTime.toDate().getTime()
+      const existingEnd = booking.endTime.toDate().getTime()
+      const newStart = start.getTime()
+      const newEnd = end.getTime()
+      return existingStart < newEnd && newStart < existingEnd
     }) ?? null
   )
 }
