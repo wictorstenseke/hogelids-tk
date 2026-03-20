@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
   getEarliestBookingYear,
-  getBookingsByYear,
   BOOKINGS_QUERY_KEY,
   type BookingWithId,
 } from '../../services/BookingService'
@@ -75,8 +74,6 @@ export function HomePage() {
   } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
-    staleTime: 0,
-    refetchInterval: 30_000,
   })
 
   const { settings: appSettings } = useAppSettings()
@@ -104,19 +101,6 @@ export function HomePage() {
       staleTime: 1000 * 60 * 5,
     })
   }, [user, queryClient])
-
-  // Prefetch all history years once we know the full range
-  useEffect(() => {
-    if (!user || !earliestYear) return
-    for (let y = currentYear; y >= earliestYear; y--) {
-      void queryClient.prefetchQuery({
-        queryKey: ['bookings', 'history', y],
-        queryFn: () => getBookingsByYear(y),
-        staleTime: Infinity,
-        gcTime: Infinity,
-      })
-    }
-  }, [user, earliestYear, currentYear, queryClient])
 
   // When logged in, ignore any stored guest email
   const effectiveGuestEmail = user ? null : guestEmail
