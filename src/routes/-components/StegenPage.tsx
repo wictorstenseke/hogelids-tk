@@ -1,13 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import {
-  IconSquareRoundedChevronLeft,
   IconSquareRoundedChevronRight,
   IconTrash,
   IconTrophy,
 } from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
+import { signOut } from '../../services/AuthService'
 import { useToast } from '../../lib/ToastContext'
+import { Header } from './Header'
 import { useAppSettings } from '../../lib/useAppSettings'
 import {
   getActiveLadder,
@@ -446,6 +447,7 @@ function ReportForm({
 
 export function StegenPage() {
   const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
   const { addToast } = useToast()
   const queryClient = useQueryClient()
   const { settings } = useAppSettings()
@@ -482,26 +484,25 @@ export function StegenPage() {
 
   if (!user || !ladderEnabled) {
     return (
-      <main className="min-h-screen px-4 py-8">
-        <div className="mx-auto max-w-lg">
-          <div className="flex items-center gap-3 mb-8">
-            <Link
-              to="/"
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white transition-colors hover:bg-white/30"
-            >
-              <IconSquareRoundedChevronLeft size={24} stroke={1.5} />
-            </Link>
-            <h1 className="text-2xl font-bold text-white">Stegen</h1>
+      <div className="min-h-screen">
+        <Header
+          user={user}
+          authLoading={authLoading}
+          onOpenProfile={() => void navigate({ to: '/' })}
+          onSignOut={() => void signOut()}
+        />
+        <main className="px-4 py-6">
+          <div className="mx-auto max-w-lg">
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
+              <p className="text-sm text-gray-600">
+                {!user
+                  ? 'Du behöver vara inloggad för att se stegen.'
+                  : 'Stegen är inte tillgänglig just nu.'}
+              </p>
+            </div>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
-            <p className="text-sm text-gray-600">
-              {!user
-                ? 'Du behöver vara inloggad för att se stegen.'
-                : 'Stegen är inte tillgänglig just nu.'}
-            </p>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     )
   }
 
@@ -553,21 +554,17 @@ export function StegenPage() {
       : null
 
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="mx-auto max-w-lg space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white transition-colors hover:bg-white/30"
-            >
-              <IconSquareRoundedChevronLeft size={24} stroke={1.5} />
-            </Link>
-            <h1 className="text-2xl font-bold text-white">Stegen</h1>
-          </div>
+    <div className="min-h-screen">
+      <Header
+        user={user}
+        authLoading={authLoading}
+        onOpenProfile={() => void navigate({ to: '/' })}
+        onSignOut={() => void signOut()}
+      />
+      <main className="px-4 py-6">
+        <div className="mx-auto max-w-lg space-y-6">
           {ladder && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2">
               {isActive && myParticipant && (
                 <span className="text-xs text-white/70">
                   Placering {myParticipant.position}
@@ -605,127 +602,129 @@ export function StegenPage() {
               )}
             </div>
           )}
-        </div>
 
-        {ladderLoading ? (
-          <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
-            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600" />
-          </div>
-        ) : !ladder ? (
-          <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
-            <IconTrophy
-              size={32}
-              stroke={1.5}
-              className="mx-auto mb-2 text-gray-300"
-            />
-            <p className="text-sm text-gray-500">Ingen aktiv stege just nu.</p>
-          </div>
-        ) : (
-          <>
-            {/* Challenge form */}
-            {challengeOpponent && challengeOpponentUid && (
-              <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Utmana{' '}
-                    {challengeOpponent?.displayName ?? challengeOpponentUid}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setChallengeOpponentUid(null)}
-                    className="text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    Avbryt
-                  </button>
+          {ladderLoading ? (
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
+              <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600" />
+            </div>
+          ) : !ladder ? (
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
+              <IconTrophy
+                size={32}
+                stroke={1.5}
+                className="mx-auto mb-2 text-gray-300"
+              />
+              <p className="text-sm text-gray-500">
+                Ingen aktiv stege just nu.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Challenge form */}
+              {challengeOpponent && challengeOpponentUid && (
+                <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Utmana{' '}
+                      {challengeOpponent?.displayName ?? challengeOpponentUid}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setChallengeOpponentUid(null)}
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Avbryt
+                    </button>
+                  </div>
+                  <BookingForm
+                    existingBookings={existingBookings}
+                    onSuccess={() => {
+                      setChallengeOpponentUid(null)
+                      void queryClient.invalidateQueries({
+                        queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
+                      })
+                      void queryClient.invalidateQueries({
+                        queryKey: BOOKINGS_QUERY_KEY,
+                      })
+                      addToast('Match bokad!')
+                    }}
+                    user={user}
+                    ladderMeta={{
+                      ladderId: ladder.id,
+                      playerAId: user.uid,
+                      playerBId: challengeOpponentUid,
+                      playerAName: user.displayName,
+                      playerBName:
+                        challengeOpponent?.displayName ?? challengeOpponentUid,
+                    }}
+                  />
                 </div>
-                <BookingForm
-                  existingBookings={existingBookings}
-                  onSuccess={() => {
-                    setChallengeOpponentUid(null)
-                    void queryClient.invalidateQueries({
-                      queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
-                    })
-                    void queryClient.invalidateQueries({
-                      queryKey: BOOKINGS_QUERY_KEY,
-                    })
-                    addToast('Match bokad!')
-                  }}
-                  user={user}
-                  ladderMeta={{
-                    ladderId: ladder.id,
-                    playerAId: user.uid,
-                    playerBId: challengeOpponentUid,
-                    playerAName: user.displayName,
-                    playerBName:
-                      challengeOpponent?.displayName ?? challengeOpponentUid,
+              )}
+
+              {/* Rankings table */}
+              <section>
+                <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
+                  Rankingslista
+                </h2>
+                <RankingsTable
+                  ladder={ladder}
+                  currentUid={user.uid}
+                  onChallenge={(uid) => {
+                    setChallengeOpponentUid(uid)
+                    setReportingMatch(null)
                   }}
                 />
-              </div>
-            )}
-
-            {/* Rankings table */}
-            <section>
-              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
-                Rankingslista
-              </h2>
-              <RankingsTable
-                ladder={ladder}
-                currentUid={user.uid}
-                onChallenge={(uid) => {
-                  setChallengeOpponentUid(uid)
-                  setReportingMatch(null)
-                }}
-              />
-            </section>
-
-            {/* Planned matches */}
-            {plannedMatches.length > 0 && (
-              <section>
-                <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
-                  Kommande matcher
-                </h2>
-                <div className="space-y-2">
-                  {plannedMatches.map((match) => {
-                    const isInvolved =
-                      match.playerAId === user.uid ||
-                      match.playerBId === user.uid
-                    if (isInvolved) {
-                      return (
-                        <PlannedMatchReportRow
-                          key={match.id}
-                          match={match}
-                          ladderId={ladder.id}
-                          expanded={reportingMatch?.id === match.id}
-                          onExpand={() => {
-                            setReportingMatch(match)
-                            setChallengeOpponentUid(null)
-                          }}
-                          onCollapse={() => setReportingMatch(null)}
-                        />
-                      )
-                    }
-                    return <MatchCard key={match.id} match={match} />
-                  })}
-                </div>
               </section>
-            )}
 
-            {/* Completed matches */}
-            {completedMatches.length > 0 && (
-              <section>
-                <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
-                  Spelade matcher
-                </h2>
-                <div className="space-y-2">
-                  {completedMatches.map((match) => (
-                    <MatchCard key={match.id} match={match} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
-        )}
-      </div>
-    </main>
+              {/* Planned matches */}
+              {plannedMatches.length > 0 && (
+                <section>
+                  <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
+                    Kommande matcher
+                  </h2>
+                  <div className="space-y-2">
+                    {plannedMatches.map((match) => {
+                      const isInvolved =
+                        match.playerAId === user.uid ||
+                        match.playerBId === user.uid
+                      if (isInvolved) {
+                        return (
+                          <PlannedMatchReportRow
+                            key={match.id}
+                            match={match}
+                            ladderId={ladder.id}
+                            expanded={reportingMatch?.id === match.id}
+                            onExpand={() => {
+                              setReportingMatch(match)
+                              setChallengeOpponentUid(null)
+                            }}
+                            onCollapse={() => setReportingMatch(null)}
+                          />
+                        )
+                      }
+                      return <MatchCard key={match.id} match={match} />
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Completed matches */}
+              {completedMatches.length > 0 && (
+                <section>
+                  <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
+                    Spelade matcher
+                  </h2>
+                  <div className="space-y-2">
+                    {completedMatches.map((match) => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      </main>
+    </div>
   )
 }

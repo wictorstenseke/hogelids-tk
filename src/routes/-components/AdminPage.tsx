@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, Link } from '@tanstack/react-router'
-import {
-  IconCheck,
-  IconSelector,
-  IconSquareRoundedChevronLeft,
-} from '@tabler/icons-react'
+import { useNavigate } from '@tanstack/react-router'
+import { IconCheck, IconSelector } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
-import { isAdminRole } from '../../services/AuthService'
+import { isAdminRole, signOut } from '../../services/AuthService'
 import type { UserProfile, UserRole } from '../../services/AuthService'
+import { Header } from './Header'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { updateAppSettings } from '../../services/AppSettingsService'
 import { useToast } from '../../lib/ToastContext'
@@ -401,167 +398,169 @@ export function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="mx-auto max-w-lg space-y-8">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/"
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white transition-colors hover:bg-white/30"
-          >
-            <IconSquareRoundedChevronLeft size={24} stroke={1.5} />
-          </Link>
-          <h1 className="text-2xl font-bold text-white">Admin</h1>
-        </div>
-
-        <SettingsSection title="Bokning">
-          <SettingsRow
-            label="Bokningsformulär"
-            description="Tillåt användare att göra bokningar"
-          >
-            <Toggle
-              id="booking-enabled-toggle"
-              checked={settings?.bookingEnabled ?? true}
-              onChange={(value) => {
-                void updateAppSettings({ bookingEnabled: value })
-                  .then(() =>
-                    addToast(
-                      value ? 'Bokningar aktiverade' : 'Bokningar inaktiverade'
-                    )
-                  )
-                  .catch((err) => {
-                    console.error('Failed to update bookingEnabled:', err)
-                    addToast('Kunde inte spara ändringen.', 'error')
-                  })
-              }}
-            />
-          </SettingsRow>
-        </SettingsSection>
-
-        <SettingsSection title="Stegen">
-          <SettingsRow
-            label="Visa stegen"
-            description="Visa tennisranking för medlemmar"
-          >
-            <Toggle
-              id="ladder-enabled-toggle"
-              checked={settings?.ladderEnabled ?? true}
-              onChange={(value) => {
-                void updateAppSettings({ ladderEnabled: value })
-                  .then(() =>
-                    addToast(value ? 'Stegen aktiverad' : 'Stegen inaktiverad')
-                  )
-                  .catch((err) => {
-                    console.error('Failed to update ladderEnabled:', err)
-                    addToast('Kunde inte spara ändringen.', 'error')
-                  })
-              }}
-            />
-          </SettingsRow>
-          {!activeLadder && (
+    <div className="min-h-screen">
+      <Header
+        user={user}
+        authLoading={authLoading}
+        onOpenProfile={() => void navigate({ to: '/' })}
+        onSignOut={() => void signOut()}
+      />
+      <main className="px-4 py-6">
+        <div className="mx-auto max-w-lg space-y-8">
+          <SettingsSection title="Bokning">
             <SettingsRow
-              label="Ingen aktiv stege"
-              description="Skapa en stege för att aktivera rankinglistan"
+              label="Bokningsformulär"
+              description="Tillåt användare att göra bokningar"
             >
+              <Toggle
+                id="booking-enabled-toggle"
+                checked={settings?.bookingEnabled ?? true}
+                onChange={(value) => {
+                  void updateAppSettings({ bookingEnabled: value })
+                    .then(() =>
+                      addToast(
+                        value
+                          ? 'Bokningar aktiverade'
+                          : 'Bokningar inaktiverade'
+                      )
+                    )
+                    .catch((err) => {
+                      console.error('Failed to update bookingEnabled:', err)
+                      addToast('Kunde inte spara ändringen.', 'error')
+                    })
+                }}
+              />
+            </SettingsRow>
+          </SettingsSection>
+
+          <SettingsSection title="Stegen">
+            <SettingsRow
+              label="Visa stegen"
+              description="Visa tennisranking för medlemmar"
+            >
+              <Toggle
+                id="ladder-enabled-toggle"
+                checked={settings?.ladderEnabled ?? true}
+                onChange={(value) => {
+                  void updateAppSettings({ ladderEnabled: value })
+                    .then(() =>
+                      addToast(
+                        value ? 'Stegen aktiverad' : 'Stegen inaktiverad'
+                      )
+                    )
+                    .catch((err) => {
+                      console.error('Failed to update ladderEnabled:', err)
+                      addToast('Kunde inte spara ändringen.', 'error')
+                    })
+                }}
+              />
+            </SettingsRow>
+            {!activeLadder && (
+              <SettingsRow
+                label="Ingen aktiv stege"
+                description="Skapa en stege för att aktivera rankinglistan"
+              >
+                <button
+                  type="button"
+                  onClick={() => void handleCreateLadder()}
+                  disabled={isCreatingLadder}
+                  className="min-h-[44px] cursor-pointer rounded-lg px-4 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#F1E334' }}
+                >
+                  {isCreatingLadder ? 'Skapar…' : 'Skapa stege'}
+                </button>
+              </SettingsRow>
+            )}
+          </SettingsSection>
+
+          <SettingsSection title="Banner">
+            <SettingsRow label="Visa banner">
+              <Toggle
+                id="banner-visible-toggle"
+                checked={settings?.bannerVisible ?? false}
+                onChange={(value) => {
+                  void updateAppSettings({ bannerVisible: value })
+                    .then(() =>
+                      addToast(value ? 'Banner visas nu' : 'Banner dold')
+                    )
+                    .catch((err) => {
+                      console.error('Failed to update bannerVisible:', err)
+                      addToast('Kunde inte spara ändringen.', 'error')
+                    })
+                }}
+              />
+            </SettingsRow>
+
+            <div className="space-y-2 px-4 py-3">
+              <p className="text-sm font-medium text-gray-900">Bannertext</p>
+              <textarea
+                rows={3}
+                value={bannerText}
+                onChange={(e) => setBannerTextOverride(e.target.value)}
+                placeholder="Skriv ett meddelande…"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
+              />
+            </div>
+
+            <SettingsRow label="Länktext" description="Valfri">
+              <input
+                type="text"
+                value={bannerLinkText}
+                onChange={(e) => setBannerLinkTextOverride(e.target.value)}
+                placeholder="Läs mer"
+                className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none sm:w-64"
+              />
+            </SettingsRow>
+
+            <SettingsRow label="Länk-URL" description="Valfri">
+              <input
+                type="url"
+                value={bannerLinkUrl}
+                onChange={(e) => setBannerLinkUrlOverride(e.target.value)}
+                placeholder="https://…"
+                className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none sm:w-64"
+              />
+            </SettingsRow>
+
+            <div className="flex justify-end px-4 py-3">
               <button
                 type="button"
-                onClick={() => void handleCreateLadder()}
-                disabled={isCreatingLadder}
-                className="min-h-[44px] cursor-pointer rounded-lg px-4 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50"
+                onClick={() => void handleSaveBannerText()}
+                disabled={isSaving || !hasBannerChanges}
+                className="min-h-[44px] cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ backgroundColor: '#F1E334' }}
               >
-                {isCreatingLadder ? 'Skapar…' : 'Skapa stege'}
+                {isSaving ? 'Sparar innehåll…' : 'Spara innehåll'}
               </button>
-            </SettingsRow>
-          )}
-        </SettingsSection>
-
-        <SettingsSection title="Banner">
-          <SettingsRow label="Visa banner">
-            <Toggle
-              id="banner-visible-toggle"
-              checked={settings?.bannerVisible ?? false}
-              onChange={(value) => {
-                void updateAppSettings({ bannerVisible: value })
-                  .then(() =>
-                    addToast(value ? 'Banner visas nu' : 'Banner dold')
-                  )
-                  .catch((err) => {
-                    console.error('Failed to update bannerVisible:', err)
-                    addToast('Kunde inte spara ändringen.', 'error')
-                  })
-              }}
-            />
-          </SettingsRow>
-
-          <div className="space-y-2 px-4 py-3">
-            <p className="text-sm font-medium text-gray-900">Bannertext</p>
-            <textarea
-              rows={3}
-              value={bannerText}
-              onChange={(e) => setBannerTextOverride(e.target.value)}
-              placeholder="Skriv ett meddelande…"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
-            />
-          </div>
-
-          <SettingsRow label="Länktext" description="Valfri">
-            <input
-              type="text"
-              value={bannerLinkText}
-              onChange={(e) => setBannerLinkTextOverride(e.target.value)}
-              placeholder="Läs mer"
-              className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none sm:w-64"
-            />
-          </SettingsRow>
-
-          <SettingsRow label="Länk-URL" description="Valfri">
-            <input
-              type="url"
-              value={bannerLinkUrl}
-              onChange={(e) => setBannerLinkUrlOverride(e.target.value)}
-              placeholder="https://…"
-              className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none sm:w-64"
-            />
-          </SettingsRow>
-
-          <div className="flex justify-end px-4 py-3">
-            <button
-              type="button"
-              onClick={() => void handleSaveBannerText()}
-              disabled={isSaving || !hasBannerChanges}
-              className="min-h-[44px] cursor-pointer rounded-lg px-5 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#F1E334' }}
-            >
-              {isSaving ? 'Sparar innehåll…' : 'Spara innehåll'}
-            </button>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection title="Användare">
-          {usersLoading ? (
-            <div className="px-4 py-4 text-sm text-gray-500">
-              Laddar användare…
             </div>
-          ) : usersError ? (
-            <div className="px-4 py-4 text-sm text-red-600">
-              Kunde inte hämta användare. Försök igen.
-            </div>
-          ) : !users || users.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-gray-500">
-              Inga användare registrerade.
-            </div>
-          ) : (
-            users.map((profile) => (
-              <UserRow
-                key={profile.uid}
-                profile={profile}
-                isSelf={user?.uid === profile.uid}
-                isSuperuser={role === 'superuser'}
-              />
-            ))
-          )}
-        </SettingsSection>
-      </div>
-    </main>
+          </SettingsSection>
+
+          <SettingsSection title="Användare">
+            {usersLoading ? (
+              <div className="px-4 py-4 text-sm text-gray-500">
+                Laddar användare…
+              </div>
+            ) : usersError ? (
+              <div className="px-4 py-4 text-sm text-red-600">
+                Kunde inte hämta användare. Försök igen.
+              </div>
+            ) : !users || users.length === 0 ? (
+              <div className="px-4 py-4 text-sm text-gray-500">
+                Inga användare registrerade.
+              </div>
+            ) : (
+              users.map((profile) => (
+                <UserRow
+                  key={profile.uid}
+                  profile={profile}
+                  isSelf={user?.uid === profile.uid}
+                  isSuperuser={role === 'superuser'}
+                />
+              ))
+            )}
+          </SettingsSection>
+        </div>
+      </main>
+    </div>
   )
 }
