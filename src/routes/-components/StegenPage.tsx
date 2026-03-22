@@ -490,6 +490,8 @@ export function StegenPage() {
           authLoading={authLoading}
           onOpenProfile={() => void navigate({ to: '/' })}
           onSignOut={() => void signOut()}
+          showLogo={false}
+          showHome
         />
         <main className="px-4 py-6">
           <div className="mx-auto max-w-lg">

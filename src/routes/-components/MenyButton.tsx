@@ -1,16 +1,26 @@
 import { useState, useRef, useEffect } from 'react'
-import { IconTrophyFilled, IconShieldCheckFilled } from '@tabler/icons-react'
-import { useNavigate } from '@tanstack/react-router'
+import {
+  IconTrophyFilled,
+  IconShieldCheckFilled,
+  IconHomeFilled,
+} from '@tabler/icons-react'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 
 interface MenyButtonProps {
   isAdmin: boolean
   ladderEnabled: boolean
+  showHome?: boolean
 }
 
-export function MenyButton({ isAdmin, ladderEnabled }: MenyButtonProps) {
+export function MenyButton({
+  isAdmin,
+  ladderEnabled,
+  showHome = false,
+}: MenyButtonProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -24,7 +34,7 @@ export function MenyButton({ isAdmin, ladderEnabled }: MenyButtonProps) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
-  if (!isAdmin && !ladderEnabled) return null
+  if (!isAdmin && !ladderEnabled && !showHome) return null
 
   return (
     <div ref={ref} className="relative flex sm:hidden">
@@ -40,6 +50,22 @@ export function MenyButton({ isAdmin, ladderEnabled }: MenyButtonProps) {
 
       {open && (
         <div className="absolute left-0 top-full z-50 mt-2 min-w-[160px] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+          {showHome && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                void navigate({ to: '/' })
+              }}
+              className={`flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium hover:bg-gray-50 ${pathname === '/' ? 'text-gray-900 font-semibold' : 'text-gray-700'}`}
+            >
+              <IconHomeFilled
+                size={16}
+                className={`shrink-0 ${pathname === '/' ? 'text-gray-600' : 'text-gray-400'}`}
+              />
+              Hem
+            </button>
+          )}
           {ladderEnabled && (
             <button
               type="button"
@@ -47,9 +73,12 @@ export function MenyButton({ isAdmin, ladderEnabled }: MenyButtonProps) {
                 setOpen(false)
                 void navigate({ to: '/stegen' })
               }}
-              className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className={`flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium hover:bg-gray-50 ${pathname === '/stegen' ? 'text-gray-900 font-semibold' : 'text-gray-700'}`}
             >
-              <IconTrophyFilled size={16} className="shrink-0 text-gray-400" />
+              <IconTrophyFilled
+                size={16}
+                className={`shrink-0 ${pathname === '/stegen' ? 'text-gray-600' : 'text-gray-400'}`}
+              />
               Stegen
             </button>
           )}
@@ -60,11 +89,11 @@ export function MenyButton({ isAdmin, ladderEnabled }: MenyButtonProps) {
                 setOpen(false)
                 void navigate({ to: '/admin' })
               }}
-              className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className={`flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-medium hover:bg-gray-50 ${pathname === '/admin' ? 'text-gray-900 font-semibold' : 'text-gray-700'}`}
             >
               <IconShieldCheckFilled
                 size={16}
-                className="shrink-0 text-gray-400"
+                className={`shrink-0 ${pathname === '/admin' ? 'text-gray-600' : 'text-gray-400'}`}
               />
               Admin
             </button>
