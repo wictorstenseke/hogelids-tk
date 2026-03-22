@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
@@ -20,7 +19,7 @@ import { AuthModal } from './AuthModal'
 import { HistorySection } from './HistorySection'
 import { ProfileModal } from './ProfileModal'
 import { BookingItem } from './BookingItem'
-import { AvatarMenu } from './AvatarMenu'
+import { Header } from './Header'
 
 function formatDateHeader(date: Date): string {
   const str = date.toLocaleDateString('sv-SE', {
@@ -116,60 +115,14 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Header — transparent so body gradient flows through */}
-      <header className="bg-transparent">
-        <div className="mx-auto max-w-lg px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <Link
-                to="/"
-                className="block shrink-0 rounded-lg transition-[filter,transform] duration-200 filter-[drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:filter-[drop-shadow(0px_5px_8px_rgba(0,0,0,0.25))] hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-              >
-                <img
-                  src="/htk-logo.svg"
-                  alt="HTK Logo"
-                  className="h-auto w-[48px] sm:w-[56px]"
-                />
-              </Link>
-              <h1 className="font-display text-[22px] font-bold uppercase leading-none tracking-wide text-white">
-                Högelids Tennisklubb
-              </h1>
-            </div>
-
-            {/* Auth controls */}
-            {!authLoading && (
-              <div className="flex shrink-0 items-center gap-1">
-                {user ? (
-                  <AvatarMenu
-                    user={user}
-                    onOpenProfile={() => setShowProfile(true)}
-                    onSignOut={() => void signOut()}
-                  />
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setAuthModal('sign-in')}
-                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
-                    >
-                      Logga in
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthModal('sign-up')}
-                      className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
-                      style={{ backgroundColor: '#F1E334' }}
-                    >
-                      Skapa konto
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header
+        user={user}
+        authLoading={authLoading}
+        onOpenProfile={() => setShowProfile(true)}
+        onSignOut={() => void signOut()}
+        onSignIn={() => setAuthModal('sign-in')}
+        onSignUp={() => setAuthModal('sign-up')}
+      />
 
       {/* Main content */}
       <main className="mx-auto max-w-lg px-4 py-6 space-y-6">

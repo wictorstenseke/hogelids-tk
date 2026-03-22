@@ -38,6 +38,11 @@ vi.mock('../../lib/useAuth', () => ({
 vi.mock('../../services/AuthService', () => ({
   signOut: vi.fn(),
   resendVerificationEmail: vi.fn(),
+  isAdminRole: vi.fn(() => false),
+}))
+
+vi.mock('./Header', () => ({
+  Header: () => <header aria-label="Högelids Tennisklubb" />,
 }))
 
 vi.mock('./ProfileSection', () => ({
@@ -68,10 +73,10 @@ function renderWithQueryClient(ui: React.ReactElement) {
 }
 
 describe('HomePage', () => {
-  it('renders the club name heading', () => {
+  it('renders the site header', () => {
     renderWithQueryClient(<HomePage />)
     expect(
-      screen.getByRole('heading', { name: /högelids tennisklubb/i })
+      screen.getByRole('banner', { name: /högelids tennisklubb/i })
     ).toBeInTheDocument()
   })
 
