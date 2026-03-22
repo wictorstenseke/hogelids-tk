@@ -103,7 +103,7 @@ export function AvatarMenu({
 }
 ```
 
-Remove the `useNavigate` import too if it was only used for navigation in the removed buttons.
+Also remove the `useNavigate` import — it was only used by the removed nav buttons.
 
 - [ ] **Step 3: Run lint to catch dead imports**
 
@@ -161,13 +161,12 @@ describe('MenyButton', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('returns null when ladderEnabled but user not authenticated (isAdmin false, no user)', () => {
-    // MenyButton itself renders null when isAdmin=false and ladderEnabled=false
-    // The auth check is upstream in Header — MenyButton just checks props
-    const { container } = render(
-      <MenyButton isAdmin={false} ladderEnabled={false} />
-    )
-    expect(container.firstChild).toBeNull()
+  it('renders both Stegen and Admin when both are enabled', async () => {
+    const user = userEvent.setup()
+    render(<MenyButton isAdmin={true} ladderEnabled={true} />)
+    await user.click(screen.getByRole('button', { name: /meny/i }))
+    expect(screen.getByText('Stegen')).toBeInTheDocument()
+    expect(screen.getByText('Admin')).toBeInTheDocument()
   })
 
   it('renders "Meny" button when ladderEnabled is true', () => {
@@ -493,6 +492,15 @@ vi.mock('../../lib/useAppSettings', () => ({
   useAppSettings: vi.fn(() => ({ settings: { ladderEnabled: false } })),
 }))
 
+// Stub out child nav components — they have their own tests
+vi.mock('./MenyButton', () => ({
+  MenyButton: () => null,
+}))
+
+vi.mock('./DesktopNav', () => ({
+  DesktopNav: () => null,
+}))
+
 const mockUser: AuthUser = {
   uid: 'u1',
   email: 'test@test.se',
@@ -505,53 +513,34 @@ function wrap(ui: React.ReactElement) {
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
 }
 
+const defaultProps = {
+  user: null as AuthUser | null,
+  authLoading: false,
+  onOpenProfile: vi.fn(),
+  onSignOut: vi.fn(),
+  onSignIn: vi.fn(),
+  onSignUp: vi.fn(),
+}
+
 describe('Header', () => {
   it('renders the logo image', () => {
-    wrap(
-      <Header
-        user={null}
-        authLoading={false}
-        onOpenProfile={vi.fn()}
-        onSignOut={vi.fn()}
-      />
-    )
+    wrap(<Header {...defaultProps} />)
     expect(screen.getByAltText('HTK Logo')).toBeInTheDocument()
   })
 
   it('does not render the app title text', () => {
-    wrap(
-      <Header
-        user={null}
-        authLoading={false}
-        onOpenProfile={vi.fn()}
-        onSignOut={vi.fn()}
-      />
-    )
+    wrap(<Header {...defaultProps} />)
     expect(screen.queryByText(/Högelids Tennisklubb/i)).not.toBeInTheDocument()
   })
 
   it('shows sign-in buttons when unauthenticated', () => {
-    wrap(
-      <Header
-        user={null}
-        authLoading={false}
-        onOpenProfile={vi.fn()}
-        onSignOut={vi.fn()}
-      />
-    )
+    wrap(<Header {...defaultProps} />)
     expect(screen.getByText('Logga in')).toBeInTheDocument()
     expect(screen.getByText('Skapa konto')).toBeInTheDocument()
   })
 
   it('shows AvatarMenu when authenticated', () => {
-    wrap(
-      <Header
-        user={mockUser}
-        authLoading={false}
-        onOpenProfile={vi.fn()}
-        onSignOut={vi.fn()}
-      />
-    )
+    wrap(<Header {...defaultProps} user={mockUser} />)
     // AvatarMenu renders initials button
     expect(
       screen.getByRole('button', { name: /kontomeny/i })
@@ -559,14 +548,7 @@ describe('Header', () => {
   })
 
   it('shows nothing in auth area while loading', () => {
-    wrap(
-      <Header
-        user={null}
-        authLoading={true}
-        onOpenProfile={vi.fn()}
-        onSignOut={vi.fn()}
-      />
-    )
+    wrap(<Header {...defaultProps} authLoading={true} />)
     expect(screen.queryByText('Logga in')).not.toBeInTheDocument()
     expect(screen.queryByText('Skapa konto')).not.toBeInTheDocument()
   })
@@ -598,6 +580,8 @@ interface HeaderProps {
   authLoading: boolean
   onOpenProfile: () => void
   onSignOut: () => void
+  onSignIn?: () => void // triggers sign-in modal (unauthenticated only)
+  onSignUp?: () => void // triggers sign-up modal (unauthenticated only)
 }
 
 export function Header({
@@ -605,6 +589,8 @@ export function Header({
   authLoading,
   onOpenProfile,
   onSignOut,
+  onSignIn,
+  onSignUp,
 }: HeaderProps) {
   const role = useRole()
   const isAdmin = user ? isAdminRole(role) : false
@@ -632,14 +618,14 @@ export function Header({
                 <>
                   <button
                     type="button"
-                    onClick={onOpenProfile}
+                    onClick={onSignIn}
                     className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
                   >
                     Logga in
                   </button>
                   <button
                     type="button"
-                    onClick={onSignOut}
+                    onClick={onSignUp}
                     className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
                     style={{ backgroundColor: '#F1E334' }}
                   >
@@ -670,15 +656,13 @@ export function Header({
 }
 ```
 
-Note: The `onOpenProfile` / `onSignOut` callbacks from `HomePage` are reused for the sign-in/sign-up buttons as a placeholder — `HomePage.tsx` (Task 5) will pass the correct `setAuthModal` callbacks when wiring this up. See Task 5 for the correct prop wiring.
-
 - [ ] **Step 4: Run tests to confirm they pass**
 
 ```bash
 npm run test:run -- Header.test
 ```
 
-Expected: all tests PASS. If any fail due to missing mock for `MenyButton` or `DesktopNav`, add `vi.mock('./MenyButton', ...)` and `vi.mock('./DesktopNav', ...)` at the top of the test file returning simple stubs, then re-run.
+Expected: all tests PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -720,32 +704,12 @@ Find the `<header className="bg-transparent">...</header>` block (lines 120–17
 />
 ```
 
-Wait — `Header.tsx` currently uses `onOpenProfile` for the "Logga in" button, which is incorrect. Before this step, update `Header.tsx` to accept two additional optional props for the unauthenticated case:
-
-```tsx
-interface HeaderProps {
-  user: AuthUser | null
-  authLoading: boolean
-  onOpenProfile: () => void
-  onSignOut: () => void
-  onSignIn?: () => void // triggers sign-in modal (unauthenticated only)
-  onSignUp?: () => void // triggers sign-up modal (unauthenticated only)
-}
-```
-
-And update the sign-in/sign-up buttons in `Header.tsx` to use `onSignIn` and `onSignUp`:
-
-```tsx
-<button type="button" onClick={onSignIn} ...>Logga in</button>
-<button type="button" onClick={onSignUp} ...>Skapa konto</button>
-```
-
 - [ ] **Step 3: Remove dead imports from HomePage**
 
-After the swap, these imports are no longer used directly in `HomePage.tsx` — remove them:
+After the swap, remove these now-unused imports from `HomePage.tsx`:
 
-- `Link` from `@tanstack/react-router` (unless used elsewhere in the file — check first)
-- `AvatarMenu` import
+- `Link` from `@tanstack/react-router` — only used in the old header block
+- `AvatarMenu` — now owned by `Header`
 
 Run:
 
