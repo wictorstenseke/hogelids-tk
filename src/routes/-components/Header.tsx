@@ -4,7 +4,7 @@ import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { AvatarMenu } from './AvatarMenu'
-import { DesktopNav } from './DesktopNav'
+import { AdminNavButton, DesktopNav } from './DesktopNav'
 
 interface HeaderProps {
   user: AuthUser | null
@@ -46,20 +46,23 @@ export function Header({
           <div className="flex min-w-0 flex-1 items-center justify-start">
             {user && (
               <div className="flex w-full min-w-0 justify-start pl-1 sm:pl-1.5">
-                <DesktopNav isAdmin={isAdmin} ladderEnabled={ladderEnabled} />
+                <DesktopNav ladderEnabled={ladderEnabled} />
               </div>
             )}
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {!authLoading && (
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                 {user ? (
-                  <AvatarMenu
-                    user={user}
-                    onOpenProfile={onOpenProfile}
-                    onSignOut={onSignOut}
-                  />
+                  <>
+                    {isAdmin && <AdminNavButton />}
+                    <AvatarMenu
+                      user={user}
+                      onOpenProfile={onOpenProfile}
+                      onSignOut={onSignOut}
+                    />
+                  </>
                 ) : (
                   <>
                     <button

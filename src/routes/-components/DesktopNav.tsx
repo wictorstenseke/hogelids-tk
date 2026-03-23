@@ -1,11 +1,35 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 
 interface DesktopNavProps {
-  isAdmin: boolean
   ladderEnabled: boolean
 }
 
-export function DesktopNav({ isAdmin, ladderEnabled }: DesktopNavProps) {
+const adminBtnClass = `flex cursor-pointer items-center rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors duration-150 sm:px-3 sm:py-1.5`
+
+const adminActiveClass =
+  'bg-[#E5D82C] text-gray-900 shadow-sm ring-2 ring-white/35'
+const adminInactiveClass =
+  'bg-[#F1E334] text-gray-900 shadow-sm hover:bg-[#E5D82C] hover:text-gray-900'
+
+/** Yellow pill for admin; keep next to profile/avatar in the header. */
+export function AdminNavButton() {
+  const navigate = useNavigate()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+
+  return (
+    <button
+      type="button"
+      onClick={() => void navigate({ to: '/admin' })}
+      className={`${adminBtnClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+        pathname === '/admin' ? adminActiveClass : adminInactiveClass
+      }`}
+    >
+      Admin
+    </button>
+  )
+}
+
+export function DesktopNav({ ladderEnabled }: DesktopNavProps) {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
@@ -30,15 +54,6 @@ export function DesktopNav({ isAdmin, ladderEnabled }: DesktopNavProps) {
           className={`${btnClass} ${pathname === '/stegen' ? activeClass : inactiveClass}`}
         >
           Stegen
-        </button>
-      )}
-      {isAdmin && (
-        <button
-          type="button"
-          onClick={() => void navigate({ to: '/admin' })}
-          className={`${btnClass} ${pathname === '/admin' ? activeClass : inactiveClass}`}
-        >
-          Admin
         </button>
       )}
     </div>

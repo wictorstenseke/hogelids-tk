@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { DesktopNav } from './DesktopNav'
+import { DesktopNav, AdminNavButton } from './DesktopNav'
 
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
@@ -13,31 +13,33 @@ vi.mock('@tanstack/react-router', () => ({
 
 describe('DesktopNav', () => {
   it('always renders Hem', () => {
-    render(<DesktopNav isAdmin={false} ladderEnabled={false} />)
+    render(<DesktopNav ladderEnabled={false} />)
     expect(screen.getByRole('button', { name: /hem/i })).toBeInTheDocument()
   })
 
   it('renders Stegen button when ladderEnabled is true', () => {
-    render(<DesktopNav isAdmin={false} ladderEnabled={true} />)
+    render(<DesktopNav ladderEnabled={true} />)
     expect(screen.getByRole('button', { name: /stegen/i })).toBeInTheDocument()
   })
 
-  it('renders Admin button when isAdmin is true', () => {
-    render(<DesktopNav isAdmin={true} ladderEnabled={false} />)
-    expect(screen.getByRole('button', { name: /admin/i })).toBeInTheDocument()
+  it('does not render Stegen when ladderEnabled is false', () => {
+    render(<DesktopNav ladderEnabled={false} />)
+    expect(
+      screen.queryByRole('button', { name: /stegen/i })
+    ).not.toBeInTheDocument()
   })
 
-  it('does not render Admin when isAdmin is false', () => {
-    render(<DesktopNav isAdmin={false} ladderEnabled={true} />)
+  it('does not render Admin (Admin lives in header next to profile)', () => {
+    render(<DesktopNav ladderEnabled={true} />)
     expect(
       screen.queryByRole('button', { name: /admin/i })
     ).not.toBeInTheDocument()
   })
+})
 
-  it('does not render Stegen when ladderEnabled is false', () => {
-    render(<DesktopNav isAdmin={true} ladderEnabled={false} />)
-    expect(
-      screen.queryByRole('button', { name: /stegen/i })
-    ).not.toBeInTheDocument()
+describe('AdminNavButton', () => {
+  it('renders Admin button', () => {
+    render(<AdminNavButton />)
+    expect(screen.getByRole('button', { name: /admin/i })).toBeInTheDocument()
   })
 })

@@ -32,6 +32,7 @@ vi.mock('../../lib/useAppSettings', () => ({
 // Stub out child nav components — they have their own tests
 vi.mock('./DesktopNav', () => ({
   DesktopNav: () => null,
+  AdminNavButton: () => null,
 }))
 
 const mockUser: AuthUser = {
