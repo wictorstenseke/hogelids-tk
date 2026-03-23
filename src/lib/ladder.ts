@@ -13,7 +13,8 @@ export interface ChallengeEligibility {
   reason?: ChallengeReason
 }
 
-const MAX_CHALLENGE_DISTANCE = 4
+/** Max positions above you that you may challenge (and max gap for rank swap on win). */
+export const MAX_CHALLENGE_DISTANCE = 4
 
 /**
  * Returns whether challengerId can challenge opponentId given current ladder state.

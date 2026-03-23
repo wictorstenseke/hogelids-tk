@@ -11,7 +11,6 @@ import { useAppSettings } from '../../lib/useAppSettings'
 import {
   getActiveLadder,
   joinLadder,
-  pauseLadder,
   getLadderMatches,
   reportLadderResult,
   createLadderMatch,
@@ -21,7 +20,11 @@ import {
   type Ladder,
   type LadderMatch,
 } from '../../services/LadderService'
-import { getChallengeEligibility, formatStats } from '../../lib/ladder'
+import {
+  getChallengeEligibility,
+  formatStats,
+  MAX_CHALLENGE_DISTANCE,
+} from '../../lib/ladder'
 import { useState } from 'react'
 import { BookingForm } from './BookingForm'
 import { BookingDrawer } from './BookingDrawer'
@@ -463,7 +466,6 @@ export function StegenPage() {
   >(null)
   const [reportingMatch, setReportingMatch] = useState<LadderMatch | null>(null)
   const [isJoining, setIsJoining] = useState(false)
-  const [isPausing, setIsPausing] = useState(false)
   const [matchesTab, setMatchesTab] = useState<'kommande' | 'spelade'>(
     'kommande'
   )
@@ -510,8 +512,6 @@ export function StegenPage() {
   }
 
   const myParticipant = ladder?.participants.find((p) => p.uid === user.uid)
-  const isActive = !!myParticipant && !myParticipant.paused
-  const isPaused = !!myParticipant && myParticipant.paused
 
   const plannedMatches = matches
     .filter((m) => m.ladderStatus === 'planned')
@@ -533,21 +533,6 @@ export function StegenPage() {
       addToast('Kunde inte gå med. Försök igen.', 'error')
     } finally {
       setIsJoining(false)
-    }
-  }
-
-  async function handlePause() {
-    if (!ladder) return
-    setIsPausing(true)
-    try {
-      await pauseLadder(ladder.id, user!.uid)
-      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
-      addToast('Du har pausat din deltagning.')
-    } catch (err) {
-      console.error('Failed to pause ladder:', err)
-      addToast('Kunde inte pausa. Försök igen.', 'error')
-    } finally {
-      setIsPausing(false)
     }
   }
 
@@ -596,36 +581,6 @@ export function StegenPage() {
     <div>
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
-          {ladder && myParticipant && (
-            <div className="flex items-center justify-end gap-2">
-              {isActive && (
-                <span className="text-xs text-white/70">
-                  Placering {myParticipant.position}
-                </span>
-              )}
-              {isPaused && (
-                <button
-                  type="button"
-                  onClick={() => void handleJoin()}
-                  disabled={isJoining}
-                  className="min-h-[36px] cursor-pointer rounded-lg bg-white/20 px-3 text-xs font-semibold text-white hover:bg-white/30 transition-colors disabled:opacity-50"
-                >
-                  {isJoining ? 'Återgår…' : 'Återgå till stegen'}
-                </button>
-              )}
-              {isActive && (
-                <button
-                  type="button"
-                  onClick={() => void handlePause()}
-                  disabled={isPausing}
-                  className="min-h-[36px] cursor-pointer rounded-lg border border-white/30 px-3 text-xs font-medium text-white/70 hover:text-white hover:border-white/50 transition-colors disabled:opacity-50"
-                >
-                  {isPausing ? 'Pausar…' : 'Pausa'}
-                </button>
-              )}
-            </div>
-          )}
-
           {ladder && !myParticipant && (
             <div
               className="overflow-hidden rounded-xl text-sm text-gray-800"
@@ -636,8 +591,7 @@ export function StegenPage() {
                   Välkommen till stegen!
                 </p>
                 <p className="mt-0.5 text-gray-800">
-                  Utmana andra spelare och klättra i rankingen. Du kan pausa
-                  ditt deltagande när som helst.
+                  Utmana andra spelare och klättra i rankingen.
                 </p>
               </div>
               <button
@@ -771,6 +725,50 @@ export function StegenPage() {
                     ))}
                 </div>
               </div>
+
+              <section
+                className="rounded-2xl bg-[#194b29] px-4 py-4"
+                aria-labelledby="stegen-regler-heading"
+              >
+                <h2
+                  id="stegen-regler-heading"
+                  className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/70"
+                >
+                  Regler
+                </h2>
+                <p className="text-sm text-white/75">
+                  Stegen är en rankinglista: du klättrar genom att vinna mot
+                  spelare som ligger före dig i listan.
+                </p>
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-white/75 marker:text-white/35">
+                  <li>
+                    <span className="font-medium text-white">
+                      Vem du får utmana:
+                    </span>{' '}
+                    Du får bara utmana spelare som ligger högre i listan än du.
+                    Motståndaren får högst ligga {MAX_CHALLENGE_DISTANCE}{' '}
+                    platser ovanför dig.
+                  </li>
+                  <li>
+                    <span className="font-medium text-white">Boka match:</span>{' '}
+                    Tryck på en spelares rad i rankingslistan när raden är
+                    klickbar; då öppnas bokning av stegmatch.
+                  </li>
+                  <li>
+                    <span className="font-medium text-white">
+                      Resultat och placering:
+                    </span>{' '}
+                    Rapportera under{' '}
+                    <strong className="font-semibold text-[#F1E334]">
+                      Kommande
+                    </strong>
+                    . Vinst och förlust sparas alltid. Ni byter plats bara om
+                    vinnaren stod under förloraren och högst{' '}
+                    {MAX_CHALLENGE_DISTANCE} platser ifrån — då byter ni plats
+                    med varandra.
+                  </li>
+                </ul>
+              </section>
             </>
           )}
         </div>
