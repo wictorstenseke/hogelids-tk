@@ -4,7 +4,6 @@ import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { AvatarMenu } from './AvatarMenu'
-import { MenyButton } from './MenyButton'
 import { DesktopNav } from './DesktopNav'
 
 interface HeaderProps {
@@ -14,8 +13,6 @@ interface HeaderProps {
   onSignOut: () => void
   onSignIn?: () => void
   onSignUp?: () => void
-  showLogo?: boolean
-  showHome?: boolean
 }
 
 export function Header({
@@ -25,8 +22,6 @@ export function Header({
   onSignOut,
   onSignIn,
   onSignUp,
-  showLogo = true,
-  showHome = false,
 }: HeaderProps) {
   const role = useRole()
   const isAdmin = user ? isAdminRole(role) : false
@@ -34,23 +29,29 @@ export function Header({
   const ladderEnabled = user ? (settings?.ladderEnabled ?? true) : false
 
   return (
-    <header className="bg-transparent">
-      <div className="mx-auto max-w-lg px-4 py-4">
-        {/* Row 1: nav controls */}
-        <div className="flex items-center">
-          <MenyButton
-            isAdmin={isAdmin}
-            ladderEnabled={ladderEnabled}
-            showHome={showHome}
-          />
-
-          {/* Desktop nav + auth — grouped on the right */}
-          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
-            <DesktopNav
-              isAdmin={isAdmin}
-              ladderEnabled={ladderEnabled}
-              showHome={showHome}
+    <header className="border-b border-white/10 bg-transparent">
+      <div className="mx-auto max-w-lg px-4 py-2 sm:py-2.5 md:max-w-3xl">
+        <div className="flex min-w-0 items-center gap-1.5 md:gap-2">
+          <Link
+            to="/"
+            className="block shrink-0 rounded-lg transition-[filter,transform] duration-200 filter-[drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:filter-[drop-shadow(0px_5px_8px_rgba(0,0,0,0.25))] hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          >
+            <img
+              src="/htk-logo.svg"
+              alt="HTK Logo"
+              className="h-auto w-[44px] sm:w-[50px] md:w-[54px]"
             />
+          </Link>
+
+          <div className="flex min-w-0 flex-1 items-center justify-start">
+            {user && (
+              <div className="flex w-full min-w-0 justify-start pl-1 sm:pl-1.5">
+                <DesktopNav isAdmin={isAdmin} ladderEnabled={ladderEnabled} />
+              </div>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {!authLoading && (
               <div className="flex shrink-0 items-center gap-1">
                 {user ? (
@@ -82,22 +83,6 @@ export function Header({
             )}
           </div>
         </div>
-
-        {/* Row 2: centered logo */}
-        {showLogo && (
-          <div className="flex justify-center pt-2">
-            <Link
-              to="/"
-              className="block shrink-0 rounded-lg transition-[filter,transform] duration-200 filter-[drop-shadow(0px_4px_4px_rgba(0,0,0,0.15))] hover:filter-[drop-shadow(0px_5px_8px_rgba(0,0,0,0.25))] hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-            >
-              <img
-                src="/htk-logo.svg"
-                alt="HTK Logo"
-                className="h-auto w-[72px] sm:w-[80px]"
-              />
-            </Link>
-          </div>
-        )}
       </div>
     </header>
   )

@@ -28,25 +28,38 @@ import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import { TimeSelect } from './TimeSelect'
 import { BookingDrawer } from './BookingDrawer'
+import { BOOKING_PRIMARY_BUTTON_CLASS } from '../../lib/bookingPrimaryButtonClass'
 
 registerLocale('sv', sv)
 
 const DateDisplayInput = forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { placeholder?: string }
->(({ value, onClick, placeholder }, ref) => (
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    placeholder?: string
+    appearance?: 'green' | 'light'
+  }
+>(({ value, onClick, placeholder, appearance = 'green', ...rest }, ref) => (
   <button
     ref={ref}
     type="button"
     onClick={onClick}
-    className="w-full min-h-[44px] rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30 hover:border-white/40 cursor-pointer"
+    {...rest}
+    className={
+      appearance === 'light'
+        ? 'w-full min-h-[44px] cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm text-gray-900 transition-colors hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#F1E334]/40'
+        : 'w-full min-h-[44px] cursor-pointer rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-left text-sm transition-colors hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
+    }
   >
     {value ? (
-      <span className="text-white">
+      <span className={appearance === 'light' ? 'text-gray-900' : 'text-white'}>
         {(value as string).charAt(0).toUpperCase() + (value as string).slice(1)}
       </span>
     ) : (
-      <span className="text-white/40">{placeholder}</span>
+      <span
+        className={appearance === 'light' ? 'text-gray-400' : 'text-white/40'}
+      >
+        {placeholder}
+      </span>
     )}
   </button>
 ))
@@ -56,6 +69,13 @@ interface BookingFormProps {
   onSuccess: (startTime: Date, endTime: Date) => void
   user: AuthUser | null
   ladderMeta?: LadderMeta
+  /** Hide the in-form "Ny bokning" heading (e.g. when the shell already has a title). */
+  hideSectionTitle?: boolean
+  /**
+   * `dialog` = white card, dark text (e.g. challenge flow in `SheetDialogShell`).
+   * `default` = green panel (home page column).
+   */
+  variant?: 'default' | 'dialog'
 }
 
 function padTwo(n: number): string {
@@ -80,7 +100,10 @@ export function BookingForm({
   onSuccess,
   user,
   ladderMeta,
+  hideSectionTitle = false,
+  variant = 'default',
 }: BookingFormProps) {
+  const isDialog = variant === 'dialog'
   const isDesktop = useIsDesktop()
   const { addToast } = useToast()
   const queryClient = useQueryClient()
@@ -244,14 +267,29 @@ export function BookingForm({
     onSuccess(start, end)
   }
 
-  const inputClass =
-    'w-full min-h-[44px] rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
+  const inputClass = isDialog
+    ? 'w-full min-h-[44px] rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
+    : 'w-full min-h-[44px] rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30'
+
+  const labelClass = isDialog
+    ? 'mb-1 block text-sm font-medium text-gray-600'
+    : 'mb-1 block text-sm font-medium text-white/70'
 
   return (
-    <section className="rounded-2xl bg-[#194b29] px-4 py-5">
-      <h2 className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
-        Ny bokning
-      </h2>
+    <section
+      className={
+        isDialog ? 'min-w-0 px-0 py-0' : 'rounded-2xl bg-[#194b29] px-4 py-5'
+      }
+    >
+      {!hideSectionTitle && (
+        <h2
+          className={`font-display mb-4 text-[20px] font-bold uppercase tracking-wide ${
+            isDialog ? 'text-gray-900' : 'text-white'
+          }`}
+        >
+          Ny bokning
+        </h2>
+      )}
       <form
         onSubmit={handleSubmit}
         noValidate
@@ -260,10 +298,7 @@ export function BookingForm({
         {/* Email — guests only */}
         {!user && (
           <div className="min-w-0">
-            <label
-              htmlFor="booking-email"
-              className="mb-1 block text-sm font-medium text-white/70"
-            >
+            <label htmlFor="booking-email" className={labelClass}>
               E-post
             </label>
             <input
@@ -283,10 +318,7 @@ export function BookingForm({
         {isDesktop && (
           <>
             <div className="min-w-0">
-              <label
-                htmlFor="booking-date-desktop"
-                className="mb-1 block text-sm font-medium text-white/70"
-              >
+              <label htmlFor="booking-date-desktop" className={labelClass}>
                 Datum
               </label>
               <DatePicker
@@ -299,7 +331,9 @@ export function BookingForm({
                 dateFormat="EEEE d MMMM"
                 placeholderText="Välj datum"
                 autoComplete="off"
-                customInput={<DateDisplayInput />}
+                customInput={
+                  <DateDisplayInput appearance={isDialog ? 'light' : 'green'} />
+                }
                 renderCustomHeader={({
                   date,
                   decreaseMonth,
@@ -333,24 +367,22 @@ export function BookingForm({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium text-white/70">
-                  Starttid
-                </label>
+                <label className={labelClass}>Starttid</label>
                 <TimeSelect
                   value={startTimeValue}
                   onChange={handleStartTimeChange}
                   placeholder="Välj starttid"
+                  appearance={isDialog ? 'light' : 'green'}
                 />
               </div>
 
               <div className="min-w-0">
-                <label className="mb-1 block text-sm font-medium text-white/70">
-                  Sluttid
-                </label>
+                <label className={labelClass}>Sluttid</label>
                 <TimeSelect
                   value={endTimeValue}
                   onChange={setEndTimeValue}
                   placeholder="Välj sluttid"
+                  appearance={isDialog ? 'light' : 'green'}
                   className={
                     !startTimeValue ? 'opacity-40 pointer-events-none' : ''
                   }
@@ -360,14 +392,22 @@ export function BookingForm({
 
             {/* Inline conflict error — desktop only */}
             {conflictDetected && (
-              <p className="text-sm text-red-300">
+              <p
+                className={`text-sm ${isDialog ? 'text-red-600' : 'text-red-300'}`}
+              >
                 {overlapConflictMessage(conflictingBooking)}
               </p>
             )}
 
             {/* Submit error — desktop only */}
             {submitError && (
-              <div className="rounded-xl bg-white/95 px-4 py-3 text-sm text-red-700">
+              <div
+                className={
+                  isDialog
+                    ? 'rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800'
+                    : 'rounded-xl bg-white/95 px-4 py-3 text-sm text-red-700'
+                }
+              >
                 {submitError}
               </div>
             )}
@@ -376,8 +416,7 @@ export function BookingForm({
             <button
               type="submit"
               disabled={isSubmitting || conflictDetected}
-              className="flex w-full min-h-[44px] cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#F1E334' }}
+              className={BOOKING_PRIMARY_BUTTON_CLASS}
             >
               {isSubmitting ? 'Bokar…' : 'Boka bana'}
             </button>
@@ -390,8 +429,7 @@ export function BookingForm({
             type="button"
             onClick={() => setDrawerOpen(true)}
             disabled={!user && !email.trim()}
-            className="flex w-full min-h-[44px] cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#F1E334' }}
+            className={BOOKING_PRIMARY_BUTTON_CLASS}
           >
             Boka banan
           </button>

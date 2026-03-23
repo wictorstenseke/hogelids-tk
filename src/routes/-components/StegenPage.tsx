@@ -6,9 +6,7 @@ import {
   IconTrophy,
 } from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
-import { signOut } from '../../services/AuthService'
 import { useToast } from '../../lib/ToastContext'
-import { Header } from './Header'
 import { useAppSettings } from '../../lib/useAppSettings'
 import {
   getActiveLadder,
@@ -16,6 +14,7 @@ import {
   pauseLadder,
   getLadderMatches,
   reportLadderResult,
+  createLadderMatch,
   LADDER_QUERY_KEY,
   LADDER_MATCHES_QUERY_KEY,
   type LadderParticipant,
@@ -24,14 +23,17 @@ import {
 } from '../../services/LadderService'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { useState } from 'react'
-import { ProfileModal } from './ProfileModal'
 import { BookingForm } from './BookingForm'
+import { BookingDrawer } from './BookingDrawer'
 import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
+import { SheetDialogShell } from './SheetDialogShell'
 import {
   deleteMemberBooking,
+  findConflictingBooking,
   getUpcomingBookings,
   BOOKINGS_QUERY_KEY,
 } from '../../services/BookingService'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -83,84 +85,73 @@ function RankingsTable({
   const me = ladder.participants.find((p) => p.uid === currentUid)
   const isMember = !!me
 
-  return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-      {active.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-gray-500 text-center">
-          Inga deltagare än. Gå med för att starta stegen!
-        </p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100">
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 w-10">
-                #
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Spelare
-              </th>
-              <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Statistik
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {active.map((participant) => {
-              const isMe = participant.uid === currentUid
-              const eligibility =
-                isMember && !isMe
-                  ? getChallengeEligibility(
-                      ladder.participants,
-                      currentUid,
-                      participant.uid
-                    )
-                  : null
-              const isChallengeable = eligibility?.eligible === true
+  if (active.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
+        Inga deltagare än. Gå med för att starta stegen!
+      </div>
+    )
+  }
 
-              return (
-                <tr
-                  key={participant.uid}
-                  onClick={
-                    isChallengeable
-                      ? () => onChallenge(participant.uid)
-                      : undefined
-                  }
-                  className={[
-                    'transition-colors',
-                    isMe ? 'bg-[#F1E334]/20' : '',
-                    isChallengeable
-                      ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100'
-                      : '',
-                  ].join(' ')}
-                >
-                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">
-                    {participant.position}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-gray-900">
-                      {participant.displayName || participant.uid}
-                    </span>
-                    {isMe && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-[#F1E334] px-2 py-0.5 text-xs font-semibold text-gray-800">
-                        Du
-                      </span>
-                    )}
-                    {isChallengeable && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                        Utmana
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-gray-700">
-                    {formatStats(participant.wins, participant.losses)}
-                  </td>
-                </tr>
+  return (
+    <ul className="border-t border-white/10">
+      {active.map((participant) => {
+        const eligibility =
+          isMember && participant.uid !== currentUid
+            ? getChallengeEligibility(
+                ladder.participants,
+                currentUid,
+                participant.uid
               )
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
+            : null
+        const isChallengeable = eligibility?.eligible === true
+        const isMe = participant.uid === currentUid
+
+        const name = participant.displayName || participant.uid
+
+        const rowClass = 'flex min-w-0 items-center gap-3 py-2.5 pr-2'
+
+        const rowContent = (
+          <>
+            <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
+              {participant.position}
+            </span>
+            <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+              <span
+                title={name}
+                className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none ${
+                  isMe
+                    ? 'bg-[#F1E334] text-gray-900'
+                    : 'bg-white/15 text-white/90'
+                }`}
+              >
+                {name}
+              </span>
+            </div>
+            <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
+              {formatStats(participant.wins, participant.losses)}
+            </span>
+          </>
+        )
+
+        return (
+          <li key={participant.uid} className="border-b border-white/10">
+            {isChallengeable ? (
+              <button
+                type="button"
+                onClick={() => onChallenge(participant.uid)}
+                className={`${rowClass} w-full cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
+                aria-label={`Utmana ${name}`}
+              >
+                {rowContent}
+              </button>
+            ) : (
+              <div className={rowClass}>{rowContent}</div>
+            )}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -393,10 +384,10 @@ function ReportForm({
                 type="button"
                 onClick={() => setWinnerId(uid)}
                 aria-pressed={selected}
-                className={`min-h-[44px] cursor-pointer rounded-lg border px-2 py-2 text-center text-sm font-medium transition-colors ${
+                className={`min-h-[44px] cursor-pointer rounded-lg border-2 px-2 py-2 text-center text-sm font-semibold transition-all ${
                   selected
-                    ? 'border-gray-900 bg-gray-50 text-gray-900'
-                    : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50/80'
+                    ? 'border-gray-900 bg-[#F1E334] text-gray-900'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50/90'
                 }`}
               >
                 {name}
@@ -437,7 +428,7 @@ function ReportForm({
             <button
               type="submit"
               disabled={!winnerId || saving}
-              className="min-h-[44px] cursor-pointer rounded-lg bg-gray-900 px-5 text-sm font-semibold text-white hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="min-h-[44px] cursor-pointer rounded-lg border border-[#0f3019] bg-[#194b29] px-5 text-sm font-semibold text-white shadow-sm transition-[filter,box-shadow] hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100"
             >
               {saving ? 'Sparar…' : 'Spara'}
             </button>
@@ -465,13 +456,17 @@ export function StegenPage() {
   const queryClient = useQueryClient()
   const { settings } = useAppSettings()
 
-  const [showProfile, setShowProfile] = useState(false)
+  const isDesktop = useIsDesktop()
+
   const [challengeOpponentUid, setChallengeOpponentUid] = useState<
     string | null
   >(null)
   const [reportingMatch, setReportingMatch] = useState<LadderMatch | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [isPausing, setIsPausing] = useState(false)
+  const [matchesTab, setMatchesTab] = useState<'kommande' | 'spelade'>(
+    'kommande'
+  )
 
   const { data: ladder, isLoading: ladderLoading } = useQuery({
     queryKey: LADDER_QUERY_KEY,
@@ -499,16 +494,8 @@ export function StegenPage() {
   if (!user || !ladderEnabled) {
     return (
       <div className="min-h-screen">
-        <Header
-          user={user}
-          authLoading={authLoading}
-          onOpenProfile={() => setShowProfile(true)}
-          onSignOut={() => void signOut()}
-          showLogo={false}
-          showHome
-        />
         <main className="px-4 py-6">
-          <div className="mx-auto max-w-lg">
+          <div className="mx-auto max-w-lg md:max-w-3xl">
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
               <p className="text-sm text-gray-600">
                 {!user
@@ -518,9 +505,6 @@ export function StegenPage() {
             </div>
           </div>
         </main>
-        {user && showProfile && (
-          <ProfileModal user={user} onClose={() => setShowProfile(false)} />
-        )}
       </div>
     )
   }
@@ -572,18 +556,46 @@ export function StegenPage() {
       ? ladder.participants.find((p) => p.uid === challengeOpponentUid)
       : null
 
+  async function handleLadderMobileSubmit(
+    date: string,
+    startTime: string,
+    endTime: string
+  ) {
+    if (!ladder || !challengeOpponentUid || !challengeOpponent || !user) return
+    const start = new Date(`${date}T${startTime}`)
+    const end = new Date(`${date}T${endTime}`)
+    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
+    const freshBookings =
+      queryClient.getQueryData<typeof existingBookings>(BOOKINGS_QUERY_KEY) ??
+      existingBookings
+    const conflict = findConflictingBooking(freshBookings, start, end)
+    if (conflict) {
+      throw new Error(`Det finns redan en bokning som överlappar med vald tid.`)
+    }
+    await createLadderMatch(
+      ladder.id,
+      user.uid,
+      challengeOpponentUid,
+      user.displayName,
+      challengeOpponent.displayName ?? challengeOpponentUid,
+      user.uid,
+      user.email,
+      user.displayName,
+      start,
+      end
+    )
+    setChallengeOpponentUid(null)
+    await queryClient.invalidateQueries({
+      queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
+    })
+    await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+    addToast('Match bokad!')
+  }
+
   return (
     <div className="min-h-screen">
-      <Header
-        user={user}
-        authLoading={authLoading}
-        onOpenProfile={() => setShowProfile(true)}
-        onSignOut={() => void signOut()}
-        showLogo={false}
-        showHome
-      />
       <main className="px-4 py-6">
-        <div className="mx-auto max-w-lg space-y-6">
+        <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
           {ladder && (
             <div className="flex items-center justify-end gap-2">
               {isActive && myParticipant && (
@@ -641,113 +653,151 @@ export function StegenPage() {
             </div>
           ) : (
             <>
-              {/* Challenge form */}
-              {challengeOpponent && challengeOpponentUid && (
-                <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-gray-900">
-                      Utmana{' '}
-                      {challengeOpponent?.displayName ?? challengeOpponentUid}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setChallengeOpponentUid(null)}
-                      className="text-xs text-gray-400 hover:text-gray-600"
-                    >
-                      Avbryt
-                    </button>
-                  </div>
-                  <BookingForm
-                    existingBookings={existingBookings}
-                    onSuccess={() => {
-                      setChallengeOpponentUid(null)
-                      void queryClient.invalidateQueries({
-                        queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
-                      })
-                      void queryClient.invalidateQueries({
-                        queryKey: BOOKINGS_QUERY_KEY,
-                      })
-                      addToast('Match bokad!')
-                    }}
-                    user={user}
-                    ladderMeta={{
-                      ladderId: ladder.id,
-                      playerAId: user.uid,
-                      playerBId: challengeOpponentUid,
-                      playerAName: user.displayName,
-                      playerBName:
-                        challengeOpponent?.displayName ?? challengeOpponentUid,
+              <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
+                <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
+                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/70">
+                    Rankingslista
+                  </h2>
+                  <RankingsTable
+                    ladder={ladder}
+                    currentUid={user.uid}
+                    onChallenge={(uid) => {
+                      setChallengeOpponentUid(uid)
+                      setReportingMatch(null)
                     }}
                   />
-                </div>
-              )}
-
-              {/* Rankings table */}
-              <section>
-                <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
-                  Rankingslista
-                </h2>
-                <RankingsTable
-                  ladder={ladder}
-                  currentUid={user.uid}
-                  onChallenge={(uid) => {
-                    setChallengeOpponentUid(uid)
-                    setReportingMatch(null)
-                  }}
-                />
-              </section>
-
-              {/* Planned matches */}
-              {plannedMatches.length > 0 && (
-                <section>
-                  <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
-                    Kommande matcher
-                  </h2>
-                  <div className="space-y-2">
-                    {plannedMatches.map((match) => {
-                      const isInvolved =
-                        match.playerAId === user.uid ||
-                        match.playerBId === user.uid
-                      if (isInvolved) {
-                        return (
-                          <PlannedMatchReportRow
-                            key={match.id}
-                            match={match}
-                            ladderId={ladder.id}
-                            expanded={reportingMatch?.id === match.id}
-                            onExpand={() => {
-                              setReportingMatch(match)
-                              setChallengeOpponentUid(null)
-                            }}
-                            onCollapse={() => setReportingMatch(null)}
-                          />
-                        )
-                      }
-                      return <MatchCard key={match.id} match={match} />
-                    })}
-                  </div>
                 </section>
-              )}
 
-              {/* Completed matches */}
-              {completedMatches.length > 0 && (
-                <section>
-                  <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
-                    Spelade matcher
-                  </h2>
-                  <div className="space-y-2">
-                    {completedMatches.map((match) => (
-                      <MatchCard key={match.id} match={match} />
+                <div className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
+                  <div
+                    className="relative mb-4 flex w-full rounded-xl bg-white/10 p-1"
+                    role="tablist"
+                    aria-label="Välj kommande eller spelade stegmatcher"
+                  >
+                    <div
+                      className="absolute top-1 h-[calc(100%-8px)] w-[calc(50%-6px)] rounded-lg bg-[#F1E334] transition-[left] duration-300 ease-out"
+                      style={{
+                        left:
+                          matchesTab === 'spelade' ? 'calc(50% + 2px)' : '4px',
+                      }}
+                      aria-hidden
+                    />
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={matchesTab === 'kommande'}
+                      onClick={() => setMatchesTab('kommande')}
+                      className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 ${
+                        matchesTab === 'kommande'
+                          ? 'text-gray-900 hover:brightness-110 active:brightness-95'
+                          : 'text-white/60 hover:text-white/90 active:text-white'
+                      }`}
+                    >
+                      Kommande
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={matchesTab === 'spelade'}
+                      onClick={() => setMatchesTab('spelade')}
+                      className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 ${
+                        matchesTab === 'spelade'
+                          ? 'text-gray-900 hover:brightness-110 active:brightness-95'
+                          : 'text-white/60 hover:text-white/90 active:text-white'
+                      }`}
+                    >
+                      Spelade
+                    </button>
+                  </div>
+
+                  {matchesTab === 'kommande' &&
+                    (plannedMatches.length > 0 ? (
+                      <div className="space-y-2">
+                        {plannedMatches.map((match) => {
+                          const isInvolved =
+                            match.playerAId === user.uid ||
+                            match.playerBId === user.uid
+                          if (isInvolved) {
+                            return (
+                              <PlannedMatchReportRow
+                                key={match.id}
+                                match={match}
+                                ladderId={ladder.id}
+                                expanded={reportingMatch?.id === match.id}
+                                onExpand={() => {
+                                  setReportingMatch(match)
+                                  setChallengeOpponentUid(null)
+                                }}
+                                onCollapse={() => setReportingMatch(null)}
+                              />
+                            )
+                          }
+                          return <MatchCard key={match.id} match={match} />
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
+                        Inga stegmatcher bokade just nu.
+                      </div>
                     ))}
-                  </div>
-                </section>
-              )}
+
+                  {matchesTab === 'spelade' &&
+                    (completedMatches.length > 0 ? (
+                      <div className="space-y-2">
+                        {completedMatches.map((match) => (
+                          <MatchCard key={match.id} match={match} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
+                        Inga spelade stegmatcher än.
+                      </div>
+                    ))}
+                </div>
+              </div>
             </>
           )}
         </div>
       </main>
-      {showProfile && (
-        <ProfileModal user={user} onClose={() => setShowProfile(false)} />
+      {challengeOpponent && challengeOpponentUid && ladder && !isDesktop && (
+        <BookingDrawer
+          existingBookings={existingBookings}
+          onSubmit={handleLadderMobileSubmit}
+          onClose={() => setChallengeOpponentUid(null)}
+        />
+      )}
+      {challengeOpponent && challengeOpponentUid && ladder && isDesktop && (
+        <SheetDialogShell
+          titleId="challenge-dialog-title"
+          title={`Utmana ${challengeOpponent.displayName ?? challengeOpponentUid}`}
+          onClose={() => setChallengeOpponentUid(null)}
+          maxHeightVariant="tall"
+        >
+          <BookingForm
+            variant="dialog"
+            hideSectionTitle
+            existingBookings={existingBookings}
+            onSuccess={() => {
+              setChallengeOpponentUid(null)
+              void queryClient.invalidateQueries({
+                queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
+              })
+              void queryClient.invalidateQueries({
+                queryKey: BOOKINGS_QUERY_KEY,
+              })
+              addToast('Match bokad!')
+            }}
+            user={user}
+            ladderMeta={{
+              ladderId: ladder.id,
+              playerAId: user.uid,
+              playerBId: challengeOpponentUid,
+              playerAName: user.displayName,
+              playerBName:
+                challengeOpponent.displayName ?? challengeOpponentUid,
+            }}
+          />
+        </SheetDialogShell>
       )}
     </div>
   )

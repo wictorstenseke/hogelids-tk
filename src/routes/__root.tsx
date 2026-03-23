@@ -1,9 +1,42 @@
+/* eslint-disable react-refresh/only-export-components -- TanStack Router root route exports Route */
+import { useState } from 'react'
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { ToastProvider } from '../lib/ToastContext'
 import { AppSettingsProvider } from '../lib/AppSettingsContext'
 import { RoleProvider } from '../lib/RoleContext'
 import { AuthProvider } from '../lib/AuthContext'
+import { useAuth } from '../lib/useAuth'
+import { signOut } from '../services/AuthService'
 import { Footer } from './-components/Footer'
+import { Header } from './-components/Header'
+import { AuthModal } from './-components/AuthModal'
+import { ProfileModal } from './-components/ProfileModal'
+
+function AppShell() {
+  const { user, loading: authLoading } = useAuth()
+  const [authModal, setAuthModal] = useState<'sign-in' | 'sign-up' | null>(null)
+  const [showProfile, setShowProfile] = useState(false)
+  return (
+    <>
+      <Header
+        user={user}
+        authLoading={authLoading}
+        onOpenProfile={() => setShowProfile(true)}
+        onSignOut={() => void signOut()}
+        onSignIn={() => setAuthModal('sign-in')}
+        onSignUp={() => setAuthModal('sign-up')}
+      />
+      <Outlet />
+      <Footer />
+      {authModal && (
+        <AuthModal initialView={authModal} onClose={() => setAuthModal(null)} />
+      )}
+      {user && showProfile && (
+        <ProfileModal user={user} onClose={() => setShowProfile(false)} />
+      )}
+    </>
+  )
+}
 
 export const Route = createRootRoute({
   component: () => (
@@ -13,8 +46,7 @@ export const Route = createRootRoute({
       <AppSettingsProvider>
         <RoleProvider>
           <ToastProvider>
-            <Outlet />
-            <Footer />
+            <AppShell />
           </ToastProvider>
         </RoleProvider>
       </AppSettingsProvider>

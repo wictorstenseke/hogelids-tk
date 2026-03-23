@@ -15,7 +15,7 @@ export function Footer() {
 
   return (
     <footer className="bg-[#164a2a]">
-      <div className="mx-auto max-w-xl px-4 py-10 sm:max-w-2xl">
+      <div className="mx-auto max-w-lg px-4 py-10 md:max-w-3xl">
         {/* Brand: full width above columns so layout stays balanced */}
         <div className="mb-8 flex flex-row flex-wrap items-center justify-center gap-3 sm:justify-start">
           <img

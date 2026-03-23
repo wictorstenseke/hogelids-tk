@@ -12,11 +12,9 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 describe('DesktopNav', () => {
-  it('returns null when no items are visible', () => {
-    const { container } = render(
-      <DesktopNav isAdmin={false} ladderEnabled={false} />
-    )
-    expect(container.firstChild).toBeNull()
+  it('always renders Hem', () => {
+    render(<DesktopNav isAdmin={false} ladderEnabled={false} />)
+    expect(screen.getByRole('button', { name: /hem/i })).toBeInTheDocument()
   })
 
   it('renders Stegen button when ladderEnabled is true', () => {

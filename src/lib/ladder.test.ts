@@ -227,11 +227,11 @@ describe('applyMatchResult', () => {
 // ─── formatStats ─────────────────────────────────────────────────────────────
 
 describe('formatStats', () => {
-  it('formats wins and losses with en-dash', () => {
-    expect(formatStats(3, 1)).toBe('3–1')
+  it('formats wins and losses as V and F', () => {
+    expect(formatStats(3, 1)).toBe('3V 1F')
   })
 
   it('formats zeros', () => {
-    expect(formatStats(0, 0)).toBe('0–0')
+    expect(formatStats(0, 0)).toBe('0V 0F')
   })
 })

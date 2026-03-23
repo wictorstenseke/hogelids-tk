@@ -13,6 +13,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "preview": "vite preview",
+    "icons:generate": "node scripts/generate-app-icons.mjs",
     "prepare": "husky"
   },
   "dependencies": {
@@ -56,6 +57,7 @@
     "jsdom": "^29.0.0",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
+    "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",

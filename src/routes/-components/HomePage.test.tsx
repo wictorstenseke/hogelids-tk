@@ -41,10 +41,6 @@ vi.mock('../../services/AuthService', () => ({
   isAdminRole: vi.fn(() => false),
 }))
 
-vi.mock('./Header', () => ({
-  Header: () => <header aria-label="Högelids Tennisklubb" />,
-}))
-
 vi.mock('./ProfileSection', () => ({
   ProfileSection: () => null,
 }))
@@ -73,13 +69,6 @@ function renderWithQueryClient(ui: React.ReactElement) {
 }
 
 describe('HomePage', () => {
-  it('renders the site header', () => {
-    renderWithQueryClient(<HomePage />)
-    expect(
-      screen.getByRole('banner', { name: /högelids tennisklubb/i })
-    ).toBeInTheDocument()
-  })
-
   it('shows a loading indicator while fetching', () => {
     renderWithQueryClient(<HomePage />)
     expect(screen.getByText(/laddar bokningar/i)).toBeInTheDocument()

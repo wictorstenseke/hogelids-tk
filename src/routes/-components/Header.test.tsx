@@ -28,10 +28,6 @@ vi.mock('../../lib/useAppSettings', () => ({
 }))
 
 // Stub out child nav components — they have their own tests
-vi.mock('./MenyButton', () => ({
-  MenyButton: () => null,
-}))
-
 vi.mock('./DesktopNav', () => ({
   DesktopNav: () => null,
 }))

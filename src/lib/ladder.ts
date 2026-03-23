@@ -97,8 +97,8 @@ export function applyMatchResult(
 }
 
 /**
- * Returns a formatted W–L string for display (e.g. "3–1").
+ * Returns a formatted wins/losses string for display (e.g. "3V 1F").
  */
 export function formatStats(wins: number, losses: number): string {
-  return `${wins}–${losses}`
+  return `${wins}V ${losses}F`
 }

@@ -8,6 +8,7 @@ import {
   type BookingWithId,
   findConflictingBooking,
 } from '../../services/BookingService'
+import { BOOKING_DRAWER_PRIMARY_BUTTON_CLASS } from '../../lib/bookingPrimaryButtonClass'
 
 type Step = 'datetime' | 'end' | 'summary'
 
@@ -412,8 +413,7 @@ export function BookingDrawer({
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="mt-6 flex w-full min-h-[52px] cursor-pointer items-center justify-center rounded-xl text-base font-semibold text-gray-900 transition-opacity"
-                  style={{ backgroundColor: '#F1E334' }}
+                  className={BOOKING_DRAWER_PRIMARY_BUTTON_CLASS}
                 >
                   Nästa
                 </button>
@@ -446,8 +446,7 @@ export function BookingDrawer({
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="mt-6 flex w-full min-h-[52px] cursor-pointer items-center justify-center rounded-xl text-base font-semibold text-gray-900 transition-opacity"
-                  style={{ backgroundColor: '#F1E334' }}
+                  className={BOOKING_DRAWER_PRIMARY_BUTTON_CLASS}
                 >
                   Klar
                 </button>
@@ -508,8 +507,7 @@ export function BookingDrawer({
                   type="button"
                   onClick={() => void handleBookingSubmit()}
                   disabled={isSubmitting || !canBook}
-                  className="mt-6 flex w-full min-h-[52px] cursor-pointer items-center justify-center rounded-xl text-base font-semibold text-gray-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: '#F1E334' }}
+                  className={BOOKING_DRAWER_PRIMARY_BUTTON_CLASS}
                 >
                   {isSubmitting ? 'Bokar…' : 'Boka banan'}
                 </button>

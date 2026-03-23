@@ -43,7 +43,7 @@ export function AvatarMenu({
         onClick={() => setOpen((v) => !v)}
         aria-label="Kontomeny"
         aria-expanded={open}
-        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-sm font-bold transition-opacity hover:opacity-80"
+        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xs font-bold transition-opacity hover:opacity-80 sm:h-10 sm:w-10 sm:text-sm"
         style={
           open
             ? { backgroundColor: '#F1E334', color: '#111827' }

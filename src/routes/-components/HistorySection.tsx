@@ -464,8 +464,8 @@ export function HistorySection({
         Historik &amp; Statistik
       </h2>
 
-      {/* Segmented control */}
-      <div className="relative mb-4 flex rounded-xl bg-white/10 p-1">
+      {/* Segmented control — capped width; does not span full section */}
+      <div className="relative mb-4 flex w-full max-w-72 rounded-xl bg-white/10 p-1">
         <div
           className="absolute top-1 h-[calc(100%-8px)] w-[calc(50%-6px)] rounded-lg bg-[#F1E334] transition-[left] duration-300 ease-out"
           style={{
