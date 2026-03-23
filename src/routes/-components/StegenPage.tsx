@@ -596,9 +596,9 @@ export function StegenPage() {
     <div className="min-h-screen">
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
-          {ladder && (
+          {ladder && myParticipant && (
             <div className="flex items-center justify-end gap-2">
-              {isActive && myParticipant && (
+              {isActive && (
                 <span className="text-xs text-white/70">
                   Placering {myParticipant.position}
                 </span>
@@ -611,16 +611,6 @@ export function StegenPage() {
                   className="min-h-[36px] cursor-pointer rounded-lg bg-white/20 px-3 text-xs font-semibold text-white hover:bg-white/30 transition-colors disabled:opacity-50"
                 >
                   {isJoining ? 'Återgår…' : 'Återgå till stegen'}
-                </button>
-              )}
-              {!myParticipant && (
-                <button
-                  type="button"
-                  onClick={() => void handleJoin()}
-                  disabled={isJoining}
-                  className="min-h-[36px] cursor-pointer rounded-lg bg-[#F1E334] px-3 text-xs font-semibold text-gray-900 hover:opacity-80 transition-opacity disabled:opacity-50"
-                >
-                  {isJoining ? 'Går med…' : 'Gå med i stegen'}
                 </button>
               )}
               {isActive && (
@@ -637,15 +627,28 @@ export function StegenPage() {
           )}
 
           {ladder && !myParticipant && (
-            <div className="rounded-xl bg-[#F1E334] px-4 py-4">
-              <p className="font-semibold text-sm text-gray-900">
-                Välkommen till stegen!
-              </p>
-              <p className="mt-1 text-sm text-gray-800">
-                Utmana andra spelare och klättra i rankingen. Klicka på{' '}
-                <span className="font-semibold">Gå med i stegen</span> för att
-                delta. Du kan pausa ditt deltagande när som helst.
-              </p>
+            <div
+              className="overflow-hidden rounded-xl text-sm text-gray-800"
+              style={{ backgroundColor: '#F1E334' }}
+            >
+              <div className="px-4 py-3">
+                <p className="font-semibold text-gray-900">
+                  Välkommen till stegen!
+                </p>
+                <p className="mt-0.5 text-gray-800">
+                  Utmana andra spelare och klättra i rankingen. Du kan pausa
+                  ditt deltagande när som helst.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleJoin()}
+                disabled={isJoining}
+                className="flex w-full items-center px-4 py-2.5 font-semibold transition-opacity hover:opacity-70 disabled:opacity-50"
+                style={{ backgroundColor: '#E5D82C' }}
+              >
+                {isJoining ? 'Går med…' : 'Gå med i stegen'}
+              </button>
             </div>
           )}
 
