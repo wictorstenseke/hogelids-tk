@@ -20,15 +20,12 @@ import {
   type Ladder,
   type LadderMatch,
 } from '../../services/LadderService'
-import {
-  getChallengeEligibility,
-  formatStats,
-  MAX_CHALLENGE_DISTANCE,
-} from '../../lib/ladder'
+import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { useState } from 'react'
 import { BookingForm } from './BookingForm'
 import { BookingDrawer } from './BookingDrawer'
 import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
+import { LadderRulesSheetDialog } from './LadderRulesSheetDialog'
 import { SheetDialogShell } from './SheetDialogShell'
 import {
   deleteMemberBooking,
@@ -469,6 +466,7 @@ export function StegenPage() {
   const [matchesTab, setMatchesTab] = useState<'kommande' | 'spelade'>(
     'kommande'
   )
+  const [rulesDialogOpen, setRulesDialogOpen] = useState(false)
 
   const { data: ladder, isLoading: ladderLoading } = useQuery({
     queryKey: LADDER_QUERY_KEY,
@@ -625,9 +623,18 @@ export function StegenPage() {
             <>
               <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
                 <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
-                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/70">
-                    Rankingslista
-                  </h2>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
+                      Rankingslista
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setRulesDialogOpen(true)}
+                      className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-md border border-white/25 bg-white/10 px-2 text-xs font-semibold text-white/90 transition-colors hover:border-white/40 hover:bg-white/15"
+                    >
+                      Regler
+                    </button>
+                  </div>
                   <RankingsTable
                     ladder={ladder}
                     currentUid={user.uid}
@@ -725,54 +732,13 @@ export function StegenPage() {
                     ))}
                 </div>
               </div>
-
-              <section
-                className="rounded-2xl bg-[#194b29] px-4 py-4"
-                aria-labelledby="stegen-regler-heading"
-              >
-                <h2
-                  id="stegen-regler-heading"
-                  className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/70"
-                >
-                  Regler
-                </h2>
-                <p className="text-sm text-white/75">
-                  Stegen är en rankinglista: du klättrar genom att vinna mot
-                  spelare som ligger före dig i listan.
-                </p>
-                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-white/75 marker:text-white/35">
-                  <li>
-                    <span className="font-medium text-white">
-                      Vem du får utmana:
-                    </span>{' '}
-                    Du får bara utmana spelare som ligger högre i listan än du.
-                    Motståndaren får högst ligga {MAX_CHALLENGE_DISTANCE}{' '}
-                    platser ovanför dig.
-                  </li>
-                  <li>
-                    <span className="font-medium text-white">Boka match:</span>{' '}
-                    Tryck på en spelares rad i rankingslistan när raden är
-                    klickbar; då öppnas bokning av stegmatch.
-                  </li>
-                  <li>
-                    <span className="font-medium text-white">
-                      Resultat och placering:
-                    </span>{' '}
-                    Rapportera under{' '}
-                    <strong className="font-semibold text-[#F1E334]">
-                      Kommande
-                    </strong>
-                    . Vinst och förlust sparas alltid. Ni byter plats bara om
-                    vinnaren stod under förloraren och högst{' '}
-                    {MAX_CHALLENGE_DISTANCE} platser ifrån — då byter ni plats
-                    med varandra.
-                  </li>
-                </ul>
-              </section>
             </>
           )}
         </div>
       </main>
+      {rulesDialogOpen ? (
+        <LadderRulesSheetDialog onClose={() => setRulesDialogOpen(false)} />
+      ) : null}
       {challengeOpponent && challengeOpponentUid && ladder && !isDesktop && (
         <BookingDrawer
           existingBookings={existingBookings}
