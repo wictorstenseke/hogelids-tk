@@ -199,17 +199,19 @@ export function HomePage() {
               </p>
             </div>
 
-            <div className="rounded-2xl bg-[#194b29] px-4 py-4">
-              <UpcomingBookingsSection
-                isLoading={isLoading}
-                isError={isError}
-                error={error}
-                bookings={bookings}
-                groups={groups}
-                effectiveGuestEmail={effectiveGuestEmail}
-                user={user}
-              />
-            </div>
+            {bookings && bookings.length > 0 && (
+              <div className="rounded-2xl bg-[#194b29] px-4 py-4">
+                <UpcomingBookingsSection
+                  isLoading={isLoading}
+                  isError={isError}
+                  error={error}
+                  bookings={bookings}
+                  groups={groups}
+                  effectiveGuestEmail={effectiveGuestEmail}
+                  user={user}
+                />
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
