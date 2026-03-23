@@ -429,7 +429,7 @@ export function AdminPage() {
           <SettingsSection title="Stegen">
             <SettingsRow
               label="Visa stegen"
-              description="Visa tennisranking för medlemmar"
+              description="Utmaningsstegen där medlemmar utmanar varandra och byter plats efter matcher"
             >
               <Toggle
                 id="ladder-enabled-toggle"
