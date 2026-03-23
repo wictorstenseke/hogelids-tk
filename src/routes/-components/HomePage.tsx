@@ -131,6 +131,7 @@ export function HomePage() {
   const [successBooking, setSuccessBooking] = useState<{
     startTime: Date
     endTime: Date
+    isGuestBooking: boolean
   } | null>(null)
 
   const {
@@ -173,10 +174,18 @@ export function HomePage() {
   // When logged in, ignore any stored guest email
   const effectiveGuestEmail = user ? null : guestEmail
 
-  function handleSuccess(startTime: Date, endTime: Date) {
+  function handleSuccess(
+    startTime: Date,
+    endTime: Date,
+    meta: { isGuestBooking: boolean }
+  ) {
     setGuestEmail(getEmail())
     void queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
-    setSuccessBooking({ startTime, endTime })
+    setSuccessBooking({
+      startTime,
+      endTime,
+      isGuestBooking: meta.isGuestBooking,
+    })
   }
 
   const groups = bookings ? groupBookingsByDate(bookings) : []
@@ -251,6 +260,7 @@ export function HomePage() {
         <SuccessDialog
           startTime={successBooking.startTime}
           endTime={successBooking.endTime}
+          isGuestBooking={successBooking.isGuestBooking}
           onClose={() => setSuccessBooking(null)}
         />
       )}

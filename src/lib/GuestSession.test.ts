@@ -6,7 +6,6 @@ import {
   setName,
   getBookingCount,
   incrementBookingCount,
-  shouldShowNudge,
 } from './GuestSession'
 
 beforeEach(() => {
@@ -65,31 +64,5 @@ describe('incrementBookingCount', () => {
     localStorage.setItem('htk_booking_count', '1')
     incrementBookingCount()
     expect(getBookingCount()).toBe(2)
-  })
-})
-
-describe('shouldShowNudge', () => {
-  it('returns false when count is 0', () => {
-    expect(shouldShowNudge()).toBe(false)
-  })
-
-  it('returns false when count is 1 (odd)', () => {
-    localStorage.setItem('htk_booking_count', '1')
-    expect(shouldShowNudge()).toBe(false)
-  })
-
-  it('returns true when count is 2 (even, > 0)', () => {
-    localStorage.setItem('htk_booking_count', '2')
-    expect(shouldShowNudge()).toBe(true)
-  })
-
-  it('returns false when count is 3', () => {
-    localStorage.setItem('htk_booking_count', '3')
-    expect(shouldShowNudge()).toBe(false)
-  })
-
-  it('returns true when count is 4', () => {
-    localStorage.setItem('htk_booking_count', '4')
-    expect(shouldShowNudge()).toBe(true)
   })
 })

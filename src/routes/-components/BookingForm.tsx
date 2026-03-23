@@ -65,9 +65,11 @@ export const DateDisplayInput = forwardRef<
 ))
 DateDisplayInput.displayName = 'DateDisplayInput'
 
+export type BookingSuccessMeta = { isGuestBooking: boolean }
+
 interface BookingFormProps {
   existingBookings: BookingWithId[]
-  onSuccess: (startTime: Date, endTime: Date) => void
+  onSuccess: (startTime: Date, endTime: Date, meta: BookingSuccessMeta) => void
   user: AuthUser | null
   ladderMeta?: LadderMeta
   /** Hide the in-form "Ny bokning" heading (e.g. when the shell already has a title). */
@@ -206,7 +208,7 @@ export function BookingForm({
         GuestSession.incrementBookingCount()
       }
       addToast('Bokning skapad!')
-      onSuccess(start, end)
+      onSuccess(start, end, { isGuestBooking: !user })
     } catch (err) {
       addToast(
         err instanceof Error
@@ -265,7 +267,7 @@ export function BookingForm({
       GuestSession.incrementBookingCount()
     }
     addToast('Bokning skapad!')
-    onSuccess(start, end)
+    onSuccess(start, end, { isGuestBooking: !user })
   }
 
   const inputClass = isDialog

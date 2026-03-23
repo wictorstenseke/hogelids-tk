@@ -1,20 +1,21 @@
-import { useState } from 'react'
+import { IconX } from '@tabler/icons-react'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
-import { shouldShowNudge } from '../../lib/GuestSession'
-import { NudgePrompt } from './NudgePrompt'
+import { GuestSignupNudge } from './GuestSignupNudge'
 
 interface SuccessDialogProps {
   startTime: Date
   endTime: Date
+  /** When true, offer inline account creation after guest booking. */
+  isGuestBooking: boolean
   onClose: () => void
 }
 
 export function SuccessDialog({
   startTime,
   endTime,
+  isGuestBooking,
   onClose,
 }: SuccessDialogProps) {
-  const [nudgeDismissed, setNudgeDismissed] = useState(false)
   const dateStr = startTime.toLocaleDateString('sv-SE', {
     weekday: 'long',
     day: 'numeric',
@@ -35,39 +36,39 @@ export function SuccessDialog({
         aria-hidden="true"
       />
 
-      {/* Dialog card */}
-      <div className="relative w-full max-w-sm rounded-2xl bg-white px-6 py-8 shadow-xl">
+      {/* Dialog card — tap outside or close button to dismiss */}
+      <div className="relative max-h-[min(90vh,calc(100vh-2rem))] w-full max-w-sm overflow-y-auto rounded-2xl bg-white px-5 py-6 shadow-xl">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Stäng"
+          className="absolute right-3 top-3 z-10 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#F1E334]/40"
+        >
+          <IconX size={18} stroke={2} />
+        </button>
+
         {/* Yellow accent icon */}
         <div
-          className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+          className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full"
           style={{ backgroundColor: '#F1E334' }}
         >
-          <span className="text-xl font-bold text-gray-900">✓</span>
+          <span className="text-lg font-bold text-gray-900">✓</span>
         </div>
 
-        <h2 className="mb-6 text-center text-xl font-bold text-gray-900">
+        <h2 className="mb-2 text-center text-lg font-bold leading-tight text-gray-900">
           Bokning bekräftad!
         </h2>
 
-        <div className="mb-8 space-y-1 text-center">
-          <p className="text-base font-medium text-gray-800">{capitalized}</p>
-          <p className="text-base text-gray-600">
+        <div className="mb-5 space-y-0.5 text-center">
+          <p className="text-sm font-medium text-gray-800">{capitalized}</p>
+          <p className="text-sm text-gray-600">
             {startTimeStr} – {endTimeStr}
           </p>
         </div>
 
-        {shouldShowNudge() && !nudgeDismissed && (
-          <NudgePrompt onDismiss={() => setNudgeDismissed(true)} />
+        {isGuestBooking && (
+          <GuestSignupNudge onDismiss={onClose} onAccountCreated={onClose} />
         )}
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-6 flex w-full min-h-[44px] items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity"
-          style={{ backgroundColor: '#F1E334' }}
-        >
-          Stäng
-        </button>
       </div>
     </div>
   )

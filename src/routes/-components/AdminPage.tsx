@@ -482,7 +482,7 @@ export function AdminPage() {
               description="Stegen kan visas tidigare, men nya medlemmar kan anmäla sig först från detta datum."
             >
               <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-                <div className="w-full min-w-[12rem] max-w-[min(100%,12rem)]">
+                <div className="w-full min-w-48 max-w-[min(100%,12rem)]">
                   <DatePicker
                     id="ladder-join-opens-date"
                     selected={

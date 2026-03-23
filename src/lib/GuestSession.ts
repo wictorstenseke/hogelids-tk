@@ -29,8 +29,3 @@ export function incrementBookingCount(): void {
   const next = getBookingCount() + 1
   localStorage.setItem(KEY_BOOKING_COUNT, String(next))
 }
-
-export function shouldShowNudge(): boolean {
-  const count = getBookingCount()
-  return count > 0 && count % 2 === 0
-}

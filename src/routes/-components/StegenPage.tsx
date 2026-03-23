@@ -75,12 +75,14 @@ interface RankingsTableProps {
   ladder: Ladder
   currentUid: string
   onChallenge: (opponentUid: string) => void
+  ladderJoinOpenNow: boolean
 }
 
 function RankingsTable({
   ladder,
   currentUid,
   onChallenge,
+  ladderJoinOpenNow,
 }: RankingsTableProps) {
   const active = getActiveParticipants(ladder.participants)
   const me = ladder.participants.find((p) => p.uid === currentUid)
@@ -88,8 +90,16 @@ function RankingsTable({
 
   if (active.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
-        Inga deltagare än. Gå med för att starta stegen!
+      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
+        {!ladderJoinOpenNow ? (
+          <p className="font-medium text-white/85">
+            Här visas rankinglistan när medlemmar har gått med i stegen.
+          </p>
+        ) : (
+          <p className="text-white/60">
+            Inga deltagare än. Gå med för att starta stegen!
+          </p>
+        )}
       </div>
     )
   }
@@ -668,6 +678,7 @@ export function StegenPage() {
                   <RankingsTable
                     ladder={ladder}
                     currentUid={user.uid}
+                    ladderJoinOpenNow={ladderJoinOpenNow}
                     onChallenge={(uid) => {
                       setChallengeOpponentUid(uid)
                       setReportingMatch(null)
@@ -743,8 +754,17 @@ export function StegenPage() {
                         })}
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
-                        Inga stegmatcher bokade just nu.
+                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
+                        {!ladderJoinOpenNow ? (
+                          <p className="font-medium text-white/85">
+                            Här visas kommande stegmatcher när spelare har gått
+                            med och bokat tider.
+                          </p>
+                        ) : (
+                          <p className="text-white/60">
+                            Inga stegmatcher bokade just nu.
+                          </p>
+                        )}
                       </div>
                     ))}
 
@@ -756,8 +776,17 @@ export function StegenPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm text-white/60">
-                        Inga spelade stegmatcher än.
+                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
+                        {!ladderJoinOpenNow ? (
+                          <p className="font-medium text-white/85">
+                            Här visas spelade stegmatcher när matcher är
+                            avslutade.
+                          </p>
+                        ) : (
+                          <p className="text-white/60">
+                            Inga spelade stegmatcher än.
+                          </p>
+                        )}
                       </div>
                     ))}
                 </div>
