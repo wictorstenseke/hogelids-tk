@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
-import { IconCheck, IconSelector } from '@tabler/icons-react'
+import { deleteField, Timestamp } from 'firebase/firestore'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import { format } from 'date-fns'
+import { sv } from 'date-fns/locale'
+import {
+  IconCheck,
+  IconChevronLeft,
+  IconChevronRight,
+  IconSelector,
+} from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import 'react-datepicker/dist/react-datepicker.css'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
@@ -20,6 +30,25 @@ import {
   getActiveLadder,
   LADDER_QUERY_KEY,
 } from '../../services/LadderService'
+import { DateDisplayInput } from './BookingForm'
+
+registerLocale('sv', sv)
+
+function ladderJoinOpensAtToInputValue(
+  ts: Timestamp | null | undefined
+): string {
+  if (!ts) return ''
+  const d = ts.toDate()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function localInputDateToStartOfDay(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map(Number)
+  return new Date(y, m - 1, d, 0, 0, 0, 0)
+}
 
 // A simple toggle switch component.
 interface ToggleProps {
@@ -447,6 +476,100 @@ export function AdminPage() {
                     })
                 }}
               />
+            </SettingsRow>
+            <SettingsRow
+              label="Anmälan öppnar"
+              description="Stegen kan visas tidigare, men nya medlemmar kan anmäla sig först från detta datum."
+            >
+              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+                <div className="w-full min-w-[12rem] max-w-[min(100%,12rem)]">
+                  <DatePicker
+                    id="ladder-join-opens-date"
+                    selected={
+                      settings?.ladderJoinOpensAt
+                        ? new Date(
+                            `${ladderJoinOpensAtToInputValue(settings.ladderJoinOpensAt)}T12:00:00`
+                          )
+                        : null
+                    }
+                    onChange={(date: Date | null) => {
+                      if (!date) return
+                      void updateAppSettings({
+                        ladderJoinOpensAt: Timestamp.fromDate(
+                          localInputDateToStartOfDay(format(date, 'yyyy-MM-dd'))
+                        ),
+                      })
+                        .then(() => addToast('Datum för anmälan sparat'))
+                        .catch((err) => {
+                          console.error(
+                            'Failed to update ladderJoinOpensAt:',
+                            err
+                          )
+                          addToast('Kunde inte spara ändringen.', 'error')
+                        })
+                    }}
+                    locale="sv"
+                    dateFormat="EEEE d MMMM"
+                    placeholderText="Välj datum"
+                    autoComplete="off"
+                    customInput={
+                      <DateDisplayInput
+                        appearance="light"
+                        aria-label="Anmälan öppnar"
+                      />
+                    }
+                    renderCustomHeader={({
+                      date,
+                      decreaseMonth,
+                      increaseMonth,
+                    }) => (
+                      <div className="flex items-center justify-between px-3 pb-2">
+                        <button
+                          type="button"
+                          onClick={decreaseMonth}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                        >
+                          <IconChevronLeft size={18} stroke={2} />
+                        </button>
+                        <span className="font-display text-base font-bold uppercase tracking-wide text-gray-900">
+                          {date.toLocaleDateString('sv-SE', {
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={increaseMonth}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                        >
+                          <IconChevronRight size={18} stroke={2} />
+                        </button>
+                      </div>
+                    )}
+                  />
+                </div>
+                {settings?.ladderJoinOpensAt != null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void updateAppSettings({
+                        ladderJoinOpensAt: deleteField(),
+                      })
+                        .then(() => addToast('Datum för anmälan borttaget'))
+                        .catch((err) => {
+                          console.error(
+                            'Failed to clear ladderJoinOpensAt:',
+                            err
+                          )
+                          addToast('Kunde inte spara ändringen.', 'error')
+                        })
+                    }}
+                    className="min-h-[44px] shrink-0 text-sm font-semibold text-gray-600 underline underline-offset-2 transition-colors hover:text-gray-900"
+                  >
+                    Ta bort datum
+                  </button>
+                )}
+              </div>
             </SettingsRow>
             {!activeLadder && (
               <SettingsRow

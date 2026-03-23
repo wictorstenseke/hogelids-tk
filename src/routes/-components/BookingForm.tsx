@@ -32,7 +32,7 @@ import { BOOKING_PRIMARY_BUTTON_CLASS } from '../../lib/bookingPrimaryButtonClas
 
 registerLocale('sv', sv)
 
-const DateDisplayInput = forwardRef<
+export const DateDisplayInput = forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
     placeholder?: string
@@ -63,6 +63,7 @@ const DateDisplayInput = forwardRef<
     )}
   </button>
 ))
+DateDisplayInput.displayName = 'DateDisplayInput'
 
 interface BookingFormProps {
   existingBookings: BookingWithId[]

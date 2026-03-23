@@ -24,7 +24,9 @@ vi.mock('../../services/AuthService', () => ({
 }))
 
 vi.mock('../../lib/useAppSettings', () => ({
-  useAppSettings: vi.fn(() => ({ settings: { ladderEnabled: false } })),
+  useAppSettings: vi.fn(() => ({
+    settings: { ladderEnabled: false, ladderJoinOpensAt: null },
+  })),
 }))
 
 // Stub out child nav components — they have their own tests

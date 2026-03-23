@@ -183,24 +183,48 @@ export function HomePage() {
 
   return (
     <div>
-      {/* Main content */}
-      <main className="mx-auto max-w-lg px-4 py-6 space-y-6 md:max-w-3xl">
-        {appSettings && <Banner settings={appSettings} />}
+      {/* Main content — outer padding + inner max-width matches StegenPage */}
+      <main className="px-4 py-6">
+        <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
+          {appSettings && <Banner settings={appSettings} />}
 
-        {appSettings && !appSettings.bookingEnabled ? (
-          <>
-            <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-6 py-10 text-center">
-              <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
-                Bokning stängd tills vidare
-              </p>
-              <p className="mt-2 text-sm text-white/70">
-                Säsongen har inte dragit igång än. Bokning öppnar när banorna är
-                i bruk.
-              </p>
-            </div>
+          {appSettings && !appSettings.bookingEnabled ? (
+            <>
+              <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-6 py-10 text-center">
+                <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
+                  Bokning stängd tills vidare
+                </p>
+                <p className="mt-2 text-sm text-white/70">
+                  Säsongen har inte dragit igång än. Bokning öppnar när banorna
+                  är i bruk.
+                </p>
+              </div>
 
-            {(isLoading || isError || (bookings && bookings.length > 0)) && (
-              <div className="rounded-2xl bg-[#194b29] px-4 py-4">
+              {(isLoading || isError || (bookings && bookings.length > 0)) && (
+                <div className="rounded-2xl bg-[#194b29] px-4 py-4">
+                  <UpcomingBookingsSection
+                    isLoading={isLoading}
+                    isError={isError}
+                    error={error}
+                    bookings={bookings}
+                    groups={groups}
+                    effectiveGuestEmail={effectiveGuestEmail}
+                    user={user}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
+              <div className="w-full min-w-0 md:max-w-[20rem] md:shrink-0">
+                <BookingForm
+                  existingBookings={bookings ?? []}
+                  onSuccess={handleSuccess}
+                  user={user}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1 rounded-2xl bg-[#194b29] px-4 py-4">
                 <UpcomingBookingsSection
                   isLoading={isLoading}
                   isError={isError}
@@ -211,38 +235,16 @@ export function HomePage() {
                   user={user}
                 />
               </div>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
-            <div className="w-full min-w-0 md:max-w-[20rem] md:shrink-0">
-              <BookingForm
-                existingBookings={bookings ?? []}
-                onSuccess={handleSuccess}
-                user={user}
-              />
             </div>
+          )}
 
-            <div className="min-w-0 flex-1 rounded-2xl bg-[#194b29] px-4 py-4">
-              <UpcomingBookingsSection
-                isLoading={isLoading}
-                isError={isError}
-                error={error}
-                bookings={bookings}
-                groups={groups}
-                effectiveGuestEmail={effectiveGuestEmail}
-                user={user}
-              />
-            </div>
-          </div>
-        )}
-
-        {user && (
-          <HistorySection
-            currentYear={currentYear}
-            earliestYear={earliestYear ?? currentYear}
-          />
-        )}
+          {user && (
+            <HistorySection
+              currentYear={currentYear}
+              earliestYear={earliestYear ?? currentYear}
+            />
+          )}
+        </div>
       </main>
 
       {successBooking && (

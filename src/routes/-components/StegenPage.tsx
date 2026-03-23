@@ -21,6 +21,7 @@ import {
   type LadderMatch,
 } from '../../services/LadderService'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
+import { isLadderJoinOpenNow } from '../../lib/ladderJoinWindow'
 import { useState } from 'react'
 import { BookingForm } from './BookingForm'
 import { BookingDrawer } from './BookingDrawer'
@@ -254,7 +255,7 @@ function PlannedMatchReportRow({
             <MatchPlayersLine playerA={playerA} playerB={playerB} />
           </div>
         </div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-800">
           <IconSquareRoundedChevronRight
             size={24}
             stroke={1.5}
@@ -488,6 +489,17 @@ export function StegenPage() {
   })
 
   const ladderEnabled = settings?.ladderEnabled ?? true
+  const ladderJoinOpensAt = settings?.ladderJoinOpensAt ?? null
+  const ladderJoinOpenNow = isLadderJoinOpenNow(
+    { ladderJoinOpensAt },
+    new Date()
+  )
+  const ladderJoinOpenDateLabel =
+    ladderJoinOpensAt != null
+      ? new Intl.DateTimeFormat('sv-SE', { dateStyle: 'long' }).format(
+          ladderJoinOpensAt.toDate()
+        )
+      : ''
 
   if (authLoading) return null
 
@@ -523,12 +535,24 @@ export function StegenPage() {
     if (!ladder) return
     setIsJoining(true)
     try {
-      await joinLadder(ladder.id, user!.uid, user!.displayName)
+      await joinLadder(
+        ladder.id,
+        user!.uid,
+        user!.displayName,
+        settings?.ladderJoinOpensAt ?? null
+      )
       await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Du har gått med i stegen!')
     } catch (err) {
       console.error('Failed to join ladder:', err)
-      addToast('Kunde inte gå med. Försök igen.', 'error')
+      if (
+        err instanceof Error &&
+        err.message === 'Ladder join is not open yet'
+      ) {
+        addToast('Anmälan är inte öppen ännu.', 'error')
+      } else {
+        addToast('Kunde inte gå med. Försök igen.', 'error')
+      }
     } finally {
       setIsJoining(false)
     }
@@ -586,16 +610,22 @@ export function StegenPage() {
             >
               <div className="px-4 py-3">
                 <p className="font-semibold text-gray-900">
-                  Välkommen till stegen!
+                  {ladderJoinOpenNow
+                    ? 'Välkommen till stegen!'
+                    : 'Anmälan öppnar snart'}
                 </p>
                 <p className="mt-0.5 text-gray-800">
-                  Utmana andra spelare och klättra i rankingen.
+                  {ladderJoinOpenNow
+                    ? 'Utmana andra spelare och klättra i rankingen.'
+                    : ladderJoinOpenDateLabel
+                      ? `Anmälan öppnar ${ladderJoinOpenDateLabel}. Du kan då gå med i stegen.`
+                      : 'Anmälan är inte öppen ännu.'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => void handleJoin()}
-                disabled={isJoining}
+                disabled={isJoining || !ladderJoinOpenNow}
                 className="flex w-full items-center px-4 py-2.5 font-semibold transition-opacity hover:opacity-70 disabled:opacity-50"
                 style={{ backgroundColor: '#E5D82C' }}
               >

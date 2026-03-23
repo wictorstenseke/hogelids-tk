@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { onSnapshot } from 'firebase/firestore'
+import { onSnapshot, type Timestamp } from 'firebase/firestore'
 import {
   getAppSettingsRef,
   type AppSettings,
@@ -33,6 +33,10 @@ export function AppSettingsProvider({
               data.bookingEnabled ?? APP_SETTINGS_DEFAULTS.bookingEnabled,
             ladderEnabled:
               data.ladderEnabled ?? APP_SETTINGS_DEFAULTS.ladderEnabled,
+            ladderJoinOpensAt:
+              data['ladderJoinOpensAt'] != null
+                ? (data['ladderJoinOpensAt'] as Timestamp)
+                : null,
             bannerVisible:
               data.bannerVisible ?? APP_SETTINGS_DEFAULTS.bannerVisible,
             bannerText: data.bannerText ?? APP_SETTINGS_DEFAULTS.bannerText,

@@ -11,6 +11,7 @@ import {
   getDoc,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { isLadderJoinOpenNow } from '../lib/ladderJoinWindow'
 
 export interface LadderParticipant {
   uid: string
@@ -64,7 +65,8 @@ export async function createLadder(year: number): Promise<string> {
 export async function joinLadder(
   ladderId: string,
   uid: string,
-  displayName: string
+  displayName: string,
+  joinOpensAt: Timestamp | null = null
 ): Promise<void> {
   const ladderRef = doc(db, 'ladders', ladderId)
   const snapshot = await getDoc(ladderRef)
@@ -78,6 +80,14 @@ export async function joinLadder(
 
   const existing = participants.find((p) => p.uid === uid)
   const activeCount = participants.filter((p) => !p.paused).length
+
+  // New sign-ups only (not paused rejoin) respect the optional open date.
+  if (
+    !existing &&
+    !isLadderJoinOpenNow({ ladderJoinOpensAt: joinOpensAt }, new Date())
+  ) {
+    throw new Error('Ladder join is not open yet')
+  }
 
   if (existing) {
     // Rejoin: move to bottom, keep stats, mark active
