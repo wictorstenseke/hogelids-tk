@@ -20,7 +20,7 @@ const SVG_PATH = join(ROOT, 'public', 'htk-logo.svg')
 
 const paddingRatio = Math.min(
   0.45,
-  Math.max(0, Number.parseFloat(String(process.env.PADDING ?? '0.12')) || 0.12),
+  Math.max(0, Number.parseFloat(String(process.env.PADDING ?? '0.12')) || 0.12)
 )
 
 /** @type {{ r: number; g: number; b: number; alpha: number }} */
@@ -76,23 +76,125 @@ async function main() {
    * (Xcode "size" strings use points, e.g. 20x20 @3x → 60px)
    */
   const iosIcons = [
-    { idiom: 'iphone', sizePt: '20x20', scale: '2x', px: 40, name: 'Icon-App-20x20@2x.png' },
-    { idiom: 'iphone', sizePt: '20x20', scale: '3x', px: 60, name: 'Icon-App-20x20@3x.png' },
-    { idiom: 'iphone', sizePt: '29x29', scale: '2x', px: 58, name: 'Icon-App-29x29@2x.png' },
-    { idiom: 'iphone', sizePt: '29x29', scale: '3x', px: 87, name: 'Icon-App-29x29@3x.png' },
-    { idiom: 'iphone', sizePt: '40x40', scale: '2x', px: 80, name: 'Icon-App-40x40@2x.png' },
-    { idiom: 'iphone', sizePt: '40x40', scale: '3x', px: 120, name: 'Icon-App-40x40@3x.png' },
-    { idiom: 'iphone', sizePt: '60x60', scale: '2x', px: 120, name: 'Icon-App-60x60@2x.png' },
-    { idiom: 'iphone', sizePt: '60x60', scale: '3x', px: 180, name: 'Icon-App-60x60@3x.png' },
-    { idiom: 'ipad', sizePt: '20x20', scale: '1x', px: 20, name: 'Icon-App-20x20@1x~ipad.png' },
-    { idiom: 'ipad', sizePt: '20x20', scale: '2x', px: 40, name: 'Icon-App-20x20@2x~ipad.png' },
-    { idiom: 'ipad', sizePt: '29x29', scale: '1x', px: 29, name: 'Icon-App-29x29@1x~ipad.png' },
-    { idiom: 'ipad', sizePt: '29x29', scale: '2x', px: 58, name: 'Icon-App-29x29@2x~ipad.png' },
-    { idiom: 'ipad', sizePt: '40x40', scale: '1x', px: 40, name: 'Icon-App-40x40@1x~ipad.png' },
-    { idiom: 'ipad', sizePt: '40x40', scale: '2x', px: 80, name: 'Icon-App-40x40@2x~ipad.png' },
-    { idiom: 'ipad', sizePt: '76x76', scale: '2x', px: 152, name: 'Icon-App-76x76@2x~ipad.png' },
-    { idiom: 'ipad', sizePt: '83.5x83.5', scale: '2x', px: 167, name: 'Icon-App-83.5x83.5@2x~ipad.png' },
-    { idiom: 'ios-marketing', sizePt: '1024x1024', scale: '1x', px: 1024, name: 'Icon-App-1024x1024.png' },
+    {
+      idiom: 'iphone',
+      sizePt: '20x20',
+      scale: '2x',
+      px: 40,
+      name: 'Icon-App-20x20@2x.png',
+    },
+    {
+      idiom: 'iphone',
+      sizePt: '20x20',
+      scale: '3x',
+      px: 60,
+      name: 'Icon-App-20x20@3x.png',
+    },
+    {
+      idiom: 'iphone',
+      sizePt: '29x29',
+      scale: '2x',
+      px: 58,
+      name: 'Icon-App-29x29@2x.png',
+    },
+    {
+      idiom: 'iphone',
+      sizePt: '29x29',
+      scale: '3x',
+      px: 87,
+      name: 'Icon-App-29x29@3x.png',
+    },
+    {
+      idiom: 'iphone',
+      sizePt: '40x40',
+      scale: '2x',
+      px: 80,
+      name: 'Icon-App-40x40@2x.png',
+    },
+    {
+      idiom: 'iphone',
+      sizePt: '40x40',
+      scale: '3x',
+      px: 120,
+      name: 'Icon-App-40x40@3x.png',
+    },
+    {
+      idiom: 'iphone',
+      sizePt: '60x60',
+      scale: '2x',
+      px: 120,
+      name: 'Icon-App-60x60@2x.png',
+    },
+    {
+      idiom: 'iphone',
+      sizePt: '60x60',
+      scale: '3x',
+      px: 180,
+      name: 'Icon-App-60x60@3x.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '20x20',
+      scale: '1x',
+      px: 20,
+      name: 'Icon-App-20x20@1x~ipad.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '20x20',
+      scale: '2x',
+      px: 40,
+      name: 'Icon-App-20x20@2x~ipad.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '29x29',
+      scale: '1x',
+      px: 29,
+      name: 'Icon-App-29x29@1x~ipad.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '29x29',
+      scale: '2x',
+      px: 58,
+      name: 'Icon-App-29x29@2x~ipad.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '40x40',
+      scale: '1x',
+      px: 40,
+      name: 'Icon-App-40x40@1x~ipad.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '40x40',
+      scale: '2x',
+      px: 80,
+      name: 'Icon-App-40x40@2x~ipad.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '76x76',
+      scale: '2x',
+      px: 152,
+      name: 'Icon-App-76x76@2x~ipad.png',
+    },
+    {
+      idiom: 'ipad',
+      sizePt: '83.5x83.5',
+      scale: '2x',
+      px: 167,
+      name: 'Icon-App-83.5x83.5@2x~ipad.png',
+    },
+    {
+      idiom: 'ios-marketing',
+      sizePt: '1024x1024',
+      scale: '1x',
+      px: 1024,
+      name: 'Icon-App-1024x1024.png',
+    },
   ]
 
   const iosDir = join(ROOT, 'public', 'icons', 'ios', 'AppIcon.appiconset')
@@ -149,7 +251,11 @@ async function main() {
     },
   }
 
-  await writeFile(join(iosDir, 'Contents.json'), JSON.stringify(contentsJson, null, 2) + '\n', 'utf8')
+  await writeFile(
+    join(iosDir, 'Contents.json'),
+    JSON.stringify(contentsJson, null, 2) + '\n',
+    'utf8'
+  )
   console.info('Wrote public/icons/ios/AppIcon.appiconset/Contents.json')
 
   console.info('Done.')

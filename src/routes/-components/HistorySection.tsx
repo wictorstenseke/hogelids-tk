@@ -384,6 +384,7 @@ function useRowFit(
   // Phase 2: when all chips are in the DOM (visibleCount === Infinity), measure
   // which ones land on row 1. useLayoutEffect runs synchronously before paint
   // so the two renders (reset → correct) are batched into one visible frame.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: re-run after each paint until visibleCount is finite; adding deps would break measurement
   useLayoutEffect(() => {
     if (visibleCount !== Infinity) return
     const el = containerRef.current
@@ -397,7 +398,6 @@ function useRowFit(
       count++
     }
     // Subtract "Visa alla" chip (plus button lives outside this container)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCount(Math.max(0, count - 1))
   }) // intentionally no deps — runs after every render, noop unless Infinity
 
@@ -412,7 +412,6 @@ function useRowFit(
   }, [containerRef])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCount(Infinity)
   }, [deps])
 
