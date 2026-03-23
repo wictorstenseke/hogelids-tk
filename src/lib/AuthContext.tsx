@@ -1,4 +1,3 @@
-// src/lib/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
@@ -22,19 +21,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email ?? '',
-          displayName: firebaseUser.displayName ?? '',
-          emailVerified: firebaseUser.emailVerified,
-        })
-      } else {
-        setUser(null)
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (firebaseUser) => {
+        if (firebaseUser) {
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email ?? '',
+            displayName: firebaseUser.displayName ?? '',
+            emailVerified: firebaseUser.emailVerified,
+          })
+        } else {
+          setUser(null)
+        }
+        setLoading(false)
+      },
+      (error) => {
+        console.error('[AuthContext] onAuthStateChanged error:', error)
+        setLoading(false)
       }
-      setLoading(false)
-    })
+    )
     return unsubscribe
   }, [])
 
