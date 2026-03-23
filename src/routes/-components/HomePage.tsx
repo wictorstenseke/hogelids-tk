@@ -199,7 +199,7 @@ export function HomePage() {
               </p>
             </div>
 
-            {bookings && bookings.length > 0 && (
+            {(isLoading || isError || (bookings && bookings.length > 0)) && (
               <div className="rounded-2xl bg-[#194b29] px-4 py-4">
                 <UpcomingBookingsSection
                   isLoading={isLoading}
