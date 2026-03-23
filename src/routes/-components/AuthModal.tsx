@@ -12,11 +12,13 @@ type View = 'sign-in' | 'sign-up' | 'forgot-password'
 interface AuthModalProps {
   onClose: () => void
   initialView?: View
+  initialEmail?: string
 }
 
 export function AuthModal({
   onClose,
   initialView = 'sign-in',
+  initialEmail = '',
 }: AuthModalProps) {
   const [view, setView] = useState<View>(initialView)
   const [loading, setLoading] = useState(false)
@@ -40,7 +42,7 @@ export function AuthModal({
 
   // Form fields
   const [displayName, setDisplayName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
 
   function switchView(next: View) {

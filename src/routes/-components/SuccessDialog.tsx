@@ -5,7 +5,7 @@ import { GuestSignupNudge } from './GuestSignupNudge'
 interface SuccessDialogProps {
   startTime: Date
   endTime: Date
-  /** When true, offer inline account creation after guest booking. */
+  /** When true, offer account creation after guest booking. */
   isGuestBooking: boolean
   onClose: () => void
 }
@@ -59,16 +59,16 @@ export function SuccessDialog({
           Bokning bekräftad!
         </h2>
 
-        <div className="mb-5 space-y-0.5 text-center">
-          <p className="text-sm font-medium text-gray-800">{capitalized}</p>
-          <p className="text-sm text-gray-600">
-            {startTimeStr} – {endTimeStr}
-          </p>
-        </div>
-
-        {isGuestBooking && (
-          <GuestSignupNudge onDismiss={onClose} onAccountCreated={onClose} />
+        {!isGuestBooking && (
+          <div className="mb-5 space-y-0.5 text-center">
+            <p className="text-sm font-medium text-gray-800">{capitalized}</p>
+            <p className="text-sm text-gray-600">
+              {startTimeStr} – {endTimeStr}
+            </p>
+          </div>
         )}
+
+        {isGuestBooking && <GuestSignupNudge onDismiss={onClose} />}
       </div>
     </div>
   )

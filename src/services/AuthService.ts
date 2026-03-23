@@ -47,9 +47,11 @@ export async function signUp(
   await migrateGuestBookings(user.uid, email)
 }
 
-// Signs in with email/password (persistent session — Firebase default)
+// Signs in with email/password (persistent session — Firebase default).
+// Migrates any guest bookings matching this email to the member account.
 export async function signIn(email: string, password: string): Promise<void> {
-  await signInWithEmailAndPassword(auth, email, password)
+  const credential = await signInWithEmailAndPassword(auth, email, password)
+  void migrateGuestBookings(credential.user.uid, email)
 }
 
 // Signs out

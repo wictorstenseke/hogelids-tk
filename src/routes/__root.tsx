@@ -5,6 +5,7 @@ import { ToastProvider } from '../lib/ToastContext'
 import { AppSettingsProvider } from '../lib/AppSettingsContext'
 import { RoleProvider } from '../lib/RoleContext'
 import { AuthProvider } from '../lib/AuthContext'
+import { AuthModalProvider, useAuthModal } from '../lib/AuthModalContext'
 import { useAuth } from '../lib/useAuth'
 import { signOut } from '../services/AuthService'
 import { Footer } from './-components/Footer'
@@ -12,9 +13,9 @@ import { Header } from './-components/Header'
 import { AuthModal } from './-components/AuthModal'
 import { ProfileModal } from './-components/ProfileModal'
 
-function AppShell() {
+function AppShellInner() {
   const { user, loading: authLoading } = useAuth()
-  const [authModal, setAuthModal] = useState<'sign-in' | 'sign-up' | null>(null)
+  const { authModalState, closeAuthModal } = useAuthModal()
   const [showProfile, setShowProfile] = useState(false)
   return (
     <div className="flex min-h-screen flex-col">
@@ -23,20 +24,30 @@ function AppShell() {
         authLoading={authLoading}
         onOpenProfile={() => setShowProfile(true)}
         onSignOut={() => void signOut()}
-        onSignIn={() => setAuthModal('sign-in')}
-        onSignUp={() => setAuthModal('sign-up')}
       />
       <div className="flex-1">
         <Outlet />
       </div>
       <Footer />
-      {authModal && (
-        <AuthModal initialView={authModal} onClose={() => setAuthModal(null)} />
+      {authModalState && (
+        <AuthModal
+          initialView={authModalState.view}
+          initialEmail={authModalState.initialEmail}
+          onClose={closeAuthModal}
+        />
       )}
       {user && showProfile && (
         <ProfileModal user={user} onClose={() => setShowProfile(false)} />
       )}
     </div>
+  )
+}
+
+function AppShell() {
+  return (
+    <AuthModalProvider>
+      <AppShellInner />
+    </AuthModalProvider>
   )
 }
 

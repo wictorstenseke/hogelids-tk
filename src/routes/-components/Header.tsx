@@ -3,6 +3,7 @@ import type { AuthUser } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
 import { useAppSettings } from '../../lib/useAppSettings'
+import { useAuthModal } from '../../lib/AuthModalContext'
 import { AvatarMenu } from './AvatarMenu'
 import { AdminNavButton, DesktopNav } from './DesktopNav'
 
@@ -11,8 +12,6 @@ interface HeaderProps {
   authLoading: boolean
   onOpenProfile: () => void
   onSignOut: () => void
-  onSignIn?: () => void
-  onSignUp?: () => void
 }
 
 export function Header({
@@ -20,13 +19,12 @@ export function Header({
   authLoading,
   onOpenProfile,
   onSignOut,
-  onSignIn,
-  onSignUp,
 }: HeaderProps) {
   const role = useRole()
   const isAdmin = user ? isAdminRole(role) : false
   const { settings } = useAppSettings()
   const ladderEnabled = user ? (settings?.ladderEnabled ?? true) : false
+  const { openAuthModal } = useAuthModal()
 
   return (
     <header className="border-b border-white/10 bg-transparent">
@@ -67,14 +65,14 @@ export function Header({
                   <>
                     <button
                       type="button"
-                      onClick={onSignIn}
+                      onClick={() => openAuthModal('sign-in')}
                       className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
                     >
                       Logga in
                     </button>
                     <button
                       type="button"
-                      onClick={onSignUp}
+                      onClick={() => openAuthModal('sign-up')}
                       className="flex min-h-[44px] cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
                       style={{ backgroundColor: '#F1E334' }}
                     >

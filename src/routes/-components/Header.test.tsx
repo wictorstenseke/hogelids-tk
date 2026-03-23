@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Header } from './Header'
+import { AuthModalProvider } from '../../lib/AuthModalContext'
 import type { AuthUser } from '../../lib/useAuth'
 
 vi.mock('@tanstack/react-router', () => ({
@@ -44,7 +45,11 @@ const mockUser: AuthUser = {
 
 function wrap(ui: React.ReactElement) {
   const qc = new QueryClient()
-  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
+  return render(
+    <AuthModalProvider>
+      <QueryClientProvider client={qc}>{ui}</QueryClientProvider>
+    </AuthModalProvider>
+  )
 }
 
 const defaultProps = {
@@ -52,8 +57,6 @@ const defaultProps = {
   authLoading: false,
   onOpenProfile: vi.fn(),
   onSignOut: vi.fn(),
-  onSignIn: vi.fn(),
-  onSignUp: vi.fn(),
 }
 
 describe('Header', () => {
