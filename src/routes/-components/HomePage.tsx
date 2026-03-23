@@ -182,7 +182,7 @@ export function HomePage() {
   const groups = bookings ? groupBookingsByDate(bookings) : []
 
   return (
-    <div className="min-h-screen">
+    <div>
       {/* Main content */}
       <main className="mx-auto max-w-lg px-4 py-6 space-y-6 md:max-w-3xl">
         {appSettings && <Banner settings={appSettings} />}

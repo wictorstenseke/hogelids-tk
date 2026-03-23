@@ -17,7 +17,7 @@ function AppShell() {
   const [authModal, setAuthModal] = useState<'sign-in' | 'sign-up' | null>(null)
   const [showProfile, setShowProfile] = useState(false)
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <Header
         user={user}
         authLoading={authLoading}
@@ -26,7 +26,9 @@ function AppShell() {
         onSignIn={() => setAuthModal('sign-in')}
         onSignUp={() => setAuthModal('sign-up')}
       />
-      <Outlet />
+      <div className="flex-1">
+        <Outlet />
+      </div>
       <Footer />
       {authModal && (
         <AuthModal initialView={authModal} onClose={() => setAuthModal(null)} />
@@ -34,7 +36,7 @@ function AppShell() {
       {user && showProfile && (
         <ProfileModal user={user} onClose={() => setShowProfile(false)} />
       )}
-    </>
+    </div>
   )
 }
 

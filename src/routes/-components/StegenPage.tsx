@@ -493,7 +493,7 @@ export function StegenPage() {
 
   if (!user || !ladderEnabled) {
     return (
-      <div className="min-h-screen">
+      <div>
         <main className="px-4 py-6">
           <div className="mx-auto max-w-lg md:max-w-3xl">
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
@@ -593,7 +593,7 @@ export function StegenPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div>
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
           {ladder && myParticipant && (

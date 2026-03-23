@@ -397,7 +397,7 @@ export function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div>
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-8">
           <SettingsSection title="Bokning">
