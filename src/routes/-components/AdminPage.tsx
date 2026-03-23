@@ -8,6 +8,7 @@ import { useRole } from '../../lib/useRole'
 import { isAdminRole, signOut } from '../../services/AuthService'
 import type { UserProfile, UserRole } from '../../services/AuthService'
 import { Header } from './Header'
+import { ProfileModal } from './ProfileModal'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { updateAppSettings } from '../../services/AppSettingsService'
 import { useToast } from '../../lib/ToastContext'
@@ -327,6 +328,7 @@ export function AdminPage() {
     enabled: isAdminRole(role),
   })
 
+  const [showProfile, setShowProfile] = useState(false)
   const [isCreatingLadder, setIsCreatingLadder] = useState(false)
 
   async function handleCreateLadder() {
@@ -402,7 +404,7 @@ export function AdminPage() {
       <Header
         user={user}
         authLoading={authLoading}
-        onOpenProfile={() => void navigate({ to: '/' })}
+        onOpenProfile={() => setShowProfile(true)}
         onSignOut={() => void signOut()}
         showLogo={false}
         showHome
@@ -563,6 +565,9 @@ export function AdminPage() {
           </SettingsSection>
         </div>
       </main>
+      {user && showProfile && (
+        <ProfileModal user={user} onClose={() => setShowProfile(false)} />
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+
 import {
   IconSquareRoundedChevronRight,
   IconTrash,
@@ -24,9 +24,11 @@ import {
 } from '../../services/LadderService'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { useState } from 'react'
+import { ProfileModal } from './ProfileModal'
 import { BookingForm } from './BookingForm'
-import { ConfirmSheetDialog } from './ConfirmSheetDialog'
+import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
 import {
+  deleteMemberBooking,
   getUpcomingBookings,
   BOOKINGS_QUERY_KEY,
 } from '../../services/BookingService'
@@ -315,6 +317,7 @@ function ReportForm({
   const [comment, setComment] = useState('')
   const [saving, setSaving] = useState(false)
   const [cancelChallengeOpen, setCancelChallengeOpen] = useState(false)
+  const [isDeletingLadder, setIsDeletingLadder] = useState(false)
 
   const loserId =
     winnerId === match.playerAId ? match.playerBId : match.playerAId
@@ -336,6 +339,23 @@ function ReportForm({
       addToast('Kunde inte spara. Försök igen.', 'error')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDeleteLadderBooking() {
+    setIsDeletingLadder(true)
+    try {
+      await deleteMemberBooking(match.id)
+      await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+      await queryClient.invalidateQueries({
+        queryKey: LADDER_MATCHES_QUERY_KEY(ladderId),
+      })
+      addToast('Utmaning avbruten')
+      onDone()
+    } catch {
+      addToast('Kunde inte ta bort bokningen.', 'error')
+    } finally {
+      setIsDeletingLadder(false)
     }
   }
 
@@ -399,7 +419,7 @@ function ReportForm({
           <button
             type="button"
             onClick={() => setCancelChallengeOpen(true)}
-            disabled={saving}
+            disabled={saving || isDeletingLadder}
             aria-label="Avbryt utmaning"
             title="Avbryt utmaning"
             className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -424,21 +444,14 @@ function ReportForm({
           </div>
         </div>
       </form>
-      {cancelChallengeOpen && (
-        <ConfirmSheetDialog
-          titleId="cancel-challenge-title"
-          title="Avbryt utmaning?"
-          description="Vill du stänga utan att spara resultat? Du kan rapportera matchen igen senare."
-          cancelLabel="Tillbaka"
-          confirmLabel="Avbryt utmaning"
-          confirmDanger
-          onCancel={() => setCancelChallengeOpen(false)}
-          onConfirm={() => {
-            setCancelChallengeOpen(false)
-            onDone()
-          }}
-        />
-      )}
+      <LadderChallengeCancelSheet
+        open={cancelChallengeOpen}
+        onCancel={() => setCancelChallengeOpen(false)}
+        onConfirm={() => {
+          setCancelChallengeOpen(false)
+          void handleDeleteLadderBooking()
+        }}
+      />
     </>
   )
 }
@@ -447,11 +460,12 @@ function ReportForm({
 
 export function StegenPage() {
   const { user, loading: authLoading } = useAuth()
-  const navigate = useNavigate()
+
   const { addToast } = useToast()
   const queryClient = useQueryClient()
   const { settings } = useAppSettings()
 
+  const [showProfile, setShowProfile] = useState(false)
   const [challengeOpponentUid, setChallengeOpponentUid] = useState<
     string | null
   >(null)
@@ -488,7 +502,7 @@ export function StegenPage() {
         <Header
           user={user}
           authLoading={authLoading}
-          onOpenProfile={() => void navigate({ to: '/' })}
+          onOpenProfile={() => setShowProfile(true)}
           onSignOut={() => void signOut()}
           showLogo={false}
           showHome
@@ -504,6 +518,9 @@ export function StegenPage() {
             </div>
           </div>
         </main>
+        {user && showProfile && (
+          <ProfileModal user={user} onClose={() => setShowProfile(false)} />
+        )}
       </div>
     )
   }
@@ -560,8 +577,10 @@ export function StegenPage() {
       <Header
         user={user}
         authLoading={authLoading}
-        onOpenProfile={() => void navigate({ to: '/' })}
+        onOpenProfile={() => setShowProfile(true)}
         onSignOut={() => void signOut()}
+        showLogo={false}
+        showHome
       />
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-6">
@@ -727,6 +746,9 @@ export function StegenPage() {
           )}
         </div>
       </main>
+      {showProfile && (
+        <ProfileModal user={user} onClose={() => setShowProfile(false)} />
+      )}
     </div>
   )
 }

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { IconX } from '@tabler/icons-react'
 import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 
 interface ConfirmSheetDialogProps {
   title: string
-  description: string
+  description: ReactNode
   cancelLabel: string
   confirmLabel: string
   onCancel: () => void
@@ -135,7 +135,7 @@ export function ConfirmSheetDialog({
             </button>
           </div>
 
-          <p className="text-sm text-gray-600">{description}</p>
+          <div className="text-sm text-gray-600">{description}</div>
 
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button

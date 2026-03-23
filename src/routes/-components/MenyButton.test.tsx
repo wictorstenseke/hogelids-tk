@@ -5,6 +5,11 @@ import { MenyButton } from './MenyButton'
 
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
+  useRouterState: ({
+    select,
+  }: {
+    select: (s: { location: { pathname: string } }) => string
+  }) => select({ location: { pathname: '/' } }),
 }))
 
 describe('MenyButton', () => {

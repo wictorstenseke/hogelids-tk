@@ -13,7 +13,7 @@ import { LADDER_MATCHES_QUERY_KEY } from '../../services/LadderService'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import type { AuthUser } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
-import { ConfirmSheetDialog } from './ConfirmSheetDialog'
+import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
 
 function formatTimeRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
@@ -93,14 +93,14 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
       className={`border-b ${confirmPending ? 'border-b-transparent' : 'border-white/10'}`}
     >
       {/* Main row */}
-      <div className="flex min-w-0 items-center gap-3 py-2.5">
-        <span className="shrink-0 text-sm font-semibold tabular-nums tracking-[-0.02em] text-white/90">
+      <div className="flex min-w-0 items-center gap-3 py-2">
+        <span className="shrink-0 self-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
           {formatTimeRange(booking)}
         </span>
-        <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="flex min-w-0 flex-1 items-center overflow-hidden self-center">
           <span
             title={label}
-            className={`inline-block max-w-full truncate rounded-md px-2.5 py-0.5 text-xs font-semibold ${
+            className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none ${
               ownBooking
                 ? 'bg-[#F1E334] text-gray-900'
                 : 'bg-white/15 text-white/80'
@@ -145,13 +145,6 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
                 Radera bokningen?
               </span>
               <button
-                onClick={() => setConfirmPending(false)}
-                disabled={isDeleting}
-                className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-white/10 px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/20 disabled:opacity-50"
-              >
-                Avbryt
-              </button>
-              <button
                 onClick={() => void handleDelete()}
                 disabled={isDeleting}
                 className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-red-500 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
@@ -162,27 +155,27 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
                   'Radera'
                 )}
               </button>
+              <button
+                onClick={() => setConfirmPending(false)}
+                disabled={isDeleting}
+                className="flex min-h-[32px] cursor-pointer items-center rounded-lg bg-white/10 px-3 py-1 text-xs font-semibold text-white/80 transition-colors hover:bg-white/20 disabled:opacity-50"
+              >
+                Avbryt
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* Confirm sheet — ladder bookings only */}
-      {ladderCancelOpen && (
-        <ConfirmSheetDialog
-          titleId="cancel-ladder-booking-title"
-          title="Avbryt utmaning?"
-          description="Bokningen och utmaningen tas bort. Ni kan utmana varandra igen."
-          cancelLabel="Tillbaka"
-          confirmLabel="Avbryt utmaning"
-          confirmDanger
-          onCancel={() => setLadderCancelOpen(false)}
-          onConfirm={() => {
-            setLadderCancelOpen(false)
-            void handleDelete()
-          }}
-        />
-      )}
+      <LadderChallengeCancelSheet
+        open={ladderCancelOpen}
+        onCancel={() => setLadderCancelOpen(false)}
+        onConfirm={() => {
+          setLadderCancelOpen(false)
+          void handleDelete()
+        }}
+      />
     </li>
   )
 }
