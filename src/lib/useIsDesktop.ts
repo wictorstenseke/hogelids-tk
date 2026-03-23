@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-const DESKTOP_QUERY = '(min-width: 768px)'
+/** Matches Tailwind `md` — used for viewport-only “desktop” checks. */
+export const DESKTOP_QUERY = '(min-width: 768px)'
 
 export function useIsDesktop(): boolean {
   const [isDesktop, setIsDesktop] = useState(

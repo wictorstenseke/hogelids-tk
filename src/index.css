@@ -24,6 +24,10 @@ label[for] {
   font-family: 'Barlow Condensed', system-ui, sans-serif;
 }
 
+.font-barlow {
+  font-family: 'Barlow', system-ui, sans-serif;
+}
+
 /* react-datepicker overrides */
 .react-datepicker-wrapper {
   display: block;

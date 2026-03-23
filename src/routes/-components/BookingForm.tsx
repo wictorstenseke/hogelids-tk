@@ -7,12 +7,13 @@ import 'react-datepicker/dist/react-datepicker.css'
 import * as GuestSession from '../../lib/GuestSession'
 import { useToast } from '../../lib/ToastContext'
 import {
-  hasConflict,
+  findConflictingBooking,
   createGuestBooking,
   createMemberBooking,
   type BookingWithId,
   BOOKINGS_QUERY_KEY,
 } from '../../services/BookingService'
+import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { createLadderMatch } from '../../services/LadderService'
 import type { AuthUser } from '../../lib/useAuth'
 
@@ -67,6 +68,13 @@ function addHours(timeValue: string, hours: number): string {
   return `${padTwo(Math.floor(totalMinutes / 60))}:${padTwo(totalMinutes % 60)}`
 }
 
+/** Same copy as BookingDrawer conflict lines — includes overlapping booking interval when known */
+function overlapConflictMessage(booking: BookingWithId | null): string {
+  const base = 'Det finns redan en bokning som överlappar med vald tid.'
+  if (!booking) return base
+  return `${base} Upptaget ${formatTimeDisplay(booking.startTime.toDate())} – ${formatTimeDisplay(booking.endTime.toDate())}.`
+}
+
 export function BookingForm({
   existingBookings,
   onSuccess,
@@ -95,12 +103,15 @@ export function BookingForm({
   const endDate =
     dateValue && endTimeValue ? new Date(`${dateValue}T${endTimeValue}`) : null
 
-  const conflictDetected = (() => {
-    if (!startDate || !endDate) return false
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false
-    if (endDate <= startDate) return false
-    return hasConflict(existingBookings, startDate, endDate)
-  })()
+  const conflictingBooking =
+    startDate &&
+    endDate &&
+    !isNaN(startDate.getTime()) &&
+    !isNaN(endDate.getTime()) &&
+    endDate > startDate
+      ? findConflictingBooking(existingBookings, startDate, endDate)
+      : null
+  const conflictDetected = conflictingBooking !== null
 
   function handleStartTimeChange(val: string) {
     setStartTimeValue(val)
@@ -137,8 +148,9 @@ export function BookingForm({
     const freshBookings =
       queryClient.getQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY) ??
       existingBookings
-    if (hasConflict(freshBookings, start, end)) {
-      setSubmitError('Det finns redan en bokning som överlappar med vald tid.')
+    const conflicting = findConflictingBooking(freshBookings, start, end)
+    if (conflicting) {
+      setSubmitError(overlapConflictMessage(conflicting))
       setIsSubmitting(false)
       return
     }
@@ -197,8 +209,9 @@ export function BookingForm({
     const freshBookings =
       queryClient.getQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY) ??
       existingBookings
-    if (hasConflict(freshBookings, start, end)) {
-      throw new Error('Det finns redan en bokning som överlappar med vald tid.')
+    const conflicting = findConflictingBooking(freshBookings, start, end)
+    if (conflicting) {
+      throw new Error(overlapConflictMessage(conflicting))
     }
 
     if (user && ladderMeta) {
@@ -348,7 +361,7 @@ export function BookingForm({
             {/* Inline conflict error — desktop only */}
             {conflictDetected && (
               <p className="text-sm text-red-300">
-                Det finns redan en bokning som överlappar med vald tid.
+                {overlapConflictMessage(conflictingBooking)}
               </p>
             )}
 

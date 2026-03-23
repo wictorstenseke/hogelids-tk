@@ -27,6 +27,7 @@ function getBookingLabel(
   user: AuthUser | null
 ): string {
   if (booking.playerAId) {
+    if (!user) return 'Stegmatch'
     return `${booking.playerAName} vs ${booking.playerBName}`
   }
   if (user) {

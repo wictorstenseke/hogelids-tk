@@ -30,7 +30,7 @@ export function DesktopNav({
         <button
           type="button"
           onClick={() => void navigate({ to: '/' })}
-          className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 ${pathname === '/' ? activeClass : inactiveClass}`}
+          className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 ${pathname === '/' ? activeClass : inactiveClass}`}
         >
           <IconHomeFilled size={14} className="shrink-0" />
           Hem
@@ -40,7 +40,7 @@ export function DesktopNav({
         <button
           type="button"
           onClick={() => void navigate({ to: '/stegen' })}
-          className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 ${pathname === '/stegen' ? activeClass : inactiveClass}`}
+          className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 ${pathname === '/stegen' ? activeClass : inactiveClass}`}
         >
           <IconTrophyFilled size={14} className="shrink-0" />
           Stegen
@@ -50,7 +50,7 @@ export function DesktopNav({
         <button
           type="button"
           onClick={() => void navigate({ to: '/admin' })}
-          className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 ${pathname === '/admin' ? activeClass : inactiveClass}`}
+          className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 ${pathname === '/admin' ? activeClass : inactiveClass}`}
         >
           <IconShieldCheckFilled size={14} className="shrink-0" />
           Admin
