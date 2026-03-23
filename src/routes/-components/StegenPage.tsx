@@ -636,6 +636,19 @@ export function StegenPage() {
             </div>
           )}
 
+          {ladder && !myParticipant && (
+            <div className="rounded-xl bg-[#F1E334] px-4 py-4">
+              <p className="font-semibold text-sm text-gray-900">
+                Välkommen till stegen!
+              </p>
+              <p className="mt-1 text-sm text-gray-800">
+                Utmana andra spelare och klättra i rankingen. Klicka på{' '}
+                <span className="font-semibold">Gå med i stegen</span> för att
+                delta. Du kan pausa ditt deltagande när som helst.
+              </p>
+            </div>
+          )}
+
           {ladderLoading ? (
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
               <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600" />
