@@ -1,5 +1,6 @@
 import { IconX } from '@tabler/icons-react'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
+import { getBookingCount } from '../../lib/GuestSession'
 import { GuestSignupNudge } from './GuestSignupNudge'
 
 interface SuccessDialogProps {
@@ -59,7 +60,7 @@ export function SuccessDialog({
           Bokning bekräftad!
         </h2>
 
-        {!isGuestBooking && (
+        {(!isGuestBooking || getBookingCount() > 1) && (
           <div className="mb-5 space-y-0.5 text-center">
             <p className="text-sm font-medium text-gray-800">{capitalized}</p>
             <p className="text-sm text-gray-600">

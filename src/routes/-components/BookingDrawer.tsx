@@ -96,12 +96,14 @@ interface BookingDrawerProps {
   existingBookings: BookingWithId[]
   onSubmit: (date: string, startTime: string, endTime: string) => Promise<void>
   onClose: () => void
+  playerNames?: { playerA: string; playerB: string }
 }
 
 export function BookingDrawer({
   existingBookings,
   onSubmit,
   onClose,
+  playerNames,
 }: BookingDrawerProps) {
   const [step, setStep] = useState<Step>('datetime')
   const [visible, setVisible] = useState(false)
@@ -485,6 +487,11 @@ export function BookingDrawer({
                       {`${draftEndHour}.${draftEndMinute}`}
                     </button>
                   </p>
+                  {playerNames && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      {playerNames.playerA} vs {playerNames.playerB}
+                    </p>
+                  )}
                 </div>
 
                 {/* Conflict / validation message */}

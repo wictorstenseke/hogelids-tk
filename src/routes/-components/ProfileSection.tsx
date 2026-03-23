@@ -86,7 +86,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
                 setDisplayName(e.target.value)
                 if (nameError) setNameError(null)
               }}
-              className={`w-full min-h-[44px] rounded-xl border px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F1E334] ${nameError ? 'border-red-400' : 'border-gray-200'}`}
+              className={`w-full min-h-[44px] rounded-xl border px-3 py-2 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F1E334] ${nameError ? 'border-red-400' : 'border-gray-200'}`}
             />
             {nameError && <p className="text-xs text-red-600">{nameError}</p>}
           </div>
@@ -123,7 +123,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Valfritt"
-              className="w-full min-h-[44px] rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F1E334]"
+              className="w-full min-h-[44px] rounded-xl border border-gray-200 px-3 py-2 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F1E334]"
             />
           </div>
 

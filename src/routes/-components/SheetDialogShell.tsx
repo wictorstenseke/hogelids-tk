@@ -185,7 +185,7 @@ export function SheetDialogShell({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col px-5 pb-6 pt-2 sm:px-6 sm:pb-6 sm:pt-5">
+        <div className="flex min-h-0 flex-1 flex-col px-5 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-5">
           <div className="mb-4 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
             <h2
               id={titleId}

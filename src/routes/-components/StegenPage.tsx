@@ -803,6 +803,10 @@ export function StegenPage() {
           existingBookings={existingBookings}
           onSubmit={handleLadderMobileSubmit}
           onClose={() => setChallengeOpponentUid(null)}
+          playerNames={{
+            playerA: user.displayName,
+            playerB: challengeOpponent.displayName ?? challengeOpponentUid,
+          }}
         />
       )}
       {challengeOpponent && challengeOpponentUid && ladder && isDesktop && (

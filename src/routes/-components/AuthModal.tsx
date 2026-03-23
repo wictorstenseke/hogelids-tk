@@ -157,7 +157,7 @@ export function AuthModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                     placeholder="din@epost.se"
                   />
                 </div>
@@ -177,7 +177,7 @@ export function AuthModal({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                     placeholder="••••••"
                   />
                 </div>
@@ -243,7 +243,7 @@ export function AuthModal({
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     disabled={loading}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                     placeholder="För- och efternamn"
                   />
                 </div>
@@ -263,7 +263,7 @@ export function AuthModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                     placeholder="din@epost.se"
                   />
                 </div>
@@ -283,7 +283,7 @@ export function AuthModal({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                     placeholder="Minst 6 tecken"
                   />
                 </div>
@@ -350,7 +350,7 @@ export function AuthModal({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                       placeholder="din@epost.se"
                     />
                   </div>

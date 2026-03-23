@@ -125,7 +125,9 @@ label[for] {
 }
 
 .react-datepicker__day--selected,
-.react-datepicker__day--keyboard-selected {
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
   background-color: #f1e334 !important;
   color: #111827 !important;
   font-weight: 700;

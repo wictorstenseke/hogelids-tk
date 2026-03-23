@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
 import { deleteField, Timestamp } from 'firebase/firestore'
@@ -31,6 +31,8 @@ import {
   LADDER_QUERY_KEY,
 } from '../../services/LadderService'
 import { DateDisplayInput } from './BookingForm'
+import { SheetDialogShell } from './SheetDialogShell'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 registerLocale('sv', sv)
 
@@ -356,6 +358,25 @@ export function AdminPage() {
   })
 
   const [isCreatingLadder, setIsCreatingLadder] = useState(false)
+  const isDesktop = useIsDesktop()
+  const [showDateSheet, setShowDateSheet] = useState(false)
+  const [pendingDate, setPendingDate] = useState<Date | null>(null)
+
+  const saveLadderJoinDate = useCallback(
+    async (date: Date) => {
+      await updateAppSettings({
+        ladderJoinOpensAt: Timestamp.fromDate(
+          localInputDateToStartOfDay(format(date, 'yyyy-MM-dd'))
+        ),
+      })
+        .then(() => addToast('Datum för anmälan sparat'))
+        .catch((err) => {
+          console.error('Failed to update ladderJoinOpensAt:', err)
+          addToast('Kunde inte spara ändringen.', 'error')
+        })
+    },
+    [addToast]
+  )
 
   async function handleCreateLadder() {
     setIsCreatingLadder(true)
@@ -477,53 +498,133 @@ export function AdminPage() {
                 }}
               />
             </SettingsRow>
-            <SettingsRow
-              label="Anmälan öppnar"
-              description="Stegen kan visas tidigare, men nya medlemmar kan anmäla sig först från detta datum."
-            >
-              <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-                <div className="w-full min-w-48 max-w-[min(100%,12rem)]">
-                  <DatePicker
-                    id="ladder-join-opens-date"
-                    selected={
+            <div className="space-y-2 px-4 py-3">
+              <p className="text-sm font-medium text-gray-900">
+                Anmälan öppnar
+              </p>
+              {isDesktop ? (
+                <DatePicker
+                  id="ladder-join-opens-date"
+                  selected={
+                    settings?.ladderJoinOpensAt
+                      ? new Date(
+                          `${ladderJoinOpensAtToInputValue(settings.ladderJoinOpensAt)}T12:00:00`
+                        )
+                      : null
+                  }
+                  onChange={(date: Date | null) => {
+                    if (!date) return
+                    void saveLadderJoinDate(date)
+                  }}
+                  locale="sv"
+                  dateFormat="EEEE d MMMM"
+                  placeholderText="Välj datum"
+                  autoComplete="off"
+                  customInput={
+                    <DateDisplayInput
+                      appearance="light"
+                      aria-label="Anmälan öppnar"
+                    />
+                  }
+                  renderCustomHeader={({
+                    date,
+                    decreaseMonth,
+                    increaseMonth,
+                  }) => (
+                    <div className="flex items-center justify-between px-3 pb-2">
+                      <button
+                        type="button"
+                        onClick={decreaseMonth}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        <IconChevronLeft size={18} stroke={2} />
+                      </button>
+                      <span className="font-display text-base font-bold uppercase tracking-wide text-gray-900">
+                        {date.toLocaleDateString('sv-SE', {
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={increaseMonth}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        <IconChevronRight size={18} stroke={2} />
+                      </button>
+                    </div>
+                  )}
+                />
+              ) : (
+                <DateDisplayInput
+                  appearance="light"
+                  aria-label="Anmälan öppnar"
+                  onClick={() => {
+                    setPendingDate(
                       settings?.ladderJoinOpensAt
                         ? new Date(
                             `${ladderJoinOpensAtToInputValue(settings.ladderJoinOpensAt)}T12:00:00`
                           )
                         : null
-                    }
-                    onChange={(date: Date | null) => {
-                      if (!date) return
-                      void updateAppSettings({
-                        ladderJoinOpensAt: Timestamp.fromDate(
-                          localInputDateToStartOfDay(format(date, 'yyyy-MM-dd'))
-                        ),
-                      })
-                        .then(() => addToast('Datum för anmälan sparat'))
-                        .catch((err) => {
-                          console.error(
-                            'Failed to update ladderJoinOpensAt:',
-                            err
-                          )
-                          addToast('Kunde inte spara ändringen.', 'error')
+                    )
+                    setShowDateSheet(true)
+                  }}
+                  value={
+                    settings?.ladderJoinOpensAt
+                      ? new Date(
+                          `${ladderJoinOpensAtToInputValue(settings.ladderJoinOpensAt)}T12:00:00`
+                        ).toLocaleDateString('sv-SE', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
                         })
+                      : ''
+                  }
+                />
+              )}
+              {settings?.ladderJoinOpensAt != null && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void updateAppSettings({
+                      ladderJoinOpensAt: deleteField(),
+                    })
+                      .then(() => addToast('Datum för anmälan borttaget'))
+                      .catch((err) => {
+                        console.error('Failed to clear ladderJoinOpensAt:', err)
+                        addToast('Kunde inte spara ändringen.', 'error')
+                      })
+                  }}
+                  className="text-sm text-gray-400 underline underline-offset-2 transition-colors hover:text-gray-600"
+                >
+                  Ta bort datum
+                </button>
+              )}
+            </div>
+
+            {showDateSheet && (
+              <SheetDialogShell
+                titleId="date-sheet-title"
+                title="Välj datum"
+                onClose={() => setShowDateSheet(false)}
+                scrollBody={false}
+                maxHeightVariant="short"
+              >
+                <div className="px-5 pb-6 pt-2">
+                  <DatePicker
+                    inline
+                    calendarClassName="!w-full"
+                    selected={pendingDate}
+                    onChange={(date: Date | null) => {
+                      if (date) setPendingDate(date)
                     }}
                     locale="sv"
-                    dateFormat="EEEE d MMMM"
-                    placeholderText="Välj datum"
-                    autoComplete="off"
-                    customInput={
-                      <DateDisplayInput
-                        appearance="light"
-                        aria-label="Anmälan öppnar"
-                      />
-                    }
                     renderCustomHeader={({
                       date,
                       decreaseMonth,
                       increaseMonth,
                     }) => (
-                      <div className="flex items-center justify-between px-3 pb-2">
+                      <div className="flex items-center justify-between pb-2">
                         <button
                           type="button"
                           onClick={decreaseMonth}
@@ -547,30 +648,23 @@ export function AdminPage() {
                       </div>
                     )}
                   />
-                </div>
-                {settings?.ladderJoinOpensAt != null && (
                   <button
                     type="button"
+                    disabled={!pendingDate}
                     onClick={() => {
-                      void updateAppSettings({
-                        ladderJoinOpensAt: deleteField(),
-                      })
-                        .then(() => addToast('Datum för anmälan borttaget'))
-                        .catch((err) => {
-                          console.error(
-                            'Failed to clear ladderJoinOpensAt:',
-                            err
-                          )
-                          addToast('Kunde inte spara ändringen.', 'error')
-                        })
+                      if (!pendingDate) return
+                      void saveLadderJoinDate(pendingDate).then(() =>
+                        setShowDateSheet(false)
+                      )
                     }}
-                    className="min-h-[44px] shrink-0 text-sm font-semibold text-gray-600 underline underline-offset-2 transition-colors hover:text-gray-900"
+                    className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-40"
+                    style={{ backgroundColor: '#F1E334' }}
                   >
-                    Ta bort datum
+                    Spara
                   </button>
-                )}
-              </div>
-            </SettingsRow>
+                </div>
+              </SheetDialogShell>
+            )}
             {!activeLadder && (
               <SettingsRow
                 label="Ingen aktiv stege"
@@ -614,29 +708,37 @@ export function AdminPage() {
                 value={bannerText}
                 onChange={(e) => setBannerTextOverride(e.target.value)}
                 placeholder="Skriv ett meddelande…"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
               />
             </div>
 
-            <SettingsRow label="Länktext" description="Valfri">
+            <div className="space-y-2 px-4 py-3">
+              <p className="text-sm font-medium text-gray-900">
+                Länktext{' '}
+                <span className="font-normal text-gray-400">Valfri</span>
+              </p>
               <input
                 type="text"
                 value={bannerLinkText}
                 onChange={(e) => setBannerLinkTextOverride(e.target.value)}
                 placeholder="Läs mer"
-                className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none sm:w-64"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
               />
-            </SettingsRow>
+            </div>
 
-            <SettingsRow label="Länk-URL" description="Valfri">
+            <div className="space-y-2 px-4 py-3">
+              <p className="text-sm font-medium text-gray-900">
+                Länk-URL{' '}
+                <span className="font-normal text-gray-400">Valfri</span>
+              </p>
               <input
                 type="url"
                 value={bannerLinkUrl}
                 onChange={(e) => setBannerLinkUrlOverride(e.target.value)}
                 placeholder="https://…"
-                className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none sm:w-64"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
               />
-            </SettingsRow>
+            </div>
 
             <div className="flex justify-end px-4 py-3">
               <button
