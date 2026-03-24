@@ -59,6 +59,17 @@ export function SuccessDialog({
           </div>
         )}
 
+        {!isGuestBooking && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80"
+            style={{ backgroundColor: '#F1E334' }}
+          >
+            Klar
+          </button>
+        )}
+
         {isGuestBooking && <GuestSignupNudge onDismiss={onClose} />}
       </div>
     </div>

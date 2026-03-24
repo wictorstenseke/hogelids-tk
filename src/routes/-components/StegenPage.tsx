@@ -625,7 +625,8 @@ export function StegenPage() {
     'kommande'
   )
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false)
-  const [selectedLadderId, setSelectedLadderId] = useState<string | null>(null)
+  const [archivedLadderId, setArchivedLadderId] = useState<string | null>(null)
+  const [archiveExpanded, setArchiveExpanded] = useState(false)
 
   const { data: allLadders = [], isLoading: laddersLoading } = useQuery({
     queryKey: LADDERS_QUERY_KEY,
@@ -633,37 +634,63 @@ export function StegenPage() {
     enabled: !!user,
   })
 
-  // Default selection: the active ladder, fallback to the first (most recent) ladder
-  const defaultLadderId = useMemo(() => {
-    if (allLadders.length === 0) return null
-    const active = allLadders.find((l) => l.status === 'active')
-    return active ? active.id : allLadders[0].id
-  }, [allLadders])
-
-  const ladderOptions = useMemo(
-    () =>
-      allLadders.map((l) => ({
-        value: l.id,
-        label: l.status === 'completed' ? `${l.name} (avslutad)` : l.name,
-      })),
+  const activeLadder = useMemo(
+    () => allLadders.find((l) => l.status === 'active') ?? null,
     [allLadders]
   )
 
-  const effectiveLadderId = selectedLadderId ?? defaultLadderId
-  const selectedLadder =
-    allLadders.find((l) => l.id === effectiveLadderId) ?? null
-  const isCompleted =
-    selectedLadder !== null && selectedLadder.status === 'completed'
+  const completedLadders = useMemo(
+    () =>
+      allLadders
+        .filter((l) => l.status === 'completed')
+        .sort((a, b) => b.year - a.year),
+    [allLadders]
+  )
 
-  const { data: matches = [] } = useQuery({
-    queryKey: selectedLadder
-      ? LADDER_MATCHES_QUERY_KEY(selectedLadder.id)
+  const effectiveArchivedLadderId = useMemo(() => {
+    if (completedLadders.length === 0) return null
+    if (
+      archivedLadderId &&
+      completedLadders.some((l) => l.id === archivedLadderId)
+    ) {
+      return archivedLadderId
+    }
+    return null
+  }, [completedLadders, archivedLadderId])
+
+  const archivedLadder =
+    completedLadders.find((l) => l.id === effectiveArchivedLadderId) ?? null
+
+  const archivedLadderOptions = useMemo(
+    () => [
+      { value: '', label: 'Välj stege' },
+      ...completedLadders.map((l) => ({
+        value: l.id,
+        label: `${l.name} (Avslutad)`,
+      })),
+    ],
+    [completedLadders]
+  )
+
+  const { data: activeMatches = [] } = useQuery({
+    queryKey: activeLadder
+      ? LADDER_MATCHES_QUERY_KEY(activeLadder.id)
       : ['ladder', 'matches', 'none'],
     queryFn: () =>
-      selectedLadder
-        ? getLadderMatches(selectedLadder.id)
+      activeLadder ? getLadderMatches(activeLadder.id) : Promise.resolve([]),
+    enabled: !!activeLadder,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const { data: archivedMatches = [] } = useQuery({
+    queryKey: effectiveArchivedLadderId
+      ? LADDER_MATCHES_QUERY_KEY(effectiveArchivedLadderId)
+      : ['ladder', 'matches', 'none'],
+    queryFn: () =>
+      effectiveArchivedLadderId
+        ? getLadderMatches(effectiveArchivedLadderId)
         : Promise.resolve([]),
-    enabled: !!selectedLadder,
+    enabled: !!effectiveArchivedLadderId,
     staleTime: 2 * 60 * 1000,
   })
 
@@ -673,16 +700,24 @@ export function StegenPage() {
   })
 
   const ladderJoinOpenNow = isLadderJoinOpenNow(
-    { joinOpensAt: selectedLadder?.joinOpensAt ?? null },
+    { joinOpensAt: activeLadder?.joinOpensAt ?? null },
     new Date()
   )
-  const ladderJoinOpensAt = selectedLadder?.joinOpensAt ?? null
+  const ladderJoinOpensAt = activeLadder?.joinOpensAt ?? null
   const ladderJoinOpenDateLabel =
     ladderJoinOpensAt != null
       ? new Intl.DateTimeFormat('sv-SE', { dateStyle: 'long' }).format(
           ladderJoinOpensAt.toDate()
         )
       : ''
+
+  const archivedCompletedMatches = useMemo(
+    () =>
+      archivedMatches
+        .filter((m) => m.ladderStatus === 'completed')
+        .sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis()),
+    [archivedMatches]
+  )
 
   if (authLoading) return null
 
@@ -702,23 +737,23 @@ export function StegenPage() {
     )
   }
 
-  const myParticipant = selectedLadder?.participants.find(
+  const myParticipant = activeLadder?.participants.find(
     (p) => p.uid === user.uid
   )
 
-  const plannedMatches = matches
+  const plannedMatches = activeMatches
     .filter((m) => m.ladderStatus === 'planned')
     .sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis())
 
-  const completedMatches = matches
+  const completedMatches = activeMatches
     .filter((m) => m.ladderStatus === 'completed')
     .sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis())
 
   async function handleJoin() {
-    if (!selectedLadder) return
+    if (!activeLadder) return
     setIsJoining(true)
     try {
-      await joinLadder(selectedLadder.id, user!.uid, user!.displayName)
+      await joinLadder(activeLadder.id, user!.uid, user!.displayName)
       await queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY })
       addToast('Du har gått med i stegen!')
     } catch (err) {
@@ -737,8 +772,8 @@ export function StegenPage() {
   }
 
   const challengeOpponent =
-    challengeOpponentUid && selectedLadder
-      ? selectedLadder.participants.find((p) => p.uid === challengeOpponentUid)
+    challengeOpponentUid && activeLadder
+      ? activeLadder.participants.find((p) => p.uid === challengeOpponentUid)
       : null
 
   async function handleLadderMobileSubmit(
@@ -746,7 +781,7 @@ export function StegenPage() {
     startTime: string,
     endTime: string
   ) {
-    if (!selectedLadder || !challengeOpponentUid || !challengeOpponent || !user)
+    if (!activeLadder || !challengeOpponentUid || !challengeOpponent || !user)
       return
     const resolved = resolveBookingInterval(date, startTime, endTime)
     if (!resolved) {
@@ -762,7 +797,7 @@ export function StegenPage() {
       throw new Error(`Det finns redan en bokning som överlappar med vald tid.`)
     }
     await createLadderMatch(
-      selectedLadder.id,
+      activeLadder.id,
       user.uid,
       challengeOpponentUid,
       user.displayName,
@@ -775,7 +810,7 @@ export function StegenPage() {
     )
     setChallengeOpponentUid(null)
     await queryClient.invalidateQueries({
-      queryKey: LADDER_MATCHES_QUERY_KEY(selectedLadder.id),
+      queryKey: LADDER_MATCHES_QUERY_KEY(activeLadder.id),
     })
     await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
     addToast('Match bokad!')
@@ -785,7 +820,7 @@ export function StegenPage() {
     <div>
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
-          {/* Ladder selector */}
+          {/* Steg: aktiv vy + arkiv */}
           {laddersLoading ? (
             <GlassNoticeCard>
               <div className="flex justify-center px-4 py-10">
@@ -805,32 +840,24 @@ export function StegenPage() {
             </GlassNoticeCard>
           ) : (
             <>
-              {/* Selector row */}
-              {allLadders.length > 1 && (
-                <div className="flex w-full justify-end">
-                  <MenuSelect
-                    value={effectiveLadderId ?? ''}
-                    onChange={(id) => {
-                      setSelectedLadderId(id)
-                      setReportingMatch(null)
-                      setChallengeOpponentUid(null)
-                    }}
-                    options={ladderOptions}
-                    ariaLabel="Välj stege"
-                    className="min-w-0 w-auto max-w-[min(100%,14rem)]"
-                  />
-                </div>
+              {!activeLadder && (
+                <GlassNoticeCard>
+                  <div className="px-6 py-10 text-center">
+                    <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
+                      Ingen aktiv stege
+                    </p>
+                    <p className="mt-2 text-sm text-white/70">
+                      Det finns ingen pågående stegturnering.
+                      {completedLadders.length > 0
+                        ? ' Tidigare resultat hittar du under Gamla turneringar nedan.'
+                        : ''}
+                    </p>
+                  </div>
+                </GlassNoticeCard>
               )}
 
-              {/* Single ladder: show name when completed (no selector) */}
-              {allLadders.length === 1 && isCompleted && selectedLadder && (
-                <p className="text-sm font-semibold text-gray-800">
-                  {selectedLadder.name}
-                </p>
-              )}
-
-              {/* Join banner — hidden on completed ladders */}
-              {selectedLadder && !myParticipant && !isCompleted && (
+              {/* Join banner */}
+              {activeLadder && !myParticipant && (
                 <GlassNoticeCard
                   action={
                     <button
@@ -860,7 +887,7 @@ export function StegenPage() {
                 </GlassNoticeCard>
               )}
 
-              {selectedLadder && (
+              {activeLadder && (
                 <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
                   <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
                     <div className="mb-3 flex items-center justify-between gap-2">
@@ -876,10 +903,10 @@ export function StegenPage() {
                       </button>
                     </div>
                     <RankingsTable
-                      ladder={selectedLadder}
+                      ladder={activeLadder}
                       currentUid={user.uid}
                       ladderJoinOpenNow={ladderJoinOpenNow}
-                      isCompleted={isCompleted}
+                      isCompleted={false}
                       onChallenge={(uid) => {
                         setChallengeOpponentUid(uid)
                         setReportingMatch(null)
@@ -936,17 +963,16 @@ export function StegenPage() {
                         <div className="space-y-2">
                           {plannedMatches.map((match) => {
                             const isInvolved =
-                              !isCompleted &&
-                              (match.playerAId === user.uid ||
-                                match.playerBId === user.uid)
+                              match.playerAId === user.uid ||
+                              match.playerBId === user.uid
                             if (isInvolved) {
                               return (
                                 <PlannedMatchReportRow
                                   key={match.id}
                                   match={match}
-                                  ladderId={selectedLadder.id}
+                                  ladderId={activeLadder.id}
                                   expanded={reportingMatch?.id === match.id}
-                                  isCompleted={isCompleted}
+                                  isCompleted={false}
                                   onExpand={() => {
                                     setReportingMatch(match)
                                     setChallengeOpponentUid(null)
@@ -997,6 +1023,73 @@ export function StegenPage() {
                   </div>
                 </div>
               )}
+
+              {completedLadders.length > 0 && (
+                <section className="rounded-2xl bg-[#194b29] px-4 py-4">
+                  <div className="flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between min-[480px]:gap-4">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
+                      Gamla turneringar
+                    </h2>
+                    <MenuSelect
+                      value={effectiveArchivedLadderId ?? ''}
+                      onChange={(id) => {
+                        if (id === '') {
+                          setArchivedLadderId(null)
+                          setArchiveExpanded(false)
+                        } else {
+                          setArchivedLadderId(id)
+                          setArchiveExpanded(true)
+                        }
+                      }}
+                      options={archivedLadderOptions}
+                      ariaLabel="Välj stege"
+                      className="w-full shrink-0 min-[480px]:w-auto min-[480px]:max-w-[min(100%,18rem)]"
+                      triggerClassName="min-h-[44px] w-full border-white/20 bg-white/10 text-sm font-medium text-white/90 shadow-none ring-0 hover:border-white/30 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 min-[480px]:w-auto"
+                    />
+                  </div>
+
+                  {archiveExpanded && archivedLadder && (
+                    <div className="mt-4 flex flex-col gap-6 border-t border-white/10 pt-4 md:flex-row md:items-start md:gap-8">
+                      <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
+                        <div className="mb-3">
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-white/70">
+                            Rankingslista
+                          </h3>
+                          <p className="mt-1 text-sm font-medium text-white/90">
+                            {archivedLadder.name}
+                          </p>
+                        </div>
+                        <RankingsTable
+                          ladder={archivedLadder}
+                          currentUid={user.uid}
+                          ladderJoinOpenNow={false}
+                          isCompleted
+                          onChallenge={() => {}}
+                        />
+                      </section>
+
+                      <div className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
+                        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/70">
+                          Spelade matcher
+                        </h3>
+                        {archivedCompletedMatches.length > 0 ? (
+                          <div className="space-y-2">
+                            {archivedCompletedMatches.map((match) => (
+                              <MatchCard key={match.id} match={match} />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
+                            <p className="text-white/60">
+                              Inga spelade stegmatcher för den här turneringen.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
             </>
           )}
         </div>
@@ -1004,10 +1097,9 @@ export function StegenPage() {
       {rulesDialogOpen ? (
         <LadderRulesSheetDialog onClose={() => setRulesDialogOpen(false)} />
       ) : null}
-      {!isCompleted &&
-        challengeOpponent &&
+      {challengeOpponent &&
         challengeOpponentUid &&
-        selectedLadder &&
+        activeLadder &&
         !isDesktop && (
           <BookingDrawer
             existingBookings={existingBookings}
@@ -1019,10 +1111,9 @@ export function StegenPage() {
             }}
           />
         )}
-      {!isCompleted &&
-        challengeOpponent &&
+      {challengeOpponent &&
         challengeOpponentUid &&
-        selectedLadder &&
+        activeLadder &&
         isDesktop && (
           <SheetDialogShell
             titleId="challenge-dialog-title"
@@ -1037,7 +1128,7 @@ export function StegenPage() {
               onSuccess={() => {
                 setChallengeOpponentUid(null)
                 void queryClient.invalidateQueries({
-                  queryKey: LADDER_MATCHES_QUERY_KEY(selectedLadder.id),
+                  queryKey: LADDER_MATCHES_QUERY_KEY(activeLadder.id),
                 })
                 void queryClient.invalidateQueries({
                   queryKey: BOOKINGS_QUERY_KEY,
@@ -1046,7 +1137,7 @@ export function StegenPage() {
               }}
               user={user}
               ladderMeta={{
-                ladderId: selectedLadder.id,
+                ladderId: activeLadder.id,
                 playerAId: user.uid,
                 playerBId: challengeOpponentUid,
                 playerAName: user.displayName,
