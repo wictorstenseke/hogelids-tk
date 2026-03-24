@@ -6,11 +6,13 @@ import {
 } from '@tabler/icons-react'
 import { useId, useState } from 'react'
 import { copyTextToClipboard } from '../../lib/copyToClipboard'
+import {
+  formatPhoneForDisplay,
+  normalizeSwedishPhoneDigits,
+  swedishPhoneToCopyPlain,
+  swedishPhoneToTelHref,
+} from '../../lib/phoneFormat'
 import { SheetDialogShell } from './SheetDialogShell'
-
-function normalizeTelHref(phone: string): string {
-  return phone.trim().replace(/\s/g, '')
-}
 
 type CopyPhase = 'idle' | 'confirming' | 'error'
 
@@ -25,10 +27,10 @@ export function ParticipantPhoneSheetDialog({
   const [copyPhase, setCopyPhase] = useState<CopyPhase>('idle')
   const titleId = useId()
 
-  const href = normalizeTelHref(phone)
-  const display = phone.trim()
-
-  if (!href) return null
+  const digits = normalizeSwedishPhoneDigits(phone)
+  if (!digits) return null
+  const telHref = swedishPhoneToTelHref(phone)
+  const display = formatPhoneForDisplay(phone)
 
   function handleCloseSheet() {
     setCopyPhase('idle')
@@ -36,7 +38,7 @@ export function ParticipantPhoneSheetDialog({
   }
 
   async function handleCopy() {
-    const ok = await copyTextToClipboard(href)
+    const ok = await copyTextToClipboard(swedishPhoneToCopyPlain(phone))
     if (ok) {
       setCopyPhase('confirming')
       setTimeout(() => setCopyPhase('idle'), 2000)
@@ -66,7 +68,7 @@ export function ParticipantPhoneSheetDialog({
         <SheetDialogShell
           titleId={titleId}
           title="Spelarnummer"
-          description="Tryck på numret för att ringa eller kopiera det."
+          description="Tryck på numret för att ringa. Kopiera med ikonen bredvid."
           onClose={handleCloseSheet}
           scrollBody={false}
         >
@@ -79,8 +81,8 @@ export function ParticipantPhoneSheetDialog({
                 {displayName}
               </p>
               <a
-                href={`tel:${href}`}
-                className="min-w-0 select-text break-all text-base font-semibold leading-none tabular-nums text-[#164a2a] underline-offset-2 hover:underline"
+                href={telHref}
+                className="min-w-0 select-text text-xl font-semibold leading-tight tracking-tight text-[#164a2a] underline-offset-2 hover:underline sm:text-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 {display}

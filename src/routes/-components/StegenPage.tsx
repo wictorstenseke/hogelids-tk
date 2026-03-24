@@ -20,6 +20,7 @@ import {
   type Ladder,
   type LadderMatch,
 } from '../../services/LadderService'
+import { formatPhoneForStorage } from '../../lib/phoneFormat'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { isLadderJoinOpenNow } from '../../lib/ladderJoinWindow'
 import { useState, useMemo, useEffect } from 'react'
@@ -871,7 +872,7 @@ export function StegenPage() {
         activeLadder.id,
         user!.uid,
         user!.displayName ?? '',
-        profile?.phone?.trim() || null
+        formatPhoneForStorage(profile?.phone ?? '') ?? null
       )
       await queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY })
       addToast('Du har gått med i stegen!')

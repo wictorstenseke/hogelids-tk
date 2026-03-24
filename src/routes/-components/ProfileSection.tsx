@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  formatPhoneForDisplay,
+  formatPhoneForStorage,
+} from '../../lib/phoneFormat'
+import {
   getProfile,
   updateProfile,
   PROFILE_QUERY_KEY,
@@ -30,7 +34,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.displayName ?? '')
-      setPhone(profile.phone ?? '')
+      setPhone(formatPhoneForDisplay(profile.phone))
     }
   }, [profile])
 
@@ -47,7 +51,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
     try {
       await updateProfile(user.uid, {
         displayName: displayName.trim(),
-        phone: phone.trim() || null,
+        phone: formatPhoneForStorage(phone),
       })
       await queryClient.invalidateQueries({
         queryKey: [PROFILE_QUERY_KEY, user.uid],
@@ -122,6 +126,10 @@ export function ProfileSection({ user }: ProfileSectionProps) {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              onBlur={() => {
+                const next = formatPhoneForDisplay(phone)
+                if (next !== phone) setPhone(next)
+              }}
               placeholder="Valfritt"
               className="w-full min-h-[44px] rounded-xl border border-gray-200 px-3 py-2 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F1E334]"
             />

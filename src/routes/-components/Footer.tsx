@@ -101,14 +101,16 @@ export function Footer() {
                   href="https://github.com/wictorstenseke/hogelids-tk"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full items-center gap-1.5 py-2 text-sm leading-snug text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:py-0.5"
+                  className="group flex w-full items-center py-2 text-sm leading-snug text-white/70 transition-colors hover:text-white sm:py-0.5"
                 >
-                  <span>GitHub</span>
-                  <IconExternalLink
-                    size={15}
-                    className="shrink-0 text-white/45"
-                    aria-hidden
-                  />
+                  <span className="inline-flex items-center gap-1.5 underline-offset-2 group-hover:underline">
+                    GitHub
+                    <IconExternalLink
+                      size={15}
+                      className="shrink-0 text-white/45 transition-colors group-hover:text-white/70"
+                      aria-hidden
+                    />
+                  </span>
                 </a>
               </li>
             </ul>

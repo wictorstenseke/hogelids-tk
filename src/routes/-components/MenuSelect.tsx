@@ -211,7 +211,7 @@ export function MenuSelect({
           size={18}
           stroke={1.5}
           className={[
-            'shrink-0 text-gray-500 transition-transform duration-200',
+            'shrink-0 text-current transition-transform duration-200',
             open && 'rotate-180',
           ].join(' ')}
           aria-hidden
