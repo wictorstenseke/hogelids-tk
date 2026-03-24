@@ -582,6 +582,7 @@ export function StegenPage() {
     if (!ladder || !challengeOpponentUid || !challengeOpponent || !user) return
     const start = new Date(`${date}T${startTime}`)
     const end = new Date(`${date}T${endTime}`)
+    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
     const freshBookings =
       queryClient.getQueryData<typeof existingBookings>(BOOKINGS_QUERY_KEY) ??
       existingBookings
