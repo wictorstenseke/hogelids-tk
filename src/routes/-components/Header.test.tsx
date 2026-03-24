@@ -26,7 +26,7 @@ vi.mock('../../services/AuthService', () => ({
 
 vi.mock('../../lib/useAppSettings', () => ({
   useAppSettings: vi.fn(() => ({
-    settings: { ladderEnabled: false, ladderJoinOpensAt: null },
+    settings: {},
   })),
 }))
 

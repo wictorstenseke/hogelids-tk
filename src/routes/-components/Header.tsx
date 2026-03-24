@@ -21,7 +21,6 @@ export function Header({
 }: HeaderProps) {
   const role = useRole()
   const isAdmin = user ? isAdminRole(role) : false
-  // TODO Phase 2/3: ladder visibility will be driven by active ladder presence, not a global toggle
   const ladderEnabled = !!user
   const { openAuthModal } = useAuthModal()
 

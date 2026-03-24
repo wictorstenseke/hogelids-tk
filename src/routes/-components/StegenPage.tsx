@@ -559,7 +559,7 @@ export function StegenPage() {
   const selectedLadder =
     allLadders.find((l) => l.id === effectiveLadderId) ?? null
   const isCompleted =
-    selectedLadder !== null && selectedLadder?.status === 'completed'
+    selectedLadder !== null && selectedLadder.status === 'completed'
 
   const { data: matches = [] } = useQuery({
     queryKey: selectedLadder
