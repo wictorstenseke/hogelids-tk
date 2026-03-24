@@ -8,12 +8,12 @@ import {
 import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
 import {
-  getActiveLadder,
+  getAllLadders,
   joinLadder,
   getLadderMatches,
   reportLadderResult,
   createLadderMatch,
-  LADDER_QUERY_KEY,
+  LADDERS_QUERY_KEY,
   LADDER_MATCHES_QUERY_KEY,
   type LadderParticipant,
   type Ladder,
@@ -21,7 +21,7 @@ import {
 } from '../../services/LadderService'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { isLadderJoinOpenNow } from '../../lib/ladderJoinWindow'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { BookingForm } from './BookingForm'
 import { BookingDrawer } from './BookingDrawer'
 import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
@@ -41,6 +41,10 @@ function getActiveParticipants(participants: LadderParticipant[]) {
   return participants
     .filter((p) => !p.paused)
     .sort((a, b) => a.position - b.position)
+}
+
+function getPausedParticipants(participants: LadderParticipant[]) {
+  return participants.filter((p) => p.paused)
 }
 
 function formatMatchDateHeading(match: LadderMatch): string {
@@ -75,6 +79,7 @@ interface RankingsTableProps {
   currentUid: string
   onChallenge: (opponentUid: string) => void
   ladderJoinOpenNow: boolean
+  isCompleted: boolean
 }
 
 function RankingsTable({
@@ -82,12 +87,14 @@ function RankingsTable({
   currentUid,
   onChallenge,
   ladderJoinOpenNow,
+  isCompleted,
 }: RankingsTableProps) {
   const active = getActiveParticipants(ladder.participants)
+  const paused = getPausedParticipants(ladder.participants)
   const me = ladder.participants.find((p) => p.uid === currentUid)
   const isMember = !!me
 
-  if (active.length === 0) {
+  if (active.length === 0 && paused.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
         {!ladderJoinOpenNow ? (
@@ -104,64 +111,107 @@ function RankingsTable({
   }
 
   return (
-    <ul className="border-t border-white/10">
-      {active.map((participant) => {
-        const eligibility =
-          isMember && participant.uid !== currentUid
-            ? getChallengeEligibility(
-                ladder.participants,
-                currentUid,
-                participant.uid
+    <div>
+      {active.length > 0 && (
+        <ul className="border-t border-white/10">
+          {active.map((participant) => {
+            const eligibility =
+              isMember && !isCompleted && participant.uid !== currentUid
+                ? getChallengeEligibility(
+                    ladder.participants,
+                    currentUid,
+                    participant.uid
+                  )
+                : null
+            const isChallengeable = eligibility?.eligible === true
+            const isMe = participant.uid === currentUid
+
+            const name = participant.displayName || participant.uid
+
+            const rowClass = 'flex min-w-0 items-center gap-3 py-2.5 pr-2'
+
+            const rowContent = (
+              <>
+                <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
+                  {participant.position}
+                </span>
+                <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+                  <span
+                    title={name}
+                    className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none ${
+                      isMe
+                        ? 'bg-[#F1E334] text-gray-900'
+                        : 'bg-white/15 text-white/90'
+                    }`}
+                  >
+                    {name}
+                  </span>
+                </div>
+                <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
+                  {formatStats(participant.wins, participant.losses)}
+                </span>
+              </>
+            )
+
+            return (
+              <li key={participant.uid} className="border-b border-white/10">
+                {isChallengeable ? (
+                  <button
+                    type="button"
+                    onClick={() => onChallenge(participant.uid)}
+                    className={`${rowClass} w-full cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
+                    aria-label={`Utmana ${name}`}
+                  >
+                    {rowContent}
+                  </button>
+                ) : (
+                  <div className={rowClass}>{rowContent}</div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {paused.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wider text-white/40">
+            Pausade
+          </p>
+          <ul className="border-t border-white/10">
+            {paused.map((participant) => {
+              const name = participant.displayName || participant.uid
+              const isMe = participant.uid === currentUid
+              return (
+                <li
+                  key={participant.uid}
+                  className="flex min-w-0 items-center gap-3 border-b border-white/10 py-2.5 pr-2"
+                >
+                  <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/30">
+                    —
+                  </span>
+                  <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+                    <span
+                      title={name}
+                      className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none opacity-50 ${
+                        isMe
+                          ? 'bg-[#F1E334] text-gray-900'
+                          : 'bg-white/15 text-white/90'
+                      }`}
+                    >
+                      {name}
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/30">
+                    {formatStats(participant.wins, participant.losses)}
+                  </span>
+                </li>
               )
-            : null
-        const isChallengeable = eligibility?.eligible === true
-        const isMe = participant.uid === currentUid
-
-        const name = participant.displayName || participant.uid
-
-        const rowClass = 'flex min-w-0 items-center gap-3 py-2.5 pr-2'
-
-        const rowContent = (
-          <>
-            <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
-              {participant.position}
-            </span>
-            <div className="flex min-w-0 flex-1 items-center overflow-hidden">
-              <span
-                title={name}
-                className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none ${
-                  isMe
-                    ? 'bg-[#F1E334] text-gray-900'
-                    : 'bg-white/15 text-white/90'
-                }`}
-              >
-                {name}
-              </span>
-            </div>
-            <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
-              {formatStats(participant.wins, participant.losses)}
-            </span>
-          </>
-        )
-
-        return (
-          <li key={participant.uid} className="border-b border-white/10">
-            {isChallengeable ? (
-              <button
-                type="button"
-                onClick={() => onChallenge(participant.uid)}
-                className={`${rowClass} w-full cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
-                aria-label={`Utmana ${name}`}
-              >
-                {rowContent}
-              </button>
-            ) : (
-              <div className={rowClass}>{rowContent}</div>
-            )}
-          </li>
-        )
-      })}
-    </ul>
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -226,6 +276,7 @@ interface PlannedMatchReportRowProps {
   expanded: boolean
   onExpand: () => void
   onCollapse: () => void
+  isCompleted: boolean
 }
 
 function PlannedMatchReportRow({
@@ -234,9 +285,22 @@ function PlannedMatchReportRow({
   expanded,
   onExpand,
   onCollapse,
+  isCompleted,
 }: PlannedMatchReportRowProps) {
   const playerA = match.playerAName
   const playerB = match.playerBName
+
+  // On a completed ladder show a plain read-only card (no expand/report)
+  if (isCompleted) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <p className="text-xs text-gray-400">{formatMatchDateHeading(match)}</p>
+        <div className="mt-0.5">
+          <MatchPlayersLine playerA={playerA} playerB={playerB} />
+        </div>
+      </div>
+    )
+  }
 
   function toggleHeader() {
     if (expanded) onCollapse()
@@ -329,7 +393,7 @@ function ReportForm({
     setSaving(true)
     try {
       await reportLadderResult(ladderId, match.id, winnerId, loserId, comment)
-      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
+      await queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY })
       await queryClient.invalidateQueries({
         queryKey: LADDER_MATCHES_QUERY_KEY(ladderId),
       })
@@ -476,19 +540,35 @@ export function StegenPage() {
     'kommande'
   )
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false)
+  const [selectedLadderId, setSelectedLadderId] = useState<string | null>(null)
 
-  const { data: ladder, isLoading: ladderLoading } = useQuery({
-    queryKey: LADDER_QUERY_KEY,
-    queryFn: getActiveLadder,
+  const { data: allLadders = [], isLoading: laddersLoading } = useQuery({
+    queryKey: LADDERS_QUERY_KEY,
+    queryFn: getAllLadders,
     enabled: !!user,
   })
 
+  // Default selection: the active ladder, fallback to the first (most recent) ladder
+  const defaultLadderId = useMemo(() => {
+    if (allLadders.length === 0) return null
+    const active = allLadders.find((l) => l.status === 'active')
+    return active ? active.id : allLadders[0].id
+  }, [allLadders])
+
+  const effectiveLadderId = selectedLadderId ?? defaultLadderId
+  const selectedLadder =
+    allLadders.find((l) => l.id === effectiveLadderId) ?? null
+  const isCompleted = selectedLadder?.status === 'completed'
+
   const { data: matches = [] } = useQuery({
-    queryKey: ladder
-      ? LADDER_MATCHES_QUERY_KEY(ladder.id)
+    queryKey: selectedLadder
+      ? LADDER_MATCHES_QUERY_KEY(selectedLadder.id)
       : ['ladder', 'matches', 'none'],
-    queryFn: () => (ladder ? getLadderMatches(ladder.id) : Promise.resolve([])),
-    enabled: !!ladder,
+    queryFn: () =>
+      selectedLadder
+        ? getLadderMatches(selectedLadder.id)
+        : Promise.resolve([]),
+    enabled: !!selectedLadder,
     staleTime: 2 * 60 * 1000,
   })
 
@@ -497,13 +577,11 @@ export function StegenPage() {
     queryFn: getUpcomingBookings,
   })
 
-  // TODO Phase 2/3: ladderEnabled moves to per-ladder; use true as placeholder until UI is rewritten
-  const ladderEnabled = true
   const ladderJoinOpenNow = isLadderJoinOpenNow(
-    { joinOpensAt: ladder?.joinOpensAt ?? null },
+    { joinOpensAt: selectedLadder?.joinOpensAt ?? null },
     new Date()
   )
-  const ladderJoinOpensAt = ladder?.joinOpensAt ?? null
+  const ladderJoinOpensAt = selectedLadder?.joinOpensAt ?? null
   const ladderJoinOpenDateLabel =
     ladderJoinOpensAt != null
       ? new Intl.DateTimeFormat('sv-SE', { dateStyle: 'long' }).format(
@@ -513,16 +591,14 @@ export function StegenPage() {
 
   if (authLoading) return null
 
-  if (!user || !ladderEnabled) {
+  if (!user) {
     return (
       <div>
         <main className="px-4 py-6">
           <div className="mx-auto max-w-lg md:max-w-3xl">
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
               <p className="text-sm text-gray-600">
-                {!user
-                  ? 'Du behöver vara inloggad för att se stegen.'
-                  : 'Stegen är inte tillgänglig just nu.'}
+                Du behöver vara inloggad för att se stegen.
               </p>
             </div>
           </div>
@@ -531,7 +607,9 @@ export function StegenPage() {
     )
   }
 
-  const myParticipant = ladder?.participants.find((p) => p.uid === user.uid)
+  const myParticipant = selectedLadder?.participants.find(
+    (p) => p.uid === user.uid
+  )
 
   const plannedMatches = matches
     .filter((m) => m.ladderStatus === 'planned')
@@ -542,11 +620,11 @@ export function StegenPage() {
     .sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis())
 
   async function handleJoin() {
-    if (!ladder) return
+    if (!selectedLadder) return
     setIsJoining(true)
     try {
-      await joinLadder(ladder.id, user!.uid, user!.displayName)
-      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
+      await joinLadder(selectedLadder.id, user!.uid, user!.displayName)
+      await queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY })
       addToast('Du har gått med i stegen!')
     } catch (err) {
       console.error('Failed to join ladder:', err)
@@ -564,8 +642,8 @@ export function StegenPage() {
   }
 
   const challengeOpponent =
-    challengeOpponentUid && ladder
-      ? ladder.participants.find((p) => p.uid === challengeOpponentUid)
+    challengeOpponentUid && selectedLadder
+      ? selectedLadder.participants.find((p) => p.uid === challengeOpponentUid)
       : null
 
   async function handleLadderMobileSubmit(
@@ -573,7 +651,8 @@ export function StegenPage() {
     startTime: string,
     endTime: string
   ) {
-    if (!ladder || !challengeOpponentUid || !challengeOpponent || !user) return
+    if (!selectedLadder || !challengeOpponentUid || !challengeOpponent || !user)
+      return
     const start = new Date(`${date}T${startTime}`)
     const end = new Date(`${date}T${endTime}`)
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
@@ -585,7 +664,7 @@ export function StegenPage() {
       throw new Error(`Det finns redan en bokning som överlappar med vald tid.`)
     }
     await createLadderMatch(
-      ladder.id,
+      selectedLadder.id,
       user.uid,
       challengeOpponentUid,
       user.displayName,
@@ -598,7 +677,7 @@ export function StegenPage() {
     )
     setChallengeOpponentUid(null)
     await queryClient.invalidateQueries({
-      queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
+      queryKey: LADDER_MATCHES_QUERY_KEY(selectedLadder.id),
     })
     await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
     addToast('Match bokad!')
@@ -608,42 +687,12 @@ export function StegenPage() {
     <div>
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
-          {ladder && !myParticipant && (
-            <div
-              className="overflow-hidden rounded-xl text-sm text-gray-800"
-              style={{ backgroundColor: '#F1E334' }}
-            >
-              <div className="px-4 py-3">
-                <p className="font-semibold text-gray-900">
-                  {ladderJoinOpenNow
-                    ? 'Välkommen till stegen!'
-                    : 'Anmälan öppnar snart'}
-                </p>
-                <p className="mt-0.5 text-gray-800">
-                  {ladderJoinOpenNow
-                    ? 'Utmana andra spelare och klättra i rankingen.'
-                    : ladderJoinOpenDateLabel
-                      ? `Anmälan öppnar ${ladderJoinOpenDateLabel}. Du kan då gå med i stegen.`
-                      : 'Anmälan är inte öppen ännu.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleJoin()}
-                disabled={isJoining || !ladderJoinOpenNow}
-                className="flex w-full items-center px-4 py-2.5 font-semibold transition-opacity hover:opacity-70 disabled:opacity-50"
-                style={{ backgroundColor: '#E5D82C' }}
-              >
-                {isJoining ? 'Går med…' : 'Gå med i stegen'}
-              </button>
-            </div>
-          )}
-
-          {ladderLoading ? (
+          {/* Ladder selector */}
+          {laddersLoading ? (
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
               <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600" />
             </div>
-          ) : !ladder ? (
+          ) : allLadders.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
               <IconTrophy
                 size={32}
@@ -651,141 +700,221 @@ export function StegenPage() {
                 className="mx-auto mb-2 text-gray-300"
               />
               <p className="text-sm text-gray-500">
-                Ingen aktiv stege just nu.
+                Ingen stege är skapad ännu.
               </p>
             </div>
           ) : (
             <>
-              <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
-                <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
-                      Rankingslista
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={() => setRulesDialogOpen(true)}
-                      className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-md border border-white/25 bg-white/10 px-2 text-xs font-semibold text-white/90 transition-colors hover:border-white/40 hover:bg-white/15"
-                    >
-                      Regler
-                    </button>
-                  </div>
-                  <RankingsTable
-                    ladder={ladder}
-                    currentUid={user.uid}
-                    ladderJoinOpenNow={ladderJoinOpenNow}
-                    onChallenge={(uid) => {
-                      setChallengeOpponentUid(uid)
+              {/* Selector row */}
+              {allLadders.length > 1 && (
+                <div className="flex items-center gap-3">
+                  <select
+                    value={effectiveLadderId ?? ''}
+                    onChange={(e) => {
+                      setSelectedLadderId(e.target.value)
                       setReportingMatch(null)
+                      setChallengeOpponentUid(null)
                     }}
-                  />
-                </section>
-
-                <div className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
-                  <div
-                    className="relative mb-4 flex w-full rounded-xl bg-white/10 p-1"
-                    role="tablist"
-                    aria-label="Välj kommande eller spelade stegmatcher"
+                    className="min-h-[44px] flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 focus:border-gray-400 focus:outline-none"
+                    aria-label="Välj stege"
                   >
-                    <div
-                      className="absolute top-1 h-[calc(100%-8px)] w-[calc(50%-6px)] rounded-lg bg-[#F1E334] transition-[left] duration-300 ease-out"
-                      style={{
-                        left:
-                          matchesTab === 'spelade' ? 'calc(50% + 2px)' : '4px',
-                      }}
-                      aria-hidden
-                    />
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={matchesTab === 'kommande'}
-                      onClick={() => setMatchesTab('kommande')}
-                      className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 ${
-                        matchesTab === 'kommande'
-                          ? 'text-gray-900 hover:brightness-110 active:brightness-95'
-                          : 'text-white/60 hover:text-white/90 active:text-white'
-                      }`}
-                    >
-                      Kommande
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={matchesTab === 'spelade'}
-                      onClick={() => setMatchesTab('spelade')}
-                      className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 ${
-                        matchesTab === 'spelade'
-                          ? 'text-gray-900 hover:brightness-110 active:brightness-95'
-                          : 'text-white/60 hover:text-white/90 active:text-white'
-                      }`}
-                    >
-                      Spelade
-                    </button>
-                  </div>
-
-                  {matchesTab === 'kommande' &&
-                    (plannedMatches.length > 0 ? (
-                      <div className="space-y-2">
-                        {plannedMatches.map((match) => {
-                          const isInvolved =
-                            match.playerAId === user.uid ||
-                            match.playerBId === user.uid
-                          if (isInvolved) {
-                            return (
-                              <PlannedMatchReportRow
-                                key={match.id}
-                                match={match}
-                                ladderId={ladder.id}
-                                expanded={reportingMatch?.id === match.id}
-                                onExpand={() => {
-                                  setReportingMatch(match)
-                                  setChallengeOpponentUid(null)
-                                }}
-                                onCollapse={() => setReportingMatch(null)}
-                              />
-                            )
-                          }
-                          return <MatchCard key={match.id} match={match} />
-                        })}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
-                        {!ladderJoinOpenNow ? (
-                          <p className="font-medium text-white/85">
-                            Här visas kommande stegmatcher när spelare har gått
-                            med och bokat tider.
-                          </p>
-                        ) : (
-                          <p className="text-white/60">
-                            Inga stegmatcher bokade just nu.
-                          </p>
-                        )}
-                      </div>
+                    {allLadders.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.status === 'completed'
+                          ? `${l.name} (avslutad)`
+                          : l.name}
+                      </option>
                     ))}
-
-                  {matchesTab === 'spelade' &&
-                    (completedMatches.length > 0 ? (
-                      <div className="space-y-2">
-                        {completedMatches.map((match) => (
-                          <MatchCard key={match.id} match={match} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
-                        {!ladderJoinOpenNow ? (
-                          <p className="font-medium text-white/85">
-                            Här visas spelade stegmatcher när matcher är
-                            avslutade.
-                          </p>
-                        ) : (
-                          <p className="text-white/60">
-                            Inga spelade stegmatcher än.
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                  </select>
+                  {isCompleted && (
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
+                      Avslutad
+                    </span>
+                  )}
                 </div>
-              </div>
+              )}
+
+              {/* Single ladder: show name + badge if completed */}
+              {allLadders.length === 1 && isCompleted && (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-gray-800">
+                    {selectedLadder?.name}
+                  </p>
+                  <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
+                    Avslutad
+                  </span>
+                </div>
+              )}
+
+              {/* Join banner — hidden on completed ladders */}
+              {selectedLadder && !myParticipant && !isCompleted && (
+                <div
+                  className="overflow-hidden rounded-xl text-sm text-gray-800"
+                  style={{ backgroundColor: '#F1E334' }}
+                >
+                  <div className="px-4 py-3">
+                    <p className="font-semibold text-gray-900">
+                      {ladderJoinOpenNow
+                        ? 'Välkommen till stegen!'
+                        : 'Anmälan öppnar snart'}
+                    </p>
+                    <p className="mt-0.5 text-gray-800">
+                      {ladderJoinOpenNow
+                        ? 'Utmana andra spelare och klättra i rankingen.'
+                        : ladderJoinOpenDateLabel
+                          ? `Anmälan öppnar ${ladderJoinOpenDateLabel}. Du kan då gå med i stegen.`
+                          : 'Anmälan är inte öppen ännu.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleJoin()}
+                    disabled={isJoining || !ladderJoinOpenNow}
+                    className="flex w-full items-center px-4 py-2.5 font-semibold transition-opacity hover:opacity-70 disabled:opacity-50"
+                    style={{ backgroundColor: '#E5D82C' }}
+                  >
+                    {isJoining ? 'Går med…' : 'Gå med i stegen'}
+                  </button>
+                </div>
+              )}
+
+              {selectedLadder && (
+                <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
+                  <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
+                        Rankingslista
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => setRulesDialogOpen(true)}
+                        className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-md border border-white/25 bg-white/10 px-2 text-xs font-semibold text-white/90 transition-colors hover:border-white/40 hover:bg-white/15"
+                      >
+                        Regler
+                      </button>
+                    </div>
+                    <RankingsTable
+                      ladder={selectedLadder}
+                      currentUid={user.uid}
+                      ladderJoinOpenNow={ladderJoinOpenNow}
+                      isCompleted={isCompleted ?? false}
+                      onChallenge={(uid) => {
+                        setChallengeOpponentUid(uid)
+                        setReportingMatch(null)
+                      }}
+                    />
+                  </section>
+
+                  <div className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
+                    <div
+                      className="relative mb-4 flex w-full rounded-xl bg-white/10 p-1"
+                      role="tablist"
+                      aria-label="Välj kommande eller spelade stegmatcher"
+                    >
+                      <div
+                        className="absolute top-1 h-[calc(100%-8px)] w-[calc(50%-6px)] rounded-lg bg-[#F1E334] transition-[left] duration-300 ease-out"
+                        style={{
+                          left:
+                            matchesTab === 'spelade'
+                              ? 'calc(50% + 2px)'
+                              : '4px',
+                        }}
+                        aria-hidden
+                      />
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={matchesTab === 'kommande'}
+                        onClick={() => setMatchesTab('kommande')}
+                        className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 ${
+                          matchesTab === 'kommande'
+                            ? 'text-gray-900 hover:brightness-110 active:brightness-95'
+                            : 'text-white/60 hover:text-white/90 active:text-white'
+                        }`}
+                      >
+                        Kommande
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={matchesTab === 'spelade'}
+                        onClick={() => setMatchesTab('spelade')}
+                        className={`relative z-10 flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200 ${
+                          matchesTab === 'spelade'
+                            ? 'text-gray-900 hover:brightness-110 active:brightness-95'
+                            : 'text-white/60 hover:text-white/90 active:text-white'
+                        }`}
+                      >
+                        Spelade
+                      </button>
+                    </div>
+
+                    {matchesTab === 'kommande' &&
+                      (plannedMatches.length > 0 ? (
+                        <div className="space-y-2">
+                          {plannedMatches.map((match) => {
+                            const isInvolved =
+                              !isCompleted &&
+                              (match.playerAId === user.uid ||
+                                match.playerBId === user.uid)
+                            if (isInvolved) {
+                              return (
+                                <PlannedMatchReportRow
+                                  key={match.id}
+                                  match={match}
+                                  ladderId={selectedLadder.id}
+                                  expanded={reportingMatch?.id === match.id}
+                                  isCompleted={isCompleted ?? false}
+                                  onExpand={() => {
+                                    setReportingMatch(match)
+                                    setChallengeOpponentUid(null)
+                                  }}
+                                  onCollapse={() => setReportingMatch(null)}
+                                />
+                              )
+                            }
+                            return <MatchCard key={match.id} match={match} />
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
+                          {!ladderJoinOpenNow ? (
+                            <p className="font-medium text-white/85">
+                              Här visas kommande stegmatcher när spelare har
+                              gått med och bokat tider.
+                            </p>
+                          ) : (
+                            <p className="text-white/60">
+                              Inga stegmatcher bokade just nu.
+                            </p>
+                          )}
+                        </div>
+                      ))}
+
+                    {matchesTab === 'spelade' &&
+                      (completedMatches.length > 0 ? (
+                        <div className="space-y-2">
+                          {completedMatches.map((match) => (
+                            <MatchCard key={match.id} match={match} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
+                          {!ladderJoinOpenNow ? (
+                            <p className="font-medium text-white/85">
+                              Här visas spelade stegmatcher när matcher är
+                              avslutade.
+                            </p>
+                          ) : (
+                            <p className="text-white/60">
+                              Inga spelade stegmatcher än.
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -793,50 +922,56 @@ export function StegenPage() {
       {rulesDialogOpen ? (
         <LadderRulesSheetDialog onClose={() => setRulesDialogOpen(false)} />
       ) : null}
-      {challengeOpponent && challengeOpponentUid && ladder && !isDesktop && (
-        <BookingDrawer
-          existingBookings={existingBookings}
-          onSubmit={handleLadderMobileSubmit}
-          onClose={() => setChallengeOpponentUid(null)}
-          playerNames={{
-            playerA: user.displayName,
-            playerB: challengeOpponent.displayName ?? challengeOpponentUid,
-          }}
-        />
-      )}
-      {challengeOpponent && challengeOpponentUid && ladder && isDesktop && (
-        <SheetDialogShell
-          titleId="challenge-dialog-title"
-          title={`Utmana ${challengeOpponent.displayName ?? challengeOpponentUid}`}
-          onClose={() => setChallengeOpponentUid(null)}
-          maxHeightVariant="tall"
-        >
-          <BookingForm
-            variant="dialog"
-            hideSectionTitle
+      {challengeOpponent &&
+        challengeOpponentUid &&
+        selectedLadder &&
+        !isDesktop && (
+          <BookingDrawer
             existingBookings={existingBookings}
-            onSuccess={() => {
-              setChallengeOpponentUid(null)
-              void queryClient.invalidateQueries({
-                queryKey: LADDER_MATCHES_QUERY_KEY(ladder.id),
-              })
-              void queryClient.invalidateQueries({
-                queryKey: BOOKINGS_QUERY_KEY,
-              })
-              addToast('Match bokad!')
-            }}
-            user={user}
-            ladderMeta={{
-              ladderId: ladder.id,
-              playerAId: user.uid,
-              playerBId: challengeOpponentUid,
-              playerAName: user.displayName,
-              playerBName:
-                challengeOpponent.displayName ?? challengeOpponentUid,
+            onSubmit={handleLadderMobileSubmit}
+            onClose={() => setChallengeOpponentUid(null)}
+            playerNames={{
+              playerA: user.displayName,
+              playerB: challengeOpponent.displayName ?? challengeOpponentUid,
             }}
           />
-        </SheetDialogShell>
-      )}
+        )}
+      {challengeOpponent &&
+        challengeOpponentUid &&
+        selectedLadder &&
+        isDesktop && (
+          <SheetDialogShell
+            titleId="challenge-dialog-title"
+            title={`Utmana ${challengeOpponent.displayName ?? challengeOpponentUid}`}
+            onClose={() => setChallengeOpponentUid(null)}
+            maxHeightVariant="tall"
+          >
+            <BookingForm
+              variant="dialog"
+              hideSectionTitle
+              existingBookings={existingBookings}
+              onSuccess={() => {
+                setChallengeOpponentUid(null)
+                void queryClient.invalidateQueries({
+                  queryKey: LADDER_MATCHES_QUERY_KEY(selectedLadder.id),
+                })
+                void queryClient.invalidateQueries({
+                  queryKey: BOOKINGS_QUERY_KEY,
+                })
+                addToast('Match bokad!')
+              }}
+              user={user}
+              ladderMeta={{
+                ladderId: selectedLadder.id,
+                playerAId: user.uid,
+                playerBId: challengeOpponentUid,
+                playerAName: user.displayName,
+                playerBName:
+                  challengeOpponent.displayName ?? challengeOpponentUid,
+              }}
+            />
+          </SheetDialogShell>
+        )}
     </div>
   )
 }
