@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
 import { IconCheck, IconSelector } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { doc, updateDoc, deleteField, Timestamp } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
@@ -17,8 +19,13 @@ import {
 } from '../../services/UserService'
 import {
   createLadder,
+  completeLadder,
   getActiveLadder,
+  getAllLadders,
+  getLadderMatches,
   LADDER_QUERY_KEY,
+  LADDERS_QUERY_KEY,
+  LADDER_MATCHES_QUERY_KEY,
 } from '../../services/LadderService'
 
 // A simple toggle switch component.
@@ -326,20 +333,116 @@ export function AdminPage() {
     enabled: isAdminRole(role),
   })
 
+  const { data: allLadders } = useQuery({
+    queryKey: LADDERS_QUERY_KEY,
+    queryFn: getAllLadders,
+    enabled: isAdminRole(role),
+  })
+
+  // Create ladder dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [newLadderName, setNewLadderName] = useState('')
   const [isCreatingLadder, setIsCreatingLadder] = useState(false)
 
+  // Complete ladder confirmation state
+  const [completingLadderId, setCompletingLadderId] = useState<string | null>(
+    null
+  )
+  const [unplayedMatchCount, setUnplayedMatchCount] = useState<number>(0)
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
+  const [isLoadingComplete, setIsLoadingComplete] = useState(false)
+  const [isCompletingLadder, setIsCompletingLadder] = useState(false)
+
+  // Join date state
+  const [isSavingJoinDate, setIsSavingJoinDate] = useState(false)
+
+  function openCreateDialog() {
+    setNewLadderName(`Stegen ${new Date().getFullYear()}`)
+    setShowCreateDialog(true)
+  }
+
   async function handleCreateLadder() {
+    const trimmedName = newLadderName.trim()
+    if (!trimmedName) return
     setIsCreatingLadder(true)
     try {
       const year = new Date().getFullYear()
-      await createLadder(`Stegen ${year}`, year)
-      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
+      await createLadder(trimmedName, year)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY }),
+      ])
+      setShowCreateDialog(false)
       addToast('Stege skapad!')
     } catch (err) {
       console.error('Failed to create ladder:', err)
       addToast('Kunde inte skapa stege. Försök igen.', 'error')
     } finally {
       setIsCreatingLadder(false)
+    }
+  }
+
+  async function handleCompleteLadderClick(ladderId: string) {
+    setIsLoadingComplete(true)
+    try {
+      const matches = await getLadderMatches(ladderId)
+      const unplayed = matches.filter(
+        (m) => m.ladderStatus === 'planned'
+      ).length
+      setUnplayedMatchCount(unplayed)
+      setCompletingLadderId(ladderId)
+      setShowCompleteConfirm(true)
+    } catch (err) {
+      console.error('Failed to fetch ladder matches:', err)
+      addToast('Kunde inte hämta matcher. Försök igen.', 'error')
+    } finally {
+      setIsLoadingComplete(false)
+    }
+  }
+
+  async function handleConfirmComplete() {
+    if (!completingLadderId) return
+    setIsCompletingLadder(true)
+    try {
+      await completeLadder(completingLadderId)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY }),
+        queryClient.invalidateQueries({
+          queryKey: LADDER_MATCHES_QUERY_KEY(completingLadderId),
+        }),
+      ])
+      setShowCompleteConfirm(false)
+      setCompletingLadderId(null)
+      addToast('Stegen avslutad')
+    } catch (err) {
+      console.error('Failed to complete ladder:', err)
+      addToast('Kunde inte avsluta stegen. Försök igen.', 'error')
+    } finally {
+      setIsCompletingLadder(false)
+    }
+  }
+
+  async function handleSaveJoinDate(dateString: string) {
+    if (!activeLadder) return
+    setIsSavingJoinDate(true)
+    try {
+      const ladderRef = doc(db, 'ladders', activeLadder.id)
+      if (!dateString) {
+        await updateDoc(ladderRef, { joinOpensAt: deleteField() })
+      } else {
+        const date = new Date(dateString)
+        await updateDoc(ladderRef, {
+          joinOpensAt: Timestamp.fromDate(date),
+        })
+      }
+      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
+      addToast('Anmälningsdatum sparat')
+    } catch (err) {
+      console.error('Failed to save joinOpensAt:', err)
+      addToast('Kunde inte spara. Försök igen.', 'error')
+    } finally {
+      setIsSavingJoinDate(false)
     }
   }
 
@@ -397,8 +500,126 @@ export function AdminPage() {
     }
   }
 
+  // Format a Timestamp to a date string for <input type="date">
+  function timestampToDateInput(ts: Timestamp | null): string {
+    if (!ts) return ''
+    const d = ts.toDate()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+
   return (
     <div>
+      {/* Create ladder dialog */}
+      {showCreateDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCreateDialog(false)
+          }}
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-base font-semibold text-gray-900">
+              Skapa ny stege
+            </h3>
+            <div className="mb-4 space-y-1">
+              <label
+                htmlFor="new-ladder-name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Namn
+              </label>
+              <input
+                id="new-ladder-name"
+                type="text"
+                value={newLadderName}
+                onChange={(e) => setNewLadderName(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleCreateLadder()
+                  if (e.key === 'Escape') setShowCreateDialog(false)
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateDialog(false)}
+                className="min-h-[44px] rounded-lg px-4 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100"
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCreateLadder()}
+                disabled={isCreatingLadder || !newLadderName.trim()}
+                className="min-h-[44px] cursor-pointer rounded-lg px-4 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ backgroundColor: '#F1E334' }}
+              >
+                {isCreatingLadder ? 'Skapar…' : 'Skapa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete ladder confirmation dialog */}
+      {showCompleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCompleteConfirm(false)
+              setCompletingLadderId(null)
+            }
+          }}
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-base font-semibold text-gray-900">
+              Avsluta stegen?
+            </h3>
+            {unplayedMatchCount > 0 ? (
+              <p className="mb-4 text-sm text-gray-700">
+                Det finns{' '}
+                <span className="font-semibold text-orange-600">
+                  {unplayedMatchCount} ej rapporterade matcher
+                </span>
+                . Vill du ändå avsluta stegen?
+              </p>
+            ) : (
+              <p className="mb-4 text-sm text-gray-700">
+                Är du säker på att du vill avsluta stegen? Åtgärden kan inte
+                ångras.
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCompleteConfirm(false)
+                  setCompletingLadderId(null)
+                }}
+                disabled={isCompletingLadder}
+                className="min-h-[44px] rounded-lg px-4 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmComplete()}
+                disabled={isCompletingLadder}
+                className="min-h-[44px] cursor-pointer rounded-lg bg-gray-900 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                {isCompletingLadder ? 'Avslutar…' : 'Avsluta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="px-4 py-6">
         <div className="mx-auto max-w-lg space-y-8">
           <SettingsSection title="Bokning">
@@ -427,25 +648,119 @@ export function AdminPage() {
             </SettingsRow>
           </SettingsSection>
 
-          <SettingsSection title="Stegen">
-            {/* TODO Phase 2: Full ladder management UI (list, create with name, complete, joinOpensAt per ladder) */}
-            {!activeLadder && (
-              <SettingsRow
-                label="Ingen aktiv stege"
-                description="Skapa en stege för att aktivera rankinglistan"
-              >
+          <section>
+            <div className="mb-1 flex items-center justify-between px-1">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
+                Stegen
+              </h2>
+              {!activeLadder && (
                 <button
                   type="button"
-                  onClick={() => void handleCreateLadder()}
-                  disabled={isCreatingLadder}
-                  className="min-h-[44px] cursor-pointer rounded-lg px-4 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-50"
+                  onClick={openCreateDialog}
+                  className="min-h-[36px] cursor-pointer rounded-lg px-3 text-xs font-semibold text-gray-900 transition-opacity hover:opacity-80"
                   style={{ backgroundColor: '#F1E334' }}
                 >
-                  {isCreatingLadder ? 'Skapar…' : 'Skapa stege'}
+                  Skapa stege
                 </button>
-              </SettingsRow>
-            )}
-          </SettingsSection>
+              )}
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+              {/* Active ladder: join date row */}
+              {activeLadder && (
+                <div className="divide-y divide-gray-100">
+                  <div className="space-y-2 px-4 py-3">
+                    <p className="text-sm font-medium text-gray-900">
+                      Anmälningsstart
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Datum från vilket spelare kan anmäla sig till stegen
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        defaultValue={timestampToDateInput(
+                          activeLadder.joinOpensAt
+                        )}
+                        key={activeLadder.id}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none"
+                        onChange={(e) => {
+                          void handleSaveJoinDate(e.target.value)
+                        }}
+                        disabled={isSavingJoinDate}
+                      />
+                      {isSavingJoinDate && (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ladders table */}
+              {!allLadders || allLadders.length === 0 ? (
+                <div className="px-4 py-4 text-sm text-gray-500">
+                  Inga stegar skapade ännu.
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
+                        Namn
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
+                        Status
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
+                        Skapad
+                      </th>
+                      <th className="px-4 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {allLadders.map((ladder) => (
+                      <tr key={ladder.id}>
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          {ladder.name}
+                        </td>
+                        <td className="px-4 py-3">
+                          {ladder.status === 'active' ? (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                              Aktiv
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                              Avslutad
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {ladder.createdAt
+                            .toDate()
+                            .toLocaleDateString('sv-SE')}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {ladder.status === 'active' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void handleCompleteLadderClick(ladder.id)
+                              }
+                              disabled={isLoadingComplete}
+                              className="min-h-[36px] cursor-pointer rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              {isLoadingComplete ? 'Laddar…' : 'Avsluta stegen'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
 
           <SettingsSection title="Banner">
             <SettingsRow label="Visa banner">
