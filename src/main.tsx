@@ -7,6 +7,12 @@ import { routeTree } from './routeTree.gen'
 import { queryClient } from './queryClient'
 import './index.css'
 
+const BROWSER_TAB_TITLE_BASE = 'Högelids Tennisklubb – Boka bana'
+const tabPrefix = import.meta.env.VITE_BROWSER_TAB_PREFIX?.trim()
+document.title = tabPrefix
+  ? `${tabPrefix} | ${BROWSER_TAB_TITLE_BASE}`
+  : BROWSER_TAB_TITLE_BASE
+
 if (import.meta.env.DEV) {
   import('./lib/seed').then(({ seedBookings, seedHistoricalBookings }) => {
     const w = window as Window & {
