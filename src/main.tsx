@@ -18,7 +18,7 @@ if (import.meta.env.DEV) {
   })
 }
 
-const router = createRouter({ routeTree, basepath: '/hogelids-tk/' })
+const router = createRouter({ routeTree })
 
 declare module '@tanstack/react-router' {
   interface Register {
