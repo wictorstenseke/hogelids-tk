@@ -1,18 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
-import { deleteField, Timestamp } from 'firebase/firestore'
-import DatePicker, { registerLocale } from 'react-datepicker'
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
-import {
-  IconCheck,
-  IconChevronLeft,
-  IconChevronRight,
-  IconSelector,
-} from '@tabler/icons-react'
+import { IconCheck, IconSelector } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import 'react-datepicker/dist/react-datepicker.css'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
@@ -30,27 +20,6 @@ import {
   getActiveLadder,
   LADDER_QUERY_KEY,
 } from '../../services/LadderService'
-import { DateDisplayInput } from './BookingForm'
-import { SheetDialogShell } from './SheetDialogShell'
-import { useIsDesktop } from '../../lib/useIsDesktop'
-
-registerLocale('sv', sv)
-
-function ladderJoinOpensAtToInputValue(
-  ts: Timestamp | null | undefined
-): string {
-  if (!ts) return ''
-  const d = ts.toDate()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function localInputDateToStartOfDay(ymd: string): Date {
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(y, m - 1, d, 0, 0, 0, 0)
-}
 
 // A simple toggle switch component.
 interface ToggleProps {
@@ -358,30 +327,12 @@ export function AdminPage() {
   })
 
   const [isCreatingLadder, setIsCreatingLadder] = useState(false)
-  const isDesktop = useIsDesktop()
-  const [showDateSheet, setShowDateSheet] = useState(false)
-  const [pendingDate, setPendingDate] = useState<Date | null>(null)
-
-  const saveLadderJoinDate = useCallback(
-    async (date: Date) => {
-      await updateAppSettings({
-        ladderJoinOpensAt: Timestamp.fromDate(
-          localInputDateToStartOfDay(format(date, 'yyyy-MM-dd'))
-        ),
-      })
-        .then(() => addToast('Datum för anmälan sparat'))
-        .catch((err) => {
-          console.error('Failed to update ladderJoinOpensAt:', err)
-          addToast('Kunde inte spara ändringen.', 'error')
-        })
-    },
-    [addToast]
-  )
 
   async function handleCreateLadder() {
     setIsCreatingLadder(true)
     try {
-      await createLadder(new Date().getFullYear())
+      const year = new Date().getFullYear()
+      await createLadder(`Stegen ${year}`, year)
       await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Stege skapad!')
     } catch (err) {
@@ -477,194 +428,7 @@ export function AdminPage() {
           </SettingsSection>
 
           <SettingsSection title="Stegen">
-            <SettingsRow
-              label="Visa stegen"
-              description="Utmaningsstegen där medlemmar utmanar varandra och byter plats efter matcher"
-            >
-              <Toggle
-                id="ladder-enabled-toggle"
-                checked={settings?.ladderEnabled ?? true}
-                onChange={(value) => {
-                  void updateAppSettings({ ladderEnabled: value })
-                    .then(() =>
-                      addToast(
-                        value ? 'Stegen aktiverad' : 'Stegen inaktiverad'
-                      )
-                    )
-                    .catch((err) => {
-                      console.error('Failed to update ladderEnabled:', err)
-                      addToast('Kunde inte spara ändringen.', 'error')
-                    })
-                }}
-              />
-            </SettingsRow>
-            <div className="space-y-2 px-4 py-3">
-              <p className="text-sm font-medium text-gray-900">
-                Anmälan öppnar
-              </p>
-              {isDesktop ? (
-                <DatePicker
-                  id="ladder-join-opens-date"
-                  selected={
-                    settings?.ladderJoinOpensAt
-                      ? new Date(
-                          `${ladderJoinOpensAtToInputValue(settings.ladderJoinOpensAt)}T12:00:00`
-                        )
-                      : null
-                  }
-                  onChange={(date: Date | null) => {
-                    if (!date) return
-                    void saveLadderJoinDate(date)
-                  }}
-                  locale="sv"
-                  dateFormat="EEEE d MMMM"
-                  placeholderText="Välj datum"
-                  autoComplete="off"
-                  customInput={
-                    <DateDisplayInput
-                      appearance="light"
-                      aria-label="Anmälan öppnar"
-                    />
-                  }
-                  renderCustomHeader={({
-                    date,
-                    decreaseMonth,
-                    increaseMonth,
-                  }) => (
-                    <div className="flex items-center justify-between px-3 pb-2">
-                      <button
-                        type="button"
-                        onClick={decreaseMonth}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        <IconChevronLeft size={18} stroke={2} />
-                      </button>
-                      <span className="font-display text-base font-bold uppercase tracking-wide text-gray-900">
-                        {date.toLocaleDateString('sv-SE', {
-                          month: 'long',
-                          year: 'numeric',
-                        })}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={increaseMonth}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        <IconChevronRight size={18} stroke={2} />
-                      </button>
-                    </div>
-                  )}
-                />
-              ) : (
-                <DateDisplayInput
-                  appearance="light"
-                  aria-label="Anmälan öppnar"
-                  onClick={() => {
-                    setPendingDate(
-                      settings?.ladderJoinOpensAt
-                        ? new Date(
-                            `${ladderJoinOpensAtToInputValue(settings.ladderJoinOpensAt)}T12:00:00`
-                          )
-                        : null
-                    )
-                    setShowDateSheet(true)
-                  }}
-                  value={
-                    settings?.ladderJoinOpensAt
-                      ? new Date(
-                          `${ladderJoinOpensAtToInputValue(settings.ladderJoinOpensAt)}T12:00:00`
-                        ).toLocaleDateString('sv-SE', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                        })
-                      : ''
-                  }
-                />
-              )}
-              {settings?.ladderJoinOpensAt != null && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void updateAppSettings({
-                      ladderJoinOpensAt: deleteField(),
-                    })
-                      .then(() => addToast('Datum för anmälan borttaget'))
-                      .catch((err) => {
-                        console.error('Failed to clear ladderJoinOpensAt:', err)
-                        addToast('Kunde inte spara ändringen.', 'error')
-                      })
-                  }}
-                  className="text-sm text-gray-400 underline underline-offset-2 transition-colors hover:text-gray-600"
-                >
-                  Ta bort datum
-                </button>
-              )}
-            </div>
-
-            {showDateSheet && (
-              <SheetDialogShell
-                titleId="date-sheet-title"
-                title="Välj datum"
-                onClose={() => setShowDateSheet(false)}
-                scrollBody={false}
-                maxHeightVariant="short"
-              >
-                <div className="px-5 pb-6 pt-2">
-                  <DatePicker
-                    inline
-                    calendarClassName="!w-full"
-                    selected={pendingDate}
-                    onChange={(date: Date | null) => {
-                      if (date) setPendingDate(date)
-                    }}
-                    locale="sv"
-                    renderCustomHeader={({
-                      date,
-                      decreaseMonth,
-                      increaseMonth,
-                    }) => (
-                      <div className="flex items-center justify-between pb-2">
-                        <button
-                          type="button"
-                          onClick={decreaseMonth}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                        >
-                          <IconChevronLeft size={18} stroke={2} />
-                        </button>
-                        <span className="font-display text-base font-bold uppercase tracking-wide text-gray-900">
-                          {date.toLocaleDateString('sv-SE', {
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={increaseMonth}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                        >
-                          <IconChevronRight size={18} stroke={2} />
-                        </button>
-                      </div>
-                    )}
-                  />
-                  <button
-                    type="button"
-                    disabled={!pendingDate}
-                    onClick={() => {
-                      if (!pendingDate) return
-                      void saveLadderJoinDate(pendingDate).then(() =>
-                        setShowDateSheet(false)
-                      )
-                    }}
-                    className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-40"
-                    style={{ backgroundColor: '#F1E334' }}
-                  >
-                    Spara
-                  </button>
-                </div>
-              </SheetDialogShell>
-            )}
+            {/* TODO Phase 2: Full ladder management UI (list, create with name, complete, joinOpensAt per ladder) */}
             {!activeLadder && (
               <SettingsRow
                 label="Ingen aktiv stege"

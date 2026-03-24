@@ -7,7 +7,6 @@ import {
 } from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
-import { useAppSettings } from '../../lib/useAppSettings'
 import {
   getActiveLadder,
   joinLadder,
@@ -465,7 +464,6 @@ export function StegenPage() {
 
   const { addToast } = useToast()
   const queryClient = useQueryClient()
-  const { settings } = useAppSettings()
 
   const isDesktop = useIsDesktop()
 
@@ -499,12 +497,13 @@ export function StegenPage() {
     queryFn: getUpcomingBookings,
   })
 
-  const ladderEnabled = settings?.ladderEnabled ?? true
-  const ladderJoinOpensAt = settings?.ladderJoinOpensAt ?? null
+  // TODO Phase 2/3: ladderEnabled moves to per-ladder; use true as placeholder until UI is rewritten
+  const ladderEnabled = true
   const ladderJoinOpenNow = isLadderJoinOpenNow(
-    { ladderJoinOpensAt },
+    { joinOpensAt: ladder?.joinOpensAt ?? null },
     new Date()
   )
+  const ladderJoinOpensAt = ladder?.joinOpensAt ?? null
   const ladderJoinOpenDateLabel =
     ladderJoinOpensAt != null
       ? new Intl.DateTimeFormat('sv-SE', { dateStyle: 'long' }).format(
@@ -546,12 +545,7 @@ export function StegenPage() {
     if (!ladder) return
     setIsJoining(true)
     try {
-      await joinLadder(
-        ladder.id,
-        user!.uid,
-        user!.displayName,
-        settings?.ladderJoinOpensAt ?? null
-      )
+      await joinLadder(ladder.id, user!.uid, user!.displayName)
       await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Du har gått med i stegen!')
     } catch (err) {

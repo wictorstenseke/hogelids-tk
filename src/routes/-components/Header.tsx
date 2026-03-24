@@ -2,7 +2,6 @@ import { Link } from '@tanstack/react-router'
 import type { AuthUser } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
-import { useAppSettings } from '../../lib/useAppSettings'
 import { useAuthModal } from '../../lib/AuthModalContext'
 import { AvatarMenu } from './AvatarMenu'
 import { AdminNavButton, DesktopNav } from './DesktopNav'
@@ -22,8 +21,8 @@ export function Header({
 }: HeaderProps) {
   const role = useRole()
   const isAdmin = user ? isAdminRole(role) : false
-  const { settings } = useAppSettings()
-  const ladderEnabled = user ? (settings?.ladderEnabled ?? true) : false
+  // TODO Phase 2/3: ladder visibility will be driven by active ladder presence, not a global toggle
+  const ladderEnabled = !!user
   const { openAuthModal } = useAuthModal()
 
   return (

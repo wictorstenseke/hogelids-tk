@@ -3,6 +3,7 @@ import {
   getDocs,
   query,
   where,
+  orderBy,
   doc,
   addDoc,
   updateDoc,
@@ -26,47 +27,70 @@ export interface Ladder {
   id: string
   name: string
   year: number
-  status: 'active' | 'archived'
+  status: 'active' | 'completed'
+  joinOpensAt: Timestamp | null
   createdAt: Timestamp
   participants: LadderParticipant[]
 }
 
 export const LADDER_QUERY_KEY = ['ladder', 'active'] as const
+export const LADDERS_QUERY_KEY = ['ladders', 'all'] as const
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDocToLadder(docSnap: { id: string; data: () => any }): Ladder {
+  const data = docSnap.data()
+  return {
+    id: docSnap.id,
+    name: data['name'] as string,
+    year: data['year'] as number,
+    status: data['status'] as 'active' | 'completed',
+    joinOpensAt:
+      data['joinOpensAt'] != null ? (data['joinOpensAt'] as Timestamp) : null,
+    createdAt: data['createdAt'] as Timestamp,
+    participants: (data['participants'] ?? []) as LadderParticipant[],
+  }
+}
 
 export async function getActiveLadder(): Promise<Ladder | null> {
   const laddersRef = collection(db, 'ladders')
   const q = query(laddersRef, where('status', '==', 'active'))
   const snapshot = await getDocs(q)
   if (snapshot.empty) return null
-  const docSnap = snapshot.docs[0]
-  const data = docSnap.data()
-  return {
-    id: docSnap.id,
-    name: data['name'] as string,
-    year: data['year'] as number,
-    status: data['status'] as 'active' | 'archived',
-    createdAt: data['createdAt'] as Timestamp,
-    participants: (data['participants'] ?? []) as LadderParticipant[],
-  }
+  return mapDocToLadder(snapshot.docs[0])
 }
 
-export async function createLadder(year: number): Promise<string> {
+export async function getAllLadders(): Promise<Ladder[]> {
+  const laddersRef = collection(db, 'ladders')
+  const q = query(laddersRef, orderBy('createdAt', 'desc'))
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map(mapDocToLadder)
+}
+
+export async function createLadder(
+  name: string,
+  year: number
+): Promise<string> {
   const laddersRef = collection(db, 'ladders')
   const docRef = await addDoc(laddersRef, {
-    name: `Stegen ${year}`,
+    name,
     year,
     status: 'active',
+    joinOpensAt: null,
     participants: [],
     createdAt: Timestamp.fromDate(new Date()),
   })
   return docRef.id
 }
 
+export async function completeLadder(ladderId: string): Promise<void> {
+  const ladderRef = doc(db, 'ladders', ladderId)
+  await updateDoc(ladderRef, { status: 'completed' })
+}
+
 export async function joinLadder(
   ladderId: string,
   uid: string,
-  displayName: string,
-  joinOpensAt: Timestamp | null = null
+  displayName: string
 ): Promise<void> {
   const ladderRef = doc(db, 'ladders', ladderId)
   const snapshot = await getDoc(ladderRef)
@@ -74,6 +98,8 @@ export async function joinLadder(
   const data = snapshot.data()
   const participants: LadderParticipant[] = (data['participants'] ??
     []) as LadderParticipant[]
+  const joinOpensAt =
+    data['joinOpensAt'] != null ? (data['joinOpensAt'] as Timestamp) : null
 
   // Already active — no-op
   if (participants.some((p) => p.uid === uid && !p.paused)) return
@@ -82,10 +108,7 @@ export async function joinLadder(
   const activeCount = participants.filter((p) => !p.paused).length
 
   // New sign-ups only (not paused rejoin) respect the optional open date.
-  if (
-    !existing &&
-    !isLadderJoinOpenNow({ ladderJoinOpensAt: joinOpensAt }, new Date())
-  ) {
+  if (!existing && !isLadderJoinOpenNow({ joinOpensAt }, new Date())) {
     throw new Error('Ladder join is not open yet')
   }
 
