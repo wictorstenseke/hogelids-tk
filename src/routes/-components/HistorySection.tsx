@@ -44,6 +44,15 @@ function formatHistoryDateRange(booking: BookingWithId): string {
   return `${dateStr} · ${formatTimeDisplay(start)} – ${formatTimeDisplay(end)}`
 }
 
+/** Date only — historik list scans better without times (full range in title tooltip). */
+function formatHistoryDateLabel(booking: BookingWithId): string {
+  const start = booking.startTime.toDate()
+  return start.toLocaleDateString('sv-SE', {
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
 type Tab = 'statistik' | 'historik'
 
 interface YearQueryResult {
@@ -141,12 +150,25 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
               </p>
               <ul className="border-t border-white/10">
                 {bookings.map((booking) => (
-                  <li key={booking.id} className="border-b border-white/10">
-                    <div className="flex items-center gap-3 py-2.5">
-                      <span className="shrink-0 text-sm font-semibold tabular-nums tracking-[-0.02em] text-white/90">
-                        {formatHistoryDateRange(booking)}
+                  <li
+                    key={booking.id}
+                    className="min-w-0 border-b border-white/10"
+                  >
+                    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 py-2.5">
+                      <span
+                        title={formatHistoryDateRange(booking)}
+                        className="text-sm font-semibold tabular-nums tracking-[-0.02em] text-white/90"
+                      >
+                        {formatHistoryDateLabel(booking)}
                       </span>
-                      <span className="ml-auto shrink-0 rounded-md bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      <span
+                        title={
+                          booking.playerAId
+                            ? `${booking.playerAName} vs ${booking.playerBName}`
+                            : (booking.ownerDisplayName ?? '')
+                        }
+                        className="inline-block min-w-0 max-w-full justify-self-end truncate rounded-md bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white/80 w-fit"
+                      >
                         {booking.playerAId
                           ? `${booking.playerAName} vs ${booking.playerBName}`
                           : booking.ownerDisplayName}
