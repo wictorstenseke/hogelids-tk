@@ -24,6 +24,7 @@ import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
 import { LadderRulesSheetDialog } from './LadderRulesSheetDialog'
 import { SheetDialogShell } from './SheetDialogShell'
 import { GlassNoticeCard } from './GlassNoticeCard'
+import { MenuSelect } from './MenuSelect'
 import {
   deleteMemberBooking,
   findConflictingBooking,
@@ -639,6 +640,15 @@ export function StegenPage() {
     return active ? active.id : allLadders[0].id
   }, [allLadders])
 
+  const ladderOptions = useMemo(
+    () =>
+      allLadders.map((l) => ({
+        value: l.id,
+        label: l.status === 'completed' ? `${l.name} (avslutad)` : l.name,
+      })),
+    [allLadders]
+  )
+
   const effectiveLadderId = selectedLadderId ?? defaultLadderId
   const selectedLadder =
     allLadders.find((l) => l.id === effectiveLadderId) ?? null
@@ -797,43 +807,26 @@ export function StegenPage() {
             <>
               {/* Selector row */}
               {allLadders.length > 1 && (
-                <div className="flex items-center gap-3">
-                  <select
+                <div className="flex w-full justify-end">
+                  <MenuSelect
                     value={effectiveLadderId ?? ''}
-                    onChange={(e) => {
-                      setSelectedLadderId(e.target.value)
+                    onChange={(id) => {
+                      setSelectedLadderId(id)
                       setReportingMatch(null)
                       setChallengeOpponentUid(null)
                     }}
-                    className="min-h-[44px] flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 focus:border-gray-400 focus:outline-none"
-                    aria-label="Välj stege"
-                  >
-                    {allLadders.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.status === 'completed'
-                          ? `${l.name} (avslutad)`
-                          : l.name}
-                      </option>
-                    ))}
-                  </select>
-                  {isCompleted && (
-                    <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
-                      Avslutad
-                    </span>
-                  )}
+                    options={ladderOptions}
+                    ariaLabel="Välj stege"
+                    className="min-w-0 w-auto max-w-[min(100%,14rem)]"
+                  />
                 </div>
               )}
 
-              {/* Single ladder: show name + badge if completed */}
-              {allLadders.length === 1 && isCompleted && (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-gray-800">
-                    {selectedLadder?.name}
-                  </p>
-                  <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
-                    Avslutad
-                  </span>
-                </div>
+              {/* Single ladder: show name when completed (no selector) */}
+              {allLadders.length === 1 && isCompleted && selectedLadder && (
+                <p className="text-sm font-semibold text-gray-800">
+                  {selectedLadder.name}
+                </p>
               )}
 
               {/* Join banner — hidden on completed ladders */}

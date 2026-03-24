@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { IconCheck, IconSelector } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Timestamp } from 'firebase/firestore'
 import { useAuth } from '../../lib/useAuth'
@@ -31,6 +29,8 @@ import {
   LADDERS_QUERY_KEY,
   LADDER_MATCHES_QUERY_KEY,
 } from '../../services/LadderService'
+import { AdminJoinDateField } from './AdminJoinDateField'
+import { MenuSelect } from './MenuSelect'
 
 // A simple toggle switch component.
 interface ToggleProps {
@@ -108,7 +108,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   superuser: 'Superuser',
 }
 
-// Custom role dropdown — styled to match admin card, touch-friendly.
+// Custom role dropdown — uses shared MenuSelect (same as Stegen ladder picker).
 interface RoleSelectOption {
   value: UserRole
   label: string
@@ -121,97 +121,14 @@ interface RoleSelectProps {
 }
 
 function RoleSelect({ value, onChange, options }: RoleSelectProps) {
-  const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
-  const triggerRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      const target = e.target as Node
-      if (
-        triggerRef.current &&
-        !triggerRef.current.contains(target) &&
-        !document.getElementById('role-select-dropdown')?.contains(target)
-      ) {
-        setOpen(false)
-      }
-    }
-    if (open) document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
-
-  useEffect(() => {
-    if (open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect()
-      setPosition({
-        top: rect.bottom + 6,
-        left: rect.right - 140,
-      })
-    }
-  }, [open])
-
   const selectedLabel = options.find((o) => o.value === value)?.label ?? value
-
-  const dropdown = open && (
-    <ul
-      id="role-select-dropdown"
-      role="listbox"
-      className="fixed z-9999 min-w-[140px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
-      style={{ top: position.top, left: position.left }}
-    >
-      {options.map((opt) => (
-        <li key={opt.value} role="option" aria-selected={opt.value === value}>
-          <button
-            type="button"
-            onClick={() => {
-              onChange(opt.value)
-              setOpen(false)
-            }}
-            className={[
-              'flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-medium transition-colors',
-              opt.value === value
-                ? 'bg-[#F1E334] text-gray-900'
-                : 'text-gray-700 hover:bg-gray-50',
-            ].join(' ')}
-          >
-            <span>{opt.label}</span>
-            {opt.value === value && (
-              <IconCheck size={18} stroke={2} className="shrink-0" />
-            )}
-          </button>
-        </li>
-      ))}
-    </ul>
-  )
-
   return (
-    <div className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={[
-          'flex min-h-[44px] min-w-[120px] items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors',
-          open
-            ? 'border-[#F1E334] bg-white ring-2 ring-[#F1E334]/25'
-            : 'border-gray-300 bg-gray-50 text-gray-900 hover:border-gray-400 hover:bg-gray-100',
-        ].join(' ')}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-label={`Roll: ${selectedLabel}`}
-      >
-        <span>{selectedLabel}</span>
-        <IconSelector
-          size={18}
-          stroke={1.5}
-          className={[
-            'shrink-0 text-gray-500 transition-transform',
-            open && 'rotate-180',
-          ].join(' ')}
-        />
-      </button>
-      {dropdown && createPortal(dropdown, document.body)}
-    </div>
+    <MenuSelect
+      value={value}
+      onChange={(v) => onChange(v as UserRole)}
+      options={options}
+      ariaLabel={`Roll: ${selectedLabel}`}
+    />
   )
 }
 
@@ -499,6 +416,9 @@ export function AdminPage() {
     bannerLinkTextOverride ?? settings?.bannerLinkText ?? ''
   const bannerLinkUrl = bannerLinkUrlOverride ?? settings?.bannerLinkUrl ?? ''
 
+  const completedLadders =
+    allLadders?.filter((l) => l.status === 'completed') ?? []
+
   const hasBannerChanges =
     bannerText !== (settings?.bannerText ?? '') ||
     bannerLinkText !== (settings?.bannerLinkText ?? '') ||
@@ -669,118 +589,115 @@ export function AdminPage() {
             </SettingsRow>
           </SettingsSection>
 
-          <section>
-            <div className="mb-1 flex items-center justify-between px-1">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
-                Stegen
-              </h2>
-              {!activeLadder && (
-                <button
-                  type="button"
-                  onClick={openCreateDialog}
-                  className="min-h-[36px] cursor-pointer rounded-lg px-3 text-xs font-semibold text-gray-900 transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: '#F1E334' }}
-                >
-                  Skapa stege
-                </button>
-              )}
-            </div>
+          <section className="space-y-3">
+            <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
+              Stegen
+            </h2>
 
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-              {/* Active ladder: join date row */}
-              {activeLadder && (
-                <div className="divide-y divide-gray-100">
-                  <div className="space-y-2 px-4 py-3">
-                    <p className="text-sm font-medium text-gray-900">
-                      Anmälningsstart
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Datum från vilket spelare kan anmäla sig till stegen
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="date"
-                        defaultValue={timestampToDateInput(
-                          activeLadder.joinOpensAt
-                        )}
-                        key={activeLadder.id}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none"
-                        onChange={(e) => {
-                          void handleSaveJoinDate(e.target.value)
-                        }}
-                        disabled={isSavingJoinDate}
-                      />
-                      {isSavingJoinDate && (
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-                      )}
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
+              {/* Aktiv stege */}
+              <div className="divide-y divide-gray-100">
+                <div className="space-y-2 px-4 pt-3 pb-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Aktiv stege
+                  </h3>
+                  <p className="text-xs leading-snug text-gray-600">
+                    En aktiv stege i taget. Avsluta den innan du skapar ny.
+                  </p>
+                </div>
+                {activeLadder ? (
+                  <div className="mx-4 my-3 overflow-hidden rounded-lg border border-gray-200/80 bg-gray-50 divide-y divide-gray-200/70">
+                    <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold text-gray-900">
+                          {activeLadder.name}
+                        </p>
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                          Aktiv
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleCompleteLadderClick(activeLadder.id)
+                        }
+                        disabled={loadingCompleteForId === activeLadder.id}
+                        className="min-h-[36px] w-full shrink-0 cursor-pointer rounded-lg border border-gray-300/90 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+                      >
+                        {loadingCompleteForId === activeLadder.id
+                          ? 'Laddar…'
+                          : 'Avsluta stegen'}
+                      </button>
+                    </div>
+                    <div className="space-y-2 px-3 py-3 sm:px-4">
+                      <p className="text-sm font-medium text-gray-900">
+                        Anmälningsstart för {activeLadder.name}
+                      </p>
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <AdminJoinDateField
+                          key={activeLadder.id}
+                          value={timestampToDateInput(activeLadder.joinOpensAt)}
+                          onSelect={(v) => void handleSaveJoinDate(v)}
+                          disabled={isSavingJoinDate}
+                          saving={isSavingJoinDate}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-gray-600">
+                      {allLadders && allLadders.length === 0
+                        ? 'Inga stegar skapade ännu.'
+                        : 'Ingen aktiv stege just nu.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openCreateDialog}
+                      className="min-h-[44px] w-full shrink-0 cursor-pointer rounded-lg px-4 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 sm:w-auto"
+                      style={{ backgroundColor: '#F1E334' }}
+                    >
+                      Skapa stege
+                    </button>
+                  </div>
+                )}
+              </div>
 
-              {/* Ladders table */}
-              {!allLadders || allLadders.length === 0 ? (
-                <div className="px-4 py-4 text-sm text-gray-500">
-                  Inga stegar skapade ännu.
-                </div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
-                        Namn
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
-                        Status
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
-                        Skapad
-                      </th>
-                      <th className="px-4 py-2" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {allLadders.map((ladder) => (
-                      <tr key={ladder.id}>
-                        <td className="px-4 py-3 font-medium text-gray-900">
-                          {ladder.name}
-                        </td>
-                        <td className="px-4 py-3">
-                          {ladder.status === 'active' ? (
-                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                              Aktiv
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                              Avslutad
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-gray-500">
-                          {ladder.createdAt
-                            .toDate()
-                            .toLocaleDateString('sv-SE')}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {ladder.status === 'active' && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void handleCompleteLadderClick(ladder.id)
-                              }
-                              disabled={loadingCompleteForId === ladder.id}
-                              className="min-h-[36px] cursor-pointer rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-                            >
-                              {loadingCompleteForId === ladder.id
-                                ? 'Laddar…'
-                                : 'Avsluta stegen'}
-                            </button>
-                          )}
-                        </td>
+              {/* Avslutade stegar */}
+              {completedLadders.length > 0 && (
+                <div>
+                  <div className="border-b border-gray-100 bg-gray-50 px-4 py-2.5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      Avslutade stegar
+                    </h3>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-white">
+                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
+                          Namn
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">
+                          Skapad
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {completedLadders.map((ladder) => (
+                        <tr key={ladder.id}>
+                          <td className="px-4 py-3 font-medium text-gray-900">
+                            {ladder.name}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {ladder.createdAt
+                              .toDate()
+                              .toLocaleDateString('sv-SE')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </section>

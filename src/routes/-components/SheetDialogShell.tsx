@@ -27,6 +27,8 @@ export interface SheetDialogShellProps {
   children: ReactNode
   /** Scrollable body; use for long content */
   scrollBody?: boolean
+  /** Pinned below the scroll area (e.g. primary action on mobile) */
+  footer?: ReactNode
   maxHeightVariant?: SheetDialogMaxHeightVariant
   /** Desktop modal width (mobile sheet is always full width) */
   dialogMaxWidth?: keyof typeof DIALOG_MAX_WIDTH
@@ -38,6 +40,7 @@ export function SheetDialogShell({
   onClose,
   children,
   scrollBody = true,
+  footer,
   maxHeightVariant = 'default',
   dialogMaxWidth = 'md',
 }: SheetDialogShellProps) {
@@ -210,6 +213,11 @@ export function SheetDialogShell({
           ) : (
             children
           )}
+          {footer ? (
+            <div className="shrink-0 border-t border-gray-100 pt-4">
+              {footer}
+            </div>
+          ) : null}
         </div>
       </div>
     </>
