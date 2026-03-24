@@ -558,7 +558,8 @@ export function StegenPage() {
   const effectiveLadderId = selectedLadderId ?? defaultLadderId
   const selectedLadder =
     allLadders.find((l) => l.id === effectiveLadderId) ?? null
-  const isCompleted = selectedLadder?.status === 'completed'
+  const isCompleted =
+    selectedLadder !== null && selectedLadder?.status === 'completed'
 
   const { data: matches = [] } = useQuery({
     queryKey: selectedLadder
@@ -797,7 +798,7 @@ export function StegenPage() {
                       ladder={selectedLadder}
                       currentUid={user.uid}
                       ladderJoinOpenNow={ladderJoinOpenNow}
-                      isCompleted={isCompleted ?? false}
+                      isCompleted={isCompleted}
                       onChallenge={(uid) => {
                         setChallengeOpponentUid(uid)
                         setReportingMatch(null)
@@ -864,7 +865,7 @@ export function StegenPage() {
                                   match={match}
                                   ladderId={selectedLadder.id}
                                   expanded={reportingMatch?.id === match.id}
-                                  isCompleted={isCompleted ?? false}
+                                  isCompleted={isCompleted}
                                   onExpand={() => {
                                     setReportingMatch(match)
                                     setChallengeOpponentUid(null)
@@ -922,7 +923,8 @@ export function StegenPage() {
       {rulesDialogOpen ? (
         <LadderRulesSheetDialog onClose={() => setRulesDialogOpen(false)} />
       ) : null}
-      {challengeOpponent &&
+      {!isCompleted &&
+        challengeOpponent &&
         challengeOpponentUid &&
         selectedLadder &&
         !isDesktop && (
@@ -936,7 +938,8 @@ export function StegenPage() {
             }}
           />
         )}
-      {challengeOpponent &&
+      {!isCompleted &&
+        challengeOpponent &&
         challengeOpponentUid &&
         selectedLadder &&
         isDesktop && (
