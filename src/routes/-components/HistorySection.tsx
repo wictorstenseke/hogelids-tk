@@ -95,7 +95,9 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
   for (const year of selectedYears) {
     const r = results.get(year)
     if (r?.data) {
-      combinedBookings.push(...r.data)
+      combinedBookings.push(
+        ...r.data.filter((b) => b.ownerEmail !== 'imported@htk.se')
+      )
     }
   }
   combinedBookings.sort(

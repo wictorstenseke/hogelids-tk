@@ -18,6 +18,7 @@ export function computeStats(
   let totalBookings = 0
 
   for (const booking of bookings) {
+    if (booking.ownerEmail === 'imported@htk.se') continue
     const date = booking.startTime.toDate()
     const year = date.getFullYear()
     if (!selectedYearsSet.has(year)) continue
