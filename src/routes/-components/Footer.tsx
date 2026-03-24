@@ -17,7 +17,7 @@ export function Footer() {
     <footer className="bg-[#164a2a]">
       <div className="mx-auto max-w-lg px-4 py-10 md:max-w-3xl">
         {/* Brand: full width above columns so layout stays balanced */}
-        <div className="mb-8 flex flex-row flex-wrap items-center justify-center gap-3 sm:justify-start">
+        <div className="mb-8 flex flex-row flex-wrap items-center justify-start gap-3">
           <img
             src="/htk-logo.svg"
             alt=""
@@ -68,12 +68,12 @@ export function Footer() {
             <p className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-0.5">
               Övrigt
             </p>
-            <ul className="space-y-0 sm:space-y-2">
+            <ul className="flex flex-col gap-0 sm:gap-2">
               <li>
                 <button
                   type="button"
                   onClick={() => setAboutClubOpen(true)}
-                  className="min-h-[44px] w-full cursor-pointer text-left text-sm text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:min-h-0 sm:py-0.5"
+                  className="flex w-full cursor-pointer items-center py-2 text-left text-sm leading-snug text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:py-0.5"
                 >
                   Om klubben
                 </button>
@@ -82,7 +82,7 @@ export function Footer() {
                 <button
                   type="button"
                   onClick={() => setContactOpen(true)}
-                  className="min-h-[44px] w-full cursor-pointer text-left text-sm text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:min-h-0 sm:py-0.5"
+                  className="flex w-full cursor-pointer items-center py-2 text-left text-sm leading-snug text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:py-0.5"
                 >
                   Kontakt
                 </button>
@@ -91,7 +91,7 @@ export function Footer() {
                 <button
                   type="button"
                   onClick={() => setChangelogOpen(true)}
-                  className="min-h-[44px] w-full cursor-pointer text-left text-sm text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:min-h-0 sm:py-0.5"
+                  className="flex w-full cursor-pointer items-center py-2 text-left text-sm leading-snug text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:py-0.5"
                 >
                   Senaste uppdateringar
                 </button>
@@ -101,7 +101,7 @@ export function Footer() {
                   href="https://github.com/wictorstenseke/hogelids-tk"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-[44px] items-center gap-1.5 text-sm text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:min-h-0 sm:py-0.5"
+                  className="flex w-full items-center gap-1.5 py-2 text-sm leading-snug text-white/70 transition-colors hover:text-white hover:underline underline-offset-2 sm:py-0.5"
                 >
                   <span>GitHub</span>
                   <IconExternalLink

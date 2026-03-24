@@ -18,6 +18,8 @@ import { isLadderJoinOpenNow } from '../lib/ladderJoinWindow'
 export interface LadderParticipant {
   uid: string
   displayName: string
+  /** From profile at join / rejoin; shown in rankings for contact. */
+  phone?: string | null
   position: number // 1-indexed; lower = higher ranked
   wins: number
   losses: number
@@ -103,7 +105,8 @@ export async function setLadderJoinDate(
 export async function joinLadder(
   ladderId: string,
   uid: string,
-  displayName: string
+  displayName: string,
+  phone: string | null = null
 ): Promise<void> {
   const ladderRef = doc(db, 'ladders', ladderId)
   const snapshot = await getDoc(ladderRef)
@@ -129,7 +132,13 @@ export async function joinLadder(
     // Rejoin: move to bottom, keep stats, mark active
     const updated = participants.map((p) =>
       p.uid === uid
-        ? { ...p, displayName, paused: false, position: activeCount + 1 }
+        ? {
+            ...p,
+            displayName,
+            paused: false,
+            position: activeCount + 1,
+            phone: phone ?? p.phone ?? null,
+          }
         : p
     )
     await updateDoc(ladderRef, { participants: updated })
@@ -138,6 +147,7 @@ export async function joinLadder(
     const newParticipant: LadderParticipant = {
       uid,
       displayName,
+      phone: phone || null,
       position: activeCount + 1,
       wins: 0,
       losses: 0,

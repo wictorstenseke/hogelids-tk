@@ -154,7 +154,7 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
                     key={booking.id}
                     className="min-w-0 border-b border-white/10"
                   >
-                    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 py-2.5">
+                    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 py-2.5 sm:gap-3">
                       <span
                         title={formatHistoryDateRange(booking)}
                         className="text-sm font-semibold tabular-nums tracking-[-0.02em] text-white/90"
@@ -167,7 +167,7 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
                             ? `${booking.playerAName} vs ${booking.playerBName}`
                             : (booking.ownerDisplayName ?? '')
                         }
-                        className="inline-block min-w-0 max-w-full justify-self-end truncate rounded-md bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white/80 w-fit"
+                        className="inline-block min-w-0 max-w-full justify-self-start truncate rounded-md bg-white/15 px-2.5 py-0.5 text-left text-xs font-semibold text-white/80 w-fit"
                       >
                         {booking.playerAId
                           ? `${booking.playerAName} vs ${booking.playerBName}`
@@ -198,6 +198,15 @@ function getMonthAbbr(monthIndex: number): string {
   return new Date(2000, monthIndex, 1).toLocaleDateString('sv-SE', {
     month: 'short',
   })
+}
+
+function totalBookingsForYear(
+  byYearByMonth: Record<number, Record<number, number>>,
+  year: number
+): number {
+  const byMonth = byYearByMonth[year]
+  if (!byMonth) return 0
+  return Object.values(byMonth).reduce((sum, n) => sum + n, 0)
 }
 
 function buildMonthChartData(
@@ -372,6 +381,11 @@ function StatistikTab({
                 ) : (
                   <>
                     <Legend
+                      formatter={(value: string) => {
+                        const y = Number(value)
+                        const n = totalBookingsForYear(stats.byYearByMonth, y)
+                        return `${value} (${n})`
+                      }}
                       wrapperStyle={{
                         color: 'rgba(255,255,255,0.8)',
                         fontSize: 13,
@@ -487,8 +501,8 @@ export function HistorySection({
         Historik &amp; Statistik
       </h2>
 
-      {/* Segmented control — capped width; does not span full section */}
-      <div className="relative mb-4 flex w-full max-w-72 rounded-xl bg-white/10 p-1">
+      {/* Segmented control — full width ≤480px; capped at max-w-72 from 481px up */}
+      <div className="relative mb-4 flex w-full max-w-none min-[481px]:max-w-72 rounded-xl bg-white/10 p-1">
         <div
           className="absolute top-1 h-[calc(100%-8px)] w-[calc(50%-6px)] rounded-lg bg-[#F1E334] transition-[left] duration-300 ease-out"
           style={{

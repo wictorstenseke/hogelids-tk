@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
 
 import {
   IconSquareRoundedChevronRight,
@@ -28,6 +29,7 @@ import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
 import { LadderRulesSheetDialog } from './LadderRulesSheetDialog'
 import { SheetDialogShell } from './SheetDialogShell'
 import { GlassNoticeCard } from './GlassNoticeCard'
+import { ParticipantPhoneSheetDialog } from './ParticipantPhoneSheetDialog'
 import { MenuSelect } from './MenuSelect'
 import {
   deleteMemberBooking,
@@ -99,10 +101,27 @@ interface RankingsTableProps {
   /** När satt: visar "Gå med i stegen" i tom lista (under text) eller ovanför listan om andra redan gått med. */
   onJoin?: () => void
   isJoining?: boolean
+  /** Inloggad användares profiltelefon — används på egen rad om stege-dokumentet saknar phone. */
+  viewerProfilePhone?: string | null
 }
 
 const joinCtaButtonClass =
   'flex min-h-[44px] w-full min-[480px]:w-auto cursor-pointer items-center justify-center rounded-lg border border-[#d4c92e] bg-[#F1E334] px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50'
+
+/** Ladder doc may omit phone until next join; fall back to viewer profile on own row. */
+function resolveParticipantPhoneDisplay(
+  participant: LadderParticipant,
+  currentUid: string,
+  viewerProfilePhone: string | null | undefined
+): string | null {
+  const fromLadder = participant.phone?.trim()
+  if (fromLadder) return fromLadder
+  if (participant.uid === currentUid) {
+    const fromProfile = viewerProfilePhone?.trim()
+    return fromProfile || null
+  }
+  return null
+}
 
 function RankingsTable({
   ladder,
@@ -112,6 +131,7 @@ function RankingsTable({
   isCompleted,
   onJoin,
   isJoining = false,
+  viewerProfilePhone,
 }: RankingsTableProps) {
   const active = getActiveParticipants(ladder.participants)
   const paused = getPausedParticipants(ladder.participants)
@@ -179,6 +199,11 @@ function RankingsTable({
             const isMe = participant.uid === currentUid
 
             const name = participant.displayName || participant.uid
+            const phoneDisplay = resolveParticipantPhoneDisplay(
+              participant,
+              currentUid,
+              viewerProfilePhone
+            )
 
             const rowClass = 'flex min-w-0 items-center gap-3 py-2.5 pr-2'
 
@@ -187,10 +212,10 @@ function RankingsTable({
                 <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
                   {participant.position}
                 </span>
-                <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span
                     title={name}
-                    className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none ${
+                    className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none ${
                       isMe
                         ? 'bg-[#F1E334] text-gray-900'
                         : 'bg-white/15 text-white/90'
@@ -198,6 +223,12 @@ function RankingsTable({
                   >
                     {name}
                   </span>
+                  {phoneDisplay ? (
+                    <ParticipantPhoneSheetDialog
+                      displayName={name}
+                      phone={phoneDisplay}
+                    />
+                  ) : null}
                 </div>
                 <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
                   {formatStats(participant.wins, participant.losses)}
@@ -234,6 +265,11 @@ function RankingsTable({
             {paused.map((participant) => {
               const name = participant.displayName || participant.uid
               const isMe = participant.uid === currentUid
+              const phoneDisplay = resolveParticipantPhoneDisplay(
+                participant,
+                currentUid,
+                viewerProfilePhone
+              )
               return (
                 <li
                   key={participant.uid}
@@ -242,10 +278,10 @@ function RankingsTable({
                   <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/30">
                     —
                   </span>
-                  <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
                     <span
                       title={name}
-                      className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none opacity-50 ${
+                      className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none opacity-50 ${
                         isMe
                           ? 'bg-[#F1E334] text-gray-900'
                           : 'bg-white/15 text-white/90'
@@ -253,6 +289,12 @@ function RankingsTable({
                     >
                       {name}
                     </span>
+                    {phoneDisplay ? (
+                      <ParticipantPhoneSheetDialog
+                        displayName={name}
+                        phone={phoneDisplay}
+                      />
+                    ) : null}
                   </div>
                   <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/30">
                     {formatStats(participant.wins, participant.losses)}
@@ -676,6 +718,12 @@ export function StegenPage() {
   const [joinWelcomeBannerDismissed, setJoinWelcomeBannerDismissed] =
     useState(false)
 
+  const { data: profile } = useQuery({
+    queryKey: [PROFILE_QUERY_KEY, user?.uid],
+    queryFn: () => getProfile(user!.uid),
+    enabled: !!user?.uid,
+  })
+
   const { data: allLadders = [], isLoading: laddersLoading } = useQuery({
     queryKey: LADDERS_QUERY_KEY,
     queryFn: getAllLadders,
@@ -695,7 +743,7 @@ export function StegenPage() {
     setJoinWelcomeBannerDismissed(
       getJoinWelcomeBannerDismissedLadderId() === activeLadder.id
     )
-  }, [activeLadder?.id])
+  }, [activeLadder])
 
   const completedLadders = useMemo(
     () =>
@@ -819,7 +867,12 @@ export function StegenPage() {
     if (!activeLadder) return
     setIsJoining(true)
     try {
-      await joinLadder(activeLadder.id, user!.uid, user!.displayName)
+      await joinLadder(
+        activeLadder.id,
+        user!.uid,
+        user!.displayName ?? '',
+        profile?.phone?.trim() || null
+      )
       await queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY })
       addToast('Du har gått med i stegen!')
     } catch (err) {
@@ -1002,6 +1055,7 @@ export function StegenPage() {
                       isCompleted={false}
                       onJoin={() => void handleJoin()}
                       isJoining={isJoining}
+                      viewerProfilePhone={profile?.phone ?? null}
                       onChallenge={(uid) => {
                         setChallengeOpponentUid(uid)
                         setReportingMatch(null)
@@ -1159,6 +1213,7 @@ export function StegenPage() {
                           currentUid={user.uid}
                           ladderJoinOpenNow={false}
                           isCompleted
+                          viewerProfilePhone={profile?.phone ?? null}
                           onChallenge={() => {}}
                         />
                       </section>

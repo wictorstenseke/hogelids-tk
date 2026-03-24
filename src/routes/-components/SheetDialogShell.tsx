@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { IconX } from '@tabler/icons-react'
 import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 
@@ -22,6 +29,7 @@ const DIALOG_MAX_WIDTH: Record<'md' | 'lg', string> = {
 
 export interface SheetDialogShellProps {
   titleId: string
+  /** Visible title; when `hideTitle` is true, still used for a screen-reader-only heading. */
   title: ReactNode
   onClose: () => void
   children: ReactNode
@@ -32,6 +40,10 @@ export interface SheetDialogShellProps {
   maxHeightVariant?: SheetDialogMaxHeightVariant
   /** Desktop modal width (mobile sheet is always full width) */
   dialogMaxWidth?: keyof typeof DIALOG_MAX_WIDTH
+  /** Hide the visible title row; `title` remains in an `sr-only` heading for `aria-labelledby`. */
+  hideTitle?: boolean
+  /** Short helper text below the title row (full width under heading + close). */
+  description?: ReactNode
 }
 
 export function SheetDialogShell({
@@ -43,7 +55,10 @@ export function SheetDialogShell({
   footer,
   maxHeightVariant = 'default',
   dialogMaxWidth = 'md',
+  hideTitle = false,
+  description,
 }: SheetDialogShellProps) {
+  const descriptionId = useId()
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -149,6 +164,7 @@ export function SheetDialogShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         className={[
           'fixed z-50 flex min-h-0 flex-col bg-white shadow-2xl',
           maxH,
@@ -188,22 +204,40 @@ export function SheetDialogShell({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col px-5 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-5">
-          <div className="mb-4 flex shrink-0 items-center justify-between gap-3 sm:mb-4">
-            <h2
-              id={titleId}
-              className="font-display text-[18px] font-bold uppercase tracking-wide text-gray-900"
+        <div className="flex min-h-0 flex-1 flex-col px-5 pt-2 pb-[calc(2rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-8 sm:pt-5">
+          <div className="mb-4 flex shrink-0 flex-col gap-2 sm:mb-4">
+            <div
+              className={`flex shrink-0 items-center gap-3 ${
+                hideTitle ? 'justify-end' : 'justify-between'
+              }`}
             >
-              {title}
-            </h2>
-            <button
-              type="button"
-              onClick={handleClose}
-              aria-label="Stäng"
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800"
-            >
-              <IconX size={18} stroke={2} />
-            </button>
+              <h2
+                id={titleId}
+                className={
+                  hideTitle
+                    ? 'sr-only'
+                    : 'font-display text-[18px] font-bold uppercase tracking-wide text-gray-900'
+                }
+              >
+                {title}
+              </h2>
+              <button
+                type="button"
+                onClick={handleClose}
+                aria-label="Stäng"
+                className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800"
+              >
+                <IconX size={18} stroke={2} />
+              </button>
+            </div>
+            {description ? (
+              <div
+                id={descriptionId}
+                className="text-sm leading-snug text-gray-600"
+              >
+                {description}
+              </div>
+            ) : null}
           </div>
 
           {scrollBody ? (
