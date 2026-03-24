@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
 import { IconCheck, IconSelector } from '@tabler/icons-react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Timestamp } from 'firebase/firestore'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
 import type { UserProfile, UserRole } from '../../services/AuthService'
 import { useAppSettings } from '../../lib/useAppSettings'
-import { updateAppSettings } from '../../services/AppSettingsService'
+import {
+  updateAppSettings,
+  APP_SETTINGS_QUERY_KEY,
+  type AppSettings,
+} from '../../services/AppSettingsService'
 import { useToast } from '../../lib/ToastContext'
 import {
   listAllUsers,
@@ -327,6 +331,29 @@ export function AdminPage() {
 
   const queryClient = useQueryClient()
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: updateAppSettings,
+    onMutate: async (update) => {
+      await queryClient.cancelQueries({ queryKey: APP_SETTINGS_QUERY_KEY })
+      const previous = queryClient.getQueryData<AppSettings>(
+        APP_SETTINGS_QUERY_KEY
+      )
+      queryClient.setQueryData<AppSettings>(APP_SETTINGS_QUERY_KEY, (old) =>
+        old ? { ...old, ...(update as Partial<AppSettings>) } : old
+      )
+      return { previous }
+    },
+    onError: (_err, _update, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(APP_SETTINGS_QUERY_KEY, context.previous)
+      }
+      addToast('Något gick fel. Försök igen.', 'error')
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: APP_SETTINGS_QUERY_KEY })
+    },
+  })
+
   const { data: activeLadder } = useQuery({
     queryKey: LADDER_QUERY_KEY,
     queryFn: getActiveLadder,
@@ -626,18 +653,17 @@ export function AdminPage() {
                 id="booking-enabled-toggle"
                 checked={settings?.bookingEnabled ?? true}
                 onChange={(value) => {
-                  void updateAppSettings({ bookingEnabled: value })
-                    .then(() =>
-                      addToast(
-                        value
-                          ? 'Bokningar aktiverade'
-                          : 'Bokningar inaktiverade'
-                      )
-                    )
-                    .catch((err) => {
-                      console.error('Failed to update bookingEnabled:', err)
-                      addToast('Kunde inte spara ändringen.', 'error')
-                    })
+                  updateSettingsMutation.mutate(
+                    { bookingEnabled: value },
+                    {
+                      onSuccess: () =>
+                        addToast(
+                          value
+                            ? 'Bokningar aktiverade'
+                            : 'Bokningar inaktiverade'
+                        ),
+                    }
+                  )
                 }}
               />
             </SettingsRow>
@@ -765,14 +791,13 @@ export function AdminPage() {
                 id="banner-visible-toggle"
                 checked={settings?.bannerVisible ?? false}
                 onChange={(value) => {
-                  void updateAppSettings({ bannerVisible: value })
-                    .then(() =>
-                      addToast(value ? 'Banner visas nu' : 'Banner dold')
-                    )
-                    .catch((err) => {
-                      console.error('Failed to update bannerVisible:', err)
-                      addToast('Kunde inte spara ändringen.', 'error')
-                    })
+                  updateSettingsMutation.mutate(
+                    { bannerVisible: value },
+                    {
+                      onSuccess: () =>
+                        addToast(value ? 'Banner visas nu' : 'Banner dold'),
+                    }
+                  )
                 }}
               />
             </SettingsRow>
