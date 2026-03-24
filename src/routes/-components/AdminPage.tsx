@@ -3,8 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
 import { IconCheck, IconSelector } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { doc, updateDoc, deleteField, Timestamp } from 'firebase/firestore'
-import { db } from '../../lib/firebase'
+import type { Timestamp } from 'firebase/firestore'
 import { useAuth } from '../../lib/useAuth'
 import { useRole } from '../../lib/useRole'
 import { isAdminRole } from '../../services/AuthService'
@@ -23,6 +22,7 @@ import {
   getActiveLadder,
   getAllLadders,
   getLadderMatches,
+  setLadderJoinDate,
   LADDER_QUERY_KEY,
   LADDERS_QUERY_KEY,
   LADDER_MATCHES_QUERY_KEY,
@@ -350,7 +350,9 @@ export function AdminPage() {
   )
   const [unplayedMatchCount, setUnplayedMatchCount] = useState<number>(0)
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
-  const [isLoadingComplete, setIsLoadingComplete] = useState(false)
+  const [loadingCompleteForId, setLoadingCompleteForId] = useState<
+    string | null
+  >(null)
   const [isCompletingLadder, setIsCompletingLadder] = useState(false)
 
   // Join date state
@@ -383,7 +385,7 @@ export function AdminPage() {
   }
 
   async function handleCompleteLadderClick(ladderId: string) {
-    setIsLoadingComplete(true)
+    setLoadingCompleteForId(ladderId)
     try {
       const matches = await getLadderMatches(ladderId)
       const unplayed = matches.filter(
@@ -396,7 +398,7 @@ export function AdminPage() {
       console.error('Failed to fetch ladder matches:', err)
       addToast('Kunde inte hämta matcher. Försök igen.', 'error')
     } finally {
-      setIsLoadingComplete(false)
+      setLoadingCompleteForId(null)
     }
   }
 
@@ -427,15 +429,8 @@ export function AdminPage() {
     if (!activeLadder) return
     setIsSavingJoinDate(true)
     try {
-      const ladderRef = doc(db, 'ladders', activeLadder.id)
-      if (!dateString) {
-        await updateDoc(ladderRef, { joinOpensAt: deleteField() })
-      } else {
-        const date = new Date(dateString)
-        await updateDoc(ladderRef, {
-          joinOpensAt: Timestamp.fromDate(date),
-        })
-      }
+      const date = dateString ? new Date(dateString) : null
+      await setLadderJoinDate(activeLadder.id, date)
       await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Anmälningsdatum sparat')
     } catch (err) {
@@ -444,6 +439,16 @@ export function AdminPage() {
     } finally {
       setIsSavingJoinDate(false)
     }
+  }
+
+  // Format a Timestamp to a date string for <input type="date">
+  function timestampToDateInput(ts: Timestamp | null): string {
+    if (!ts) return ''
+    const d = ts.toDate()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
   }
 
   const isAdmin = isAdminRole(role)
@@ -498,16 +503,6 @@ export function AdminPage() {
     } finally {
       setIsSaving(false)
     }
-  }
-
-  // Format a Timestamp to a date string for <input type="date">
-  function timestampToDateInput(ts: Timestamp | null): string {
-    if (!ts) return ''
-    const d = ts.toDate()
-    const yyyy = d.getFullYear()
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
-    return `${yyyy}-${mm}-${dd}`
   }
 
   return (
@@ -747,10 +742,12 @@ export function AdminPage() {
                               onClick={() =>
                                 void handleCompleteLadderClick(ladder.id)
                               }
-                              disabled={isLoadingComplete}
+                              disabled={loadingCompleteForId === ladder.id}
                               className="min-h-[36px] cursor-pointer rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
                             >
-                              {isLoadingComplete ? 'Laddar…' : 'Avsluta stegen'}
+                              {loadingCompleteForId === ladder.id
+                                ? 'Laddar…'
+                                : 'Avsluta stegen'}
                             </button>
                           )}
                         </td>

@@ -10,6 +10,7 @@ import {
   writeBatch,
   Timestamp,
   getDoc,
+  deleteField,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { isLadderJoinOpenNow } from '../lib/ladderJoinWindow'
@@ -85,6 +86,18 @@ export async function createLadder(
 export async function completeLadder(ladderId: string): Promise<void> {
   const ladderRef = doc(db, 'ladders', ladderId)
   await updateDoc(ladderRef, { status: 'completed' })
+}
+
+export async function setLadderJoinDate(
+  ladderId: string,
+  date: Date | null
+): Promise<void> {
+  const ladderRef = doc(db, 'ladders', ladderId)
+  if (date === null) {
+    await updateDoc(ladderRef, { joinOpensAt: deleteField() })
+  } else {
+    await updateDoc(ladderRef, { joinOpensAt: Timestamp.fromDate(date) })
+  }
 }
 
 export async function joinLadder(
