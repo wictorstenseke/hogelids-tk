@@ -29,6 +29,7 @@ import { useIsDesktop } from '../../lib/useIsDesktop'
 import { TimeSelect } from './TimeSelect'
 import { BookingDrawer } from './BookingDrawer'
 import { BOOKING_PRIMARY_BUTTON_CLASS } from '../../lib/bookingPrimaryButtonClass'
+import { resolveBookingInterval } from '../../lib/bookingInterval'
 
 registerLocale('sv', sv)
 
@@ -122,19 +123,15 @@ export function BookingForm({
   // Mobile drawer
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const startDate =
-    dateValue && startTimeValue
-      ? new Date(`${dateValue}T${startTimeValue}`)
+  const resolvedDesktopInterval =
+    dateValue && startTimeValue && endTimeValue
+      ? resolveBookingInterval(dateValue, startTimeValue, endTimeValue)
       : null
-  const endDate =
-    dateValue && endTimeValue ? new Date(`${dateValue}T${endTimeValue}`) : null
+  const startDate = resolvedDesktopInterval?.start ?? null
+  const endDate = resolvedDesktopInterval?.end ?? null
 
   const conflictingBooking =
-    startDate &&
-    endDate &&
-    !isNaN(startDate.getTime()) &&
-    !isNaN(endDate.getTime()) &&
-    endDate > startDate
+    startDate && endDate
       ? findConflictingBooking(existingBookings, startDate, endDate)
       : null
   const conflictDetected = conflictingBooking !== null
@@ -156,18 +153,16 @@ export function BookingForm({
       return
     }
 
-    const start = new Date(`${dateValue}T${startTimeValue}`)
-    const end = new Date(`${dateValue}T${endTimeValue}`)
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      setSubmitError('Ogiltigt datum eller tid.')
-      return
-    }
-
-    if (end <= start) {
+    const resolved = resolveBookingInterval(
+      dateValue,
+      startTimeValue,
+      endTimeValue
+    )
+    if (!resolved) {
       setSubmitError('Sluttiden måste vara efter starttiden.')
       return
     }
+    const { start, end } = resolved
 
     setIsSubmitting(true)
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
@@ -209,6 +204,9 @@ export function BookingForm({
       }
       addToast('Bokning skapad!')
       onSuccess(start, end, { isGuestBooking: !user })
+      setDateValue('')
+      setStartTimeValue('')
+      setEndTimeValue('')
     } catch (err) {
       addToast(
         err instanceof Error
@@ -228,8 +226,11 @@ export function BookingForm({
     endTime: string
   ) {
     const effectiveEmail = user ? user.email : email.trim()
-    const start = new Date(`${date}T${startTime}`)
-    const end = new Date(`${date}T${endTime}`)
+    const resolved = resolveBookingInterval(date, startTime, endTime)
+    if (!resolved) {
+      throw new Error('Sluttiden måste vara efter starttiden.')
+    }
+    const { start, end } = resolved
 
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
     const freshBookings =

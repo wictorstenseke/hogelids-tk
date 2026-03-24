@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { IconX } from '@tabler/icons-react'
 import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 
@@ -82,7 +83,7 @@ export function ConfirmSheetDialog({
       ? { transform: `translateY(${dragOffset}px)`, transition: 'none' }
       : undefined
 
-  return (
+  return createPortal(
     <>
       <div
         className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 motion-reduce:backdrop-blur-none sm:duration-150 ${visible ? 'opacity-100' : 'opacity-0'}`}
@@ -159,6 +160,7 @@ export function ConfirmSheetDialog({
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }

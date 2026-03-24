@@ -33,6 +33,8 @@ import {
   getUpcomingBookings,
   BOOKINGS_QUERY_KEY,
 } from '../../services/BookingService'
+import { resolveBookingInterval } from '../../lib/bookingInterval'
+import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -48,25 +50,32 @@ function getPausedParticipants(participants: LadderParticipant[]) {
 }
 
 function formatMatchDateHeading(match: LadderMatch): string {
-  const date = match.startTime.toDate()
-  return date.toLocaleDateString('sv-SE', {
+  const start = match.startTime.toDate()
+  const end = match.endTime.toDate()
+  const dateStr = start.toLocaleDateString('sv-SE', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
+  const timeStr = `${formatTimeDisplay(start)}–${formatTimeDisplay(end)}`
+  return `${dateStr} · ${timeStr}`
 }
 
 function MatchPlayersLine({
   playerA,
   playerB,
+  tone = 'light',
 }: {
   playerA: string
   playerB: string
+  tone?: 'light' | 'dark'
 }) {
+  const nameClass = tone === 'dark' ? 'text-white' : 'text-gray-900'
+  const motClass = tone === 'dark' ? 'text-white/55' : 'text-gray-400'
   return (
-    <p className="text-sm text-gray-900">
+    <p className={`text-sm ${nameClass}`}>
       <span className="font-semibold">{playerA}</span>{' '}
-      <span className="font-normal text-gray-400">mot</span>{' '}
+      <span className={`font-medium ${motClass}`}>mot</span>{' '}
       <span className="font-semibold">{playerB}</span>
     </p>
   )
@@ -231,28 +240,32 @@ function MatchCard({ match }: MatchCardProps) {
       : '?'
     const loserName = match.winnerId === match.playerAId ? playerB : playerA
     return (
-      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+      <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-white/60">
               {formatMatchDateHeading(match)}
             </p>
             <div className="mt-0.5">
               {match.winnerId ? (
-                <MatchPlayersLine playerA={winnerName} playerB={loserName} />
+                <MatchPlayersLine
+                  playerA={winnerName}
+                  playerB={loserName}
+                  tone="dark"
+                />
               ) : (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-white/60">
                   Inget resultat registrerat
                 </p>
               )}
             </div>
           </div>
-          <span className="inline-flex shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+          <span className="inline-flex shrink-0 items-center rounded-full bg-white/15 px-2 py-0.5 text-xs text-white/80">
             Avklarad
           </span>
         </div>
         {match.ladderComment && (
-          <p className="mt-2 text-xs text-gray-500 italic">
+          <p className="mt-2 text-xs italic text-white/55">
             {match.ladderComment}
           </p>
         )}
@@ -261,10 +274,10 @@ function MatchCard({ match }: MatchCardProps) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-      <p className="text-xs text-gray-400">{formatMatchDateHeading(match)}</p>
+    <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+      <p className="text-xs text-white/60">{formatMatchDateHeading(match)}</p>
       <div className="mt-0.5">
-        <MatchPlayersLine playerA={playerA} playerB={playerB} />
+        <MatchPlayersLine playerA={playerA} playerB={playerB} tone="dark" />
       </div>
     </div>
   )
@@ -287,6 +300,11 @@ function PlannedMatchReportRow({
   onCollapse,
   isCompleted,
 }: PlannedMatchReportRowProps) {
+  const queryClient = useQueryClient()
+  const { addToast } = useToast()
+  const [cancelChallengeOpen, setCancelChallengeOpen] = useState(false)
+  const [deleteInProgress, setDeleteInProgress] = useState(false)
+
   const playerA = match.playerAName
   const playerB = match.playerBName
 
@@ -307,59 +325,92 @@ function PlannedMatchReportRow({
     else onExpand()
   }
 
+  async function handleConfirmDeleteChallenge() {
+    setCancelChallengeOpen(false)
+    setDeleteInProgress(true)
+    try {
+      await deleteMemberBooking(match.id)
+      await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+      await queryClient.invalidateQueries({
+        queryKey: LADDER_MATCHES_QUERY_KEY(ladderId),
+      })
+      addToast('Utmaning avbruten')
+      onCollapse()
+    } catch {
+      addToast('Kunde inte ta bort bokningen.', 'error')
+    } finally {
+      setDeleteInProgress(false)
+    }
+  }
+
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-      <button
-        type="button"
-        onClick={() => toggleHeader()}
-        aria-expanded={expanded}
-        aria-label={
-          expanded
-            ? 'Stäng rapportformulär'
-            : 'Rapportera resultat, öppna formulär'
-        }
-        className="flex min-h-[44px] w-full items-center gap-2 py-3 pl-4 pr-3 text-left transition-colors hover:bg-gray-50/80"
-      >
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-gray-400">
-            {formatMatchDateHeading(match)}
-          </p>
-          <div className="mt-0.5">
-            <MatchPlayersLine playerA={playerA} playerB={playerB} />
+    <>
+      <div className="overflow-hidden rounded-xl border border-white/20 bg-white/10 text-white">
+        <button
+          type="button"
+          onClick={() => toggleHeader()}
+          aria-expanded={expanded}
+          aria-label={
+            expanded
+              ? 'Stäng rapportformulär'
+              : 'Rapportera resultat, öppna formulär'
+          }
+          className={`flex min-h-[44px] w-full items-center gap-2 py-3 pl-4 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 ${
+            expanded ? 'bg-black/20 backdrop-blur-sm' : 'hover:bg-white/10'
+          }`}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-white/60">
+              {formatMatchDateHeading(match)}
+            </p>
+            <div className="mt-0.5">
+              <MatchPlayersLine
+                playerA={playerA}
+                playerB={playerB}
+                tone="dark"
+              />
+            </div>
           </div>
-        </div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-800">
-          <IconSquareRoundedChevronRight
-            size={24}
-            stroke={1.5}
-            className={`transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}
-            aria-hidden
-          />
-        </span>
-      </button>
-      <div
-        className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
-          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-        }`}
-      >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/15 hover:text-white">
+            <IconSquareRoundedChevronRight
+              size={24}
+              stroke={1.5}
+              className={`transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}
+              aria-hidden
+            />
+          </span>
+        </button>
         <div
-          className={`min-h-0 overflow-hidden ${expanded ? '' : 'pointer-events-none'}`}
+          className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+            expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+          }`}
         >
           <div
-            className="border-t border-gray-100 px-4 pb-4 pt-3"
-            aria-hidden={!expanded}
-            inert={expanded ? undefined : true}
+            className={`min-h-0 overflow-hidden ${expanded ? '' : 'pointer-events-none'}`}
           >
-            <ReportForm
-              match={match}
-              ladderId={ladderId}
-              onDone={onCollapse}
-              embedded
-            />
+            <div
+              className="border-t border-white/10 bg-black/20 px-4 pb-4 pt-3 backdrop-blur-sm"
+              aria-hidden={!expanded}
+              inert={expanded ? undefined : true}
+            >
+              <ReportForm
+                match={match}
+                ladderId={ladderId}
+                onDone={onCollapse}
+                embedded
+                onDeleteTrashClick={() => setCancelChallengeOpen(true)}
+                deleteInProgress={deleteInProgress}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      <LadderChallengeCancelSheet
+        open={cancelChallengeOpen}
+        onCancel={() => setCancelChallengeOpen(false)}
+        onConfirm={() => void handleConfirmDeleteChallenge()}
+      />
+    </>
   )
 }
 
@@ -368,6 +419,9 @@ interface ReportFormProps {
   ladderId: string
   onDone: () => void
   embedded?: boolean
+  /** When set with embedded, trash opens parent-owned delete dialog instead of rendering one inside ReportForm */
+  onDeleteTrashClick?: () => void
+  deleteInProgress?: boolean
 }
 
 function ReportForm({
@@ -375,6 +429,8 @@ function ReportForm({
   ladderId,
   onDone,
   embedded = false,
+  onDeleteTrashClick,
+  deleteInProgress = false,
 }: ReportFormProps) {
   const { addToast } = useToast()
   const queryClient = useQueryClient()
@@ -383,6 +439,8 @@ function ReportForm({
   const [saving, setSaving] = useState(false)
   const [cancelChallengeOpen, setCancelChallengeOpen] = useState(false)
   const [isDeletingLadder, setIsDeletingLadder] = useState(false)
+
+  const useExternalDeleteDialog = Boolean(embedded && onDeleteTrashClick)
 
   const loserId =
     winnerId === match.playerAId ? match.playerBId : match.playerAId
@@ -444,7 +502,11 @@ function ReportForm({
             Rapportera resultat
           </p>
         )}
-        <p className="text-sm font-semibold text-gray-900">Vinnare</p>
+        <p
+          className={`text-sm font-semibold ${embedded ? 'text-white' : 'text-gray-900'}`}
+        >
+          Vinnare
+        </p>
         <div
           className="grid grid-cols-2 gap-2"
           role="group"
@@ -458,10 +520,14 @@ function ReportForm({
                 type="button"
                 onClick={() => setWinnerId(uid)}
                 aria-pressed={selected}
-                className={`min-h-[44px] cursor-pointer rounded-lg border-2 px-2 py-2 text-center text-sm font-semibold transition-all ${
+                className={`min-h-[44px] cursor-pointer rounded-lg px-2 py-2 text-center text-sm font-semibold transition-all ${
                   selected
-                    ? 'border-gray-900 bg-[#F1E334] text-gray-900'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50/90'
+                    ? embedded
+                      ? 'border-2 border-[#d4c92e] bg-[#F1E334] text-gray-900 shadow-sm'
+                      : 'border-2 border-gray-900 bg-[#F1E334] text-gray-900'
+                    : embedded
+                      ? 'border border-white/20 bg-transparent text-white hover:border-white/40 hover:bg-transparent'
+                      : 'border-2 border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50/90'
                 }`}
               >
                 {name}
@@ -478,16 +544,28 @@ function ReportForm({
               ? 'Skriv gärna ett kort matchreferat'
               : 'Kommentar (valfri)'
           }
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none"
+          className={
+            embedded
+              ? 'w-full rounded-lg border border-white/20 bg-transparent px-3 py-2 text-sm text-white placeholder-white/45 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20'
+              : 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-500 focus:outline-none'
+          }
         />
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setCancelChallengeOpen(true)}
-            disabled={saving || isDeletingLadder}
+            onClick={() =>
+              useExternalDeleteDialog
+                ? onDeleteTrashClick?.()
+                : setCancelChallengeOpen(true)
+            }
+            disabled={saving || isDeletingLadder || deleteInProgress}
             aria-label="Avbryt utmaning"
             title="Avbryt utmaning"
-            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className={
+              embedded
+                ? 'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 disabled:cursor-not-allowed disabled:opacity-40'
+                : 'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40'
+            }
           >
             <IconTrash size={20} stroke={1.75} aria-hidden />
           </button>
@@ -495,28 +573,38 @@ function ReportForm({
             <button
               type="button"
               onClick={onDone}
-              className="min-h-[44px] cursor-pointer rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              className={
+                embedded
+                  ? 'min-h-[44px] cursor-pointer rounded-lg px-4 text-sm font-medium text-white/90 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40'
+                  : 'min-h-[44px] cursor-pointer rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50'
+              }
             >
               Avbryt
             </button>
             <button
               type="submit"
               disabled={!winnerId || saving}
-              className="min-h-[44px] cursor-pointer rounded-lg border border-[#0f3019] bg-[#194b29] px-5 text-sm font-semibold text-white shadow-sm transition-[filter,box-shadow] hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100"
+              className={
+                embedded
+                  ? 'min-h-[44px] cursor-pointer rounded-lg border border-[#d4c92e] bg-[#F1E334] px-5 text-sm font-semibold text-gray-900 shadow-sm transition-opacity hover:opacity-90 active:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50'
+                  : 'min-h-[44px] cursor-pointer rounded-lg border border-[#0f3019] bg-[#194b29] px-5 text-sm font-semibold text-white shadow-sm transition-[filter,box-shadow] hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100'
+              }
             >
               {saving ? 'Sparar…' : 'Spara'}
             </button>
           </div>
         </div>
       </form>
-      <LadderChallengeCancelSheet
-        open={cancelChallengeOpen}
-        onCancel={() => setCancelChallengeOpen(false)}
-        onConfirm={() => {
-          setCancelChallengeOpen(false)
-          void handleDeleteLadderBooking()
-        }}
-      />
+      {!useExternalDeleteDialog && (
+        <LadderChallengeCancelSheet
+          open={cancelChallengeOpen}
+          onCancel={() => setCancelChallengeOpen(false)}
+          onConfirm={() => {
+            setCancelChallengeOpen(false)
+            void handleDeleteLadderBooking()
+          }}
+        />
+      )}
     </>
   )
 }
@@ -525,7 +613,6 @@ function ReportForm({
 
 export function StegenPage() {
   const { user, loading: authLoading } = useAuth()
-
   const { addToast } = useToast()
   const queryClient = useQueryClient()
 
@@ -654,8 +741,11 @@ export function StegenPage() {
   ) {
     if (!selectedLadder || !challengeOpponentUid || !challengeOpponent || !user)
       return
-    const start = new Date(`${date}T${startTime}`)
-    const end = new Date(`${date}T${endTime}`)
+    const resolved = resolveBookingInterval(date, startTime, endTime)
+    if (!resolved) {
+      throw new Error('Sluttiden måste vara efter starttiden.')
+    }
+    const { start, end } = resolved
     await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
     const freshBookings =
       queryClient.getQueryData<typeof existingBookings>(BOOKINGS_QUERY_KEY) ??

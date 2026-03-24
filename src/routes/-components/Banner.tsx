@@ -1,5 +1,6 @@
 import { IconExternalLink } from '@tabler/icons-react'
 import type { AppSettings } from '../../services/AppSettingsService'
+import { GlassNoticeCard } from './GlassNoticeCard'
 
 interface BannerProps {
   settings: AppSettings
@@ -15,23 +16,22 @@ export function Banner({ settings }: BannerProps) {
     settings.bannerLinkText?.trim() || settings.bannerLinkUrl || ''
 
   return (
-    <div
-      className="overflow-hidden rounded-xl text-sm text-gray-800"
-      style={{ backgroundColor: '#F1E334' }}
+    <GlassNoticeCard
+      action={
+        hasLink ? (
+          <a
+            href={settings.bannerLinkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-[44px] w-full items-center justify-start gap-2 px-6 py-2.5 font-semibold text-white underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
+          >
+            {linkLabel}
+            <IconExternalLink size={16} stroke={2} className="shrink-0" />
+          </a>
+        ) : undefined
+      }
     >
-      <p className="px-4 py-3">{settings.bannerText}</p>
-      {hasLink && (
-        <a
-          href={settings.bannerLinkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2.5 font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
-          style={{ backgroundColor: '#E5D82C' }}
-        >
-          {linkLabel}
-          <IconExternalLink size={16} stroke={2} className="shrink-0" />
-        </a>
-      )}
-    </div>
+      <p className="px-6 py-4 text-white/90">{settings.bannerText}</p>
+    </GlassNoticeCard>
   )
 }

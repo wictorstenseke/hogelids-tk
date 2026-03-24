@@ -25,11 +25,12 @@ export function LadderChallengeCancelSheet({
             Du håller på att ta bort en match i stegen. Det innebär att följande
             raderas permanent:
           </p>
-          <ul className="list-disc space-y-1 pl-5 marker:text-gray-600">
-            <li>Utmaningen i stegen</li>
-            <li>Bokning av banan</li>
-          </ul>
-          <p>Vill du fortsätta?</p>
+          <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3">
+            <ul className="list-disc space-y-1 pl-5 text-gray-800 marker:text-gray-600">
+              <li>Utmaningen i stegen</li>
+              <li>Bokning av banan</li>
+            </ul>
+          </div>
         </div>
       }
       cancelLabel="Tillbaka"

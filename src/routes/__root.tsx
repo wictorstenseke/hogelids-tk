@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- TanStack Router root route exports Route */
 import { useState } from 'react'
-import { createRootRoute, Outlet } from '@tanstack/react-router'
+import { createRootRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { ToastProvider } from '../lib/ToastContext'
 import { AppSettingsProvider } from '../lib/AppSettingsContext'
 import { RoleProvider } from '../lib/RoleContext'
@@ -17,13 +17,17 @@ function AppShellInner() {
   const { user, loading: authLoading } = useAuth()
   const { authModalState, closeAuthModal } = useAuthModal()
   const [showProfile, setShowProfile] = useState(false)
+  const navigate = useNavigate()
   return (
     <div className="flex min-h-screen flex-col">
       <Header
         user={user}
         authLoading={authLoading}
         onOpenProfile={() => setShowProfile(true)}
-        onSignOut={() => void signOut()}
+        onSignOut={async () => {
+          await signOut()
+          navigate({ to: '/' })
+        }}
       />
       <div className="flex-1">
         <Outlet />

@@ -4,6 +4,7 @@ import { WheelPicker, WheelPickerWrapper } from '@ncdai/react-wheel-picker'
 import '@ncdai/react-wheel-picker/style.css'
 import type { WheelPickerOption } from '@ncdai/react-wheel-picker'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
+import { resolveBookingInterval } from '../../lib/bookingInterval'
 import {
   type BookingWithId,
   findConflictingBooking,
@@ -204,10 +205,15 @@ export function BookingDrawer({
   function handleNext() {
     if (step === 'datetime') {
       if (!fromSummary) {
-        // First pass: auto-calculate end time from start
-        const { hour, minute } = addTwoHours(draftStartHour, draftStartMinute)
-        setDraftEndHour(hour)
-        setDraftEndMinute(minute)
+        // First pass: auto-calculate end time from start (+2h wall clock, snap to 15 min)
+        const s = new Date(`${draftDate}T${draftStartHour}:${draftStartMinute}`)
+        const e = new Date(s.getTime() + 2 * 60 * 60 * 1000)
+        const totalMins = e.getHours() * 60 + e.getMinutes()
+        const snapped = Math.round(totalMins / 15) * 15
+        const eh = Math.floor(snapped / 60) % 24
+        const em = snapped % 60
+        setDraftEndHour(String(eh).padStart(2, '0'))
+        setDraftEndMinute(String(em).padStart(2, '0'))
       }
       preEditDraftRef.current = null
       setStep('summary')
@@ -254,32 +260,37 @@ export function BookingDrawer({
     ? new Date(`${draftDate}T${draftStartHour}:${draftStartMinute}`)
     : null
 
-  // Datetime step uses tentative end (start + 2h); summary uses actual draftEnd
-  const tentativeEnd = addTwoHours(draftStartHour, draftStartMinute)
-  const tentativeEndDate = draftDate
-    ? new Date(`${draftDate}T${tentativeEnd.hour}:${tentativeEnd.minute}`)
+  // Datetime step: tentative window = start + 2h real time (crosses midnight)
+  const tentativeEndDate = startDate
+    ? new Date(startDate.getTime() + 2 * 60 * 60 * 1000)
     : null
-  const endDate = draftDate
-    ? new Date(`${draftDate}T${draftEndHour}:${draftEndMinute}`)
+
+  const summaryInterval = draftDate
+    ? resolveBookingInterval(
+        draftDate,
+        `${draftStartHour}:${draftStartMinute}`,
+        `${draftEndHour}:${draftEndMinute}`
+      )
     : null
 
   const datetimeConflictBooking =
     startDate && tentativeEndDate
       ? findConflictingBooking(existingBookings, startDate, tentativeEndDate)
       : null
-  const summaryConflictBooking =
-    startDate && endDate
-      ? findConflictingBooking(existingBookings, startDate, endDate)
-      : null
+  const summaryConflictBooking = summaryInterval
+    ? findConflictingBooking(
+        existingBookings,
+        summaryInterval.start,
+        summaryInterval.end
+      )
+    : null
 
   function conflictLabel(booking: BookingWithId | null) {
     if (!booking) return null
     return `Upptaget ${formatTimeDisplay(booking.startTime.toDate())} – ${formatTimeDisplay(booking.endTime.toDate())}`
   }
 
-  // Also block if end ≤ start (wraps midnight)
-  const endBeforeStart =
-    endDate && startDate ? endDate.getTime() <= startDate.getTime() : false
+  const endBeforeStart = draftDate ? summaryInterval === null : false
 
   const canBook = !conflictLabel(summaryConflictBooking) && !endBeforeStart
 
@@ -343,7 +354,10 @@ export function BookingDrawer({
               : { height: `${drawerBodyHeightPx}px` }
           }
         >
-          <div ref={drawerBodyMeasureRef} className="px-5 pb-10 pt-5">
+          <div
+            ref={drawerBodyMeasureRef}
+            className="px-5 pt-5 pb-[calc(3rem+env(safe-area-inset-bottom,0px))]"
+          >
             {/* Header */}
             {showBackBeforeTitle ? (
               <div className="mb-5 flex items-center gap-3">
@@ -458,17 +472,13 @@ export function BookingDrawer({
             {/* Summary step */}
             {step === 'summary' && (
               <>
-                <p
-                  id="booking-drawer-summary-hint"
-                  className="mb-2 text-sm leading-snug text-gray-600"
-                >
-                  Tryck nedan för att ändra datum, starttid eller sluttid.
-                </p>
                 {/* Booking summary card */}
-                <div
-                  className="rounded-xl bg-gray-50 px-4 py-4"
-                  aria-describedby="booking-drawer-summary-hint"
-                >
+                <div className="rounded-xl bg-gray-50 px-4 py-4 text-center">
+                  {playerNames && (
+                    <p className="mb-2 text-sm text-gray-600">
+                      {playerNames.playerA} vs {playerNames.playerB}
+                    </p>
+                  )}
                   <p className="text-base font-semibold leading-snug text-gray-900">
                     <button
                       type="button"
@@ -487,11 +497,6 @@ export function BookingDrawer({
                       {`${draftEndHour}.${draftEndMinute}`}
                     </button>
                   </p>
-                  {playerNames && (
-                    <p className="mt-2 text-sm text-gray-600">
-                      {playerNames.playerA} vs {playerNames.playerB}
-                    </p>
-                  )}
                 </div>
 
                 {/* Conflict / validation message */}

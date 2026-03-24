@@ -1,4 +1,3 @@
-import { IconX } from '@tabler/icons-react'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { getBookingCount } from '../../lib/GuestSession'
 import { GuestSignupNudge } from './GuestSignupNudge'
@@ -37,17 +36,8 @@ export function SuccessDialog({
         aria-hidden="true"
       />
 
-      {/* Dialog card — tap outside or close button to dismiss */}
+      {/* Dialog card — tap outside or in-dialog actions (e.g. nudge) to dismiss */}
       <div className="relative max-h-[min(90vh,calc(100vh-2rem))] w-full max-w-sm overflow-y-auto rounded-2xl bg-white px-5 py-6 shadow-xl">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Stäng"
-          className="absolute right-3 top-3 z-10 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#F1E334]/40"
-        >
-          <IconX size={18} stroke={2} />
-        </button>
-
         {/* Yellow accent icon */}
         <div
           className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full"

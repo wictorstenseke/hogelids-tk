@@ -64,12 +64,33 @@ export function TimeSelect({
     const el = containerRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    setListPosition({
-      top: r.bottom + 4,
-      left: r.left,
-      width: r.width,
+    setListPosition((prev) => {
+      const next = {
+        top: r.bottom + 4,
+        left: r.left,
+        width: r.width,
+      }
+      if (
+        prev &&
+        prev.top === next.top &&
+        prev.left === next.left &&
+        prev.width === next.width
+      ) {
+        return prev
+      }
+      return next
     })
   }, [])
+
+  /** Window capture receives scroll events from the dropdown list; ignore those so we don't reposition and retrigger scroll reset. */
+  const handleWindowScrollForPosition = useCallback(
+    (e: Event) => {
+      const target = e.target as Node | null
+      if (target && listRef.current?.contains(target)) return
+      updateListPosition()
+    },
+    [updateListPosition]
+  )
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -87,24 +108,39 @@ export function TimeSelect({
       return
     }
     updateListPosition()
-    window.addEventListener('scroll', updateListPosition, true)
+    window.addEventListener('scroll', handleWindowScrollForPosition, true)
     window.addEventListener('resize', updateListPosition)
     return () => {
-      window.removeEventListener('scroll', updateListPosition, true)
+      window.removeEventListener('scroll', handleWindowScrollForPosition, true)
       window.removeEventListener('resize', updateListPosition)
     }
-  }, [open, updateListPosition])
+  }, [open, updateListPosition, handleWindowScrollForPosition])
 
-  useEffect(() => {
-    if (!open || !listRef.current) return
-    const targetIndex = value
-      ? TIME_SLOTS.indexOf(value)
-      : getNearestSlotIndex()
-    if (targetIndex >= 0) {
-      listRef.current.scrollTop =
-        targetIndex * ITEM_HEIGHT - Math.floor(VISIBLE_ITEMS / 2) * ITEM_HEIGHT
+  /** Only snap scroll when opening or when `value` changes — not when list repositions (e.g. page scroll). */
+  const lastSnappedSelectionRef = useRef<{ open: boolean; value: string }>({
+    open: false,
+    value: '',
+  })
+
+  useLayoutEffect(() => {
+    if (!open) {
+      lastSnappedSelectionRef.current = { open: false, value: '' }
+      return
     }
-  }, [open, value])
+    if (!listPosition || !listRef.current) return
+
+    const prev = lastSnappedSelectionRef.current
+    const selectionUnchanged = prev.open === open && prev.value === value
+    if (selectionUnchanged && prev.open) {
+      return
+    }
+    lastSnappedSelectionRef.current = { open, value: value ?? '' }
+
+    const fromValue = value ? TIME_SLOTS.indexOf(value) : -1
+    const targetIndex = fromValue >= 0 ? fromValue : getNearestSlotIndex()
+    listRef.current.scrollTop =
+      targetIndex * ITEM_HEIGHT - Math.floor(VISIBLE_ITEMS / 2) * ITEM_HEIGHT
+  }, [open, value, listPosition])
 
   function handleSelect(slot: string) {
     onChange(slot)

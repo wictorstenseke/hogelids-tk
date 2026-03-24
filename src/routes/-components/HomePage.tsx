@@ -13,6 +13,7 @@ import { useAuth, type AuthUser } from '../../lib/useAuth'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { BookingForm } from './BookingForm'
 import { Banner } from './Banner'
+import { GlassNoticeCard } from './GlassNoticeCard'
 import { SuccessDialog } from './SuccessDialog'
 import { HistorySection } from './HistorySection'
 import { BookingItem } from './BookingItem'
@@ -199,15 +200,16 @@ export function HomePage() {
 
           {appSettings && !appSettings.bookingEnabled ? (
             <>
-              <div className="rounded-xl border border-dashed border-white/30 bg-white/10 px-6 py-10 text-center">
-                <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
-                  Bokning stängd tills vidare
-                </p>
-                <p className="mt-2 text-sm text-white/70">
-                  Säsongen har inte dragit igång än. Bokning öppnar när banorna
-                  är i bruk.
-                </p>
-              </div>
+              <GlassNoticeCard>
+                <div className="px-6 py-10 text-center">
+                  <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
+                    Bokning stängd tills vidare
+                  </p>
+                  <p className="mt-2 text-sm text-white/70">
+                    Du kan boka när banan är öppen för säsongen.
+                  </p>
+                </div>
+              </GlassNoticeCard>
 
               {(isLoading || isError || (bookings && bookings.length > 0)) && (
                 <div className="rounded-2xl bg-[#194b29] px-4 py-4">

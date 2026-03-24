@@ -73,7 +73,7 @@ describe('GuestSignupNudge — full variant (1st booking)', () => {
 })
 
 describe('GuestSignupNudge — compact variant (2nd+ booking)', () => {
-  it('shows only Skapa konto and Nej tack — no advantages list', () => {
+  it('shows Klar as primary and Skapa konto as link — no advantages list', () => {
     mockGetBookingCount.mockReturnValue(2)
     renderNudge()
 
@@ -82,12 +82,23 @@ describe('GuestSignupNudge — compact variant (2nd+ booking)', () => {
     expect(
       screen.queryByRole('button', { name: /logga in/i })
     ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^klar$/i })).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /skapa konto/i })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /nej tack/i })
-    ).toBeInTheDocument()
+      screen.queryByRole('button', { name: /nej tack/i })
+    ).not.toBeInTheDocument()
+  })
+
+  it('"Klar" calls onDismiss', async () => {
+    mockGetBookingCount.mockReturnValue(3)
+    const user = userEvent.setup()
+    const { onDismiss } = renderNudge()
+
+    await user.click(screen.getByRole('button', { name: /^klar$/i }))
+
+    expect(onDismiss).toHaveBeenCalled()
   })
 
   it('"Skapa konto" calls onDismiss', async () => {
@@ -98,5 +109,29 @@ describe('GuestSignupNudge — compact variant (2nd+ booking)', () => {
     await user.click(screen.getByRole('button', { name: /skapa konto/i }))
 
     expect(onDismiss).toHaveBeenCalled()
+  })
+})
+
+describe('GuestSignupNudge — variant override', () => {
+  it('variant="full" shows advantages even when booking count is high', () => {
+    mockGetBookingCount.mockReturnValue(5)
+    render(
+      <AuthModalProvider>
+        <GuestSignupNudge variant="full" onDismiss={vi.fn()} />
+      </AuthModalProvider>
+    )
+    expect(screen.getByText(/bara ett steg/i)).toBeInTheDocument()
+    expect(screen.getByText(/Se vem som har bokat/i)).toBeInTheDocument()
+  })
+
+  it('variant="compact" hides advantages even when booking count is 1', () => {
+    mockGetBookingCount.mockReturnValue(1)
+    render(
+      <AuthModalProvider>
+        <GuestSignupNudge variant="compact" onDismiss={vi.fn()} />
+      </AuthModalProvider>
+    )
+    expect(screen.queryByText(/bara ett steg/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Se vem som har bokat/i)).not.toBeInTheDocument()
   })
 })
