@@ -1,10 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import {
-  IconSquareRoundedChevronRight,
-  IconTrash,
-  IconTrophy,
-} from '@tabler/icons-react'
+import { IconSquareRoundedChevronRight, IconTrash } from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
 import {
@@ -27,6 +23,7 @@ import { BookingDrawer } from './BookingDrawer'
 import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
 import { LadderRulesSheetDialog } from './LadderRulesSheetDialog'
 import { SheetDialogShell } from './SheetDialogShell'
+import { GlassNoticeCard } from './GlassNoticeCard'
 import {
   deleteMemberBooking,
   findConflictingBooking,
@@ -780,20 +777,22 @@ export function StegenPage() {
         <div className="mx-auto max-w-lg space-y-6 md:max-w-3xl">
           {/* Ladder selector */}
           {laddersLoading ? (
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
-              <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600" />
-            </div>
+            <GlassNoticeCard>
+              <div className="flex justify-center px-4 py-10">
+                <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+              </div>
+            </GlassNoticeCard>
           ) : allLadders.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 text-center">
-              <IconTrophy
-                size={32}
-                stroke={1.5}
-                className="mx-auto mb-2 text-gray-300"
-              />
-              <p className="text-sm text-gray-500">
-                Ingen stege är skapad ännu.
-              </p>
-            </div>
+            <GlassNoticeCard>
+              <div className="px-6 py-10 text-center">
+                <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
+                  Ingen aktiv stege
+                </p>
+                <p className="mt-2 text-sm text-white/70">
+                  Det finns ingen pågående stegturnering.
+                </p>
+              </div>
+            </GlassNoticeCard>
           ) : (
             <>
               {/* Selector row */}
@@ -839,17 +838,25 @@ export function StegenPage() {
 
               {/* Join banner — hidden on completed ladders */}
               {selectedLadder && !myParticipant && !isCompleted && (
-                <div
-                  className="overflow-hidden rounded-xl text-sm text-gray-800"
-                  style={{ backgroundColor: '#F1E334' }}
+                <GlassNoticeCard
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => void handleJoin()}
+                      disabled={isJoining || !ladderJoinOpenNow}
+                      className="flex min-h-[44px] w-full items-center justify-start px-6 py-2.5 font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
+                    >
+                      {isJoining ? 'Går med…' : 'Gå med i stegen'}
+                    </button>
+                  }
                 >
-                  <div className="px-4 py-3">
-                    <p className="font-semibold text-gray-900">
+                  <div className="px-6 py-4">
+                    <p className="font-semibold text-white">
                       {ladderJoinOpenNow
                         ? 'Välkommen till stegen!'
                         : 'Anmälan öppnar snart'}
                     </p>
-                    <p className="mt-0.5 text-gray-800">
+                    <p className="mt-0.5 text-white/70">
                       {ladderJoinOpenNow
                         ? 'Utmana andra spelare och klättra i rankingen.'
                         : ladderJoinOpenDateLabel
@@ -857,16 +864,7 @@ export function StegenPage() {
                           : 'Anmälan är inte öppen ännu.'}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleJoin()}
-                    disabled={isJoining || !ladderJoinOpenNow}
-                    className="flex w-full items-center px-4 py-2.5 font-semibold transition-opacity hover:opacity-70 disabled:opacity-50"
-                    style={{ backgroundColor: '#E5D82C' }}
-                  >
-                    {isJoining ? 'Går med…' : 'Gå med i stegen'}
-                  </button>
-                </div>
+                </GlassNoticeCard>
               )}
 
               {selectedLadder && (
