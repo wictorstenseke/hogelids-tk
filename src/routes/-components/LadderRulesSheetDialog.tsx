@@ -28,8 +28,8 @@ export function LadderRulesSheetDialog({
           </li>
           <li>
             <span className="font-semibold text-gray-900">Boka match:</span>{' '}
-            Tryck på en spelares rad i rankingslistan när raden är klickbar; då
-            öppnas bokning av stegmatch.
+            Tryck på en spelares rad i tabellen när raden är klickbar; då öppnas
+            bokning av stegmatch.
           </li>
           <li>
             <span className="font-semibold text-gray-900">

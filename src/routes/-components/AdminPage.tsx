@@ -643,6 +643,34 @@ export function AdminPage() {
                         />
                       </div>
                     </div>
+                    <div className="flex min-h-[56px] items-center justify-between gap-4 px-3 py-3 sm:px-4">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          Visa välkomstbanner
+                        </p>
+                      </div>
+                      <div className="shrink-0">
+                        <Toggle
+                          id="stegen-welcome-banner-toggle"
+                          checked={
+                            settings?.stegenJoinWelcomeBannerVisible ?? true
+                          }
+                          onChange={(value) => {
+                            updateSettingsMutation.mutate(
+                              { stegenJoinWelcomeBannerVisible: value },
+                              {
+                                onSuccess: () =>
+                                  addToast(
+                                    value
+                                      ? 'Välkomstbanner på steg-sidan visas'
+                                      : 'Välkomstbanner på steg-sidan dold'
+                                  ),
+                              }
+                            )
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">

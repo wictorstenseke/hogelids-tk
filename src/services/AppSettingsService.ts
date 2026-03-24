@@ -7,6 +7,8 @@ export interface AppSettings {
   bannerText: string
   bannerLinkText?: string
   bannerLinkUrl?: string
+  /** När false döljs välkomstbannern på /stegen (knapp under Tabellen visas ändå). */
+  stegenJoinWelcomeBannerVisible: boolean
 }
 
 // Writable partial that allows FieldValue sentinels (e.g. deleteField()) for
@@ -22,6 +24,7 @@ export const APP_SETTINGS_DEFAULTS: AppSettings = {
   bookingEnabled: true,
   bannerVisible: false,
   bannerText: '',
+  stegenJoinWelcomeBannerVisible: true,
 }
 
 // Returns the Firestore DocumentReference for the app settings document.
@@ -42,6 +45,9 @@ export async function getAppSettings(): Promise<AppSettings> {
     bannerText: data.bannerText ?? APP_SETTINGS_DEFAULTS.bannerText,
     bannerLinkText: data.bannerLinkText,
     bannerLinkUrl: data.bannerLinkUrl,
+    stegenJoinWelcomeBannerVisible:
+      data.stegenJoinWelcomeBannerVisible ??
+      APP_SETTINGS_DEFAULTS.stegenJoinWelcomeBannerVisible,
   }
 }
 

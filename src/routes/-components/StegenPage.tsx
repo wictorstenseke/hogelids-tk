@@ -1,6 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { IconSquareRoundedChevronRight, IconTrash } from '@tabler/icons-react'
+import {
+  IconSquareRoundedChevronRight,
+  IconTrash,
+  IconX,
+} from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
 import {
@@ -17,7 +21,7 @@ import {
 } from '../../services/LadderService'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { isLadderJoinOpenNow } from '../../lib/ladderJoinWindow'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { BookingForm } from './BookingForm'
 import { BookingDrawer } from './BookingDrawer'
 import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
@@ -34,6 +38,11 @@ import {
 import { resolveBookingInterval } from '../../lib/bookingInterval'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { useIsDesktop } from '../../lib/useIsDesktop'
+import { useAppSettings } from '../../lib/useAppSettings'
+import {
+  dismissJoinWelcomeBannerForLadder,
+  getJoinWelcomeBannerDismissedLadderId,
+} from '../../lib/GuestSession'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -87,7 +96,13 @@ interface RankingsTableProps {
   onChallenge: (opponentUid: string) => void
   ladderJoinOpenNow: boolean
   isCompleted: boolean
+  /** När satt: visar "Gå med i stegen" i tom lista (under text) eller ovanför listan om andra redan gått med. */
+  onJoin?: () => void
+  isJoining?: boolean
 }
+
+const joinCtaButtonClass =
+  'flex min-h-[44px] w-full min-[480px]:w-auto cursor-pointer items-center justify-center rounded-lg border border-[#d4c92e] bg-[#F1E334] px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50'
 
 function RankingsTable({
   ladder,
@@ -95,11 +110,19 @@ function RankingsTable({
   onChallenge,
   ladderJoinOpenNow,
   isCompleted,
+  onJoin,
+  isJoining = false,
 }: RankingsTableProps) {
   const active = getActiveParticipants(ladder.participants)
   const paused = getPausedParticipants(ladder.participants)
   const me = ladder.participants.find((p) => p.uid === currentUid)
   const isMember = !!me
+
+  const showJoinCta =
+    !isCompleted &&
+    !isMember &&
+    ladderJoinOpenNow &&
+    typeof onJoin === 'function'
 
   if (active.length === 0 && paused.length === 0) {
     return (
@@ -109,9 +132,19 @@ function RankingsTable({
             Här visas rankinglistan när medlemmar har gått med i stegen.
           </p>
         ) : (
-          <p className="text-white/60">
-            Inga deltagare än. Gå med för att starta stegen!
-          </p>
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-white/60">Inga deltagare än.</p>
+            {showJoinCta && (
+              <button
+                type="button"
+                onClick={() => void onJoin()}
+                disabled={isJoining}
+                className={joinCtaButtonClass}
+              >
+                {isJoining ? 'Går med…' : 'Gå med i stegen'}
+              </button>
+            )}
+          </div>
         )}
       </div>
     )
@@ -119,6 +152,18 @@ function RankingsTable({
 
   return (
     <div>
+      {showJoinCta && (
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => void onJoin()}
+            disabled={isJoining}
+            className={joinCtaButtonClass}
+          >
+            {isJoining ? 'Går med…' : 'Gå med i stegen'}
+          </button>
+        </div>
+      )}
       {active.length > 0 && (
         <ul className="border-t border-white/10">
           {active.map((participant) => {
@@ -613,6 +658,7 @@ export function StegenPage() {
   const { user, loading: authLoading } = useAuth()
   const { addToast } = useToast()
   const queryClient = useQueryClient()
+  const { settings: appSettings } = useAppSettings()
 
   const isDesktop = useIsDesktop()
 
@@ -627,6 +673,8 @@ export function StegenPage() {
   const [rulesDialogOpen, setRulesDialogOpen] = useState(false)
   const [archivedLadderId, setArchivedLadderId] = useState<string | null>(null)
   const [archiveExpanded, setArchiveExpanded] = useState(false)
+  const [joinWelcomeBannerDismissed, setJoinWelcomeBannerDismissed] =
+    useState(false)
 
   const { data: allLadders = [], isLoading: laddersLoading } = useQuery({
     queryKey: LADDERS_QUERY_KEY,
@@ -638,6 +686,16 @@ export function StegenPage() {
     () => allLadders.find((l) => l.status === 'active') ?? null,
     [allLadders]
   )
+
+  useEffect(() => {
+    if (!activeLadder) {
+      setJoinWelcomeBannerDismissed(false)
+      return
+    }
+    setJoinWelcomeBannerDismissed(
+      getJoinWelcomeBannerDismissedLadderId() === activeLadder.id
+    )
+  }, [activeLadder?.id])
 
   const completedLadders = useMemo(
     () =>
@@ -749,6 +807,14 @@ export function StegenPage() {
     .filter((m) => m.ladderStatus === 'completed')
     .sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis())
 
+  /** Pre-season: hide empty rankings/matches until signup opens or there is data. */
+  const showLadderMainColumns =
+    activeLadder &&
+    (ladderJoinOpenNow ||
+      activeLadder.participants.length > 0 ||
+      plannedMatches.length > 0 ||
+      completedMatches.length > 0)
+
   async function handleJoin() {
     if (!activeLadder) return
     setIsJoining(true)
@@ -856,43 +922,70 @@ export function StegenPage() {
                 </GlassNoticeCard>
               )}
 
-              {/* Join banner */}
-              {activeLadder && !myParticipant && (
-                <GlassNoticeCard
-                  action={
-                    <button
-                      type="button"
-                      onClick={() => void handleJoin()}
-                      disabled={isJoining || !ladderJoinOpenNow}
-                      className="flex min-h-[44px] w-full items-center justify-start px-6 py-2.5 font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
-                    >
-                      {isJoining ? 'Går med…' : 'Gå med i stegen'}
-                    </button>
-                  }
-                >
+              {/* Välkommen: banner med gå-med-knapp (går att dölja); samma åtgärd under Tabellen */}
+              {activeLadder &&
+                !myParticipant &&
+                ladderJoinOpenNow &&
+                !joinWelcomeBannerDismissed &&
+                (appSettings?.stegenJoinWelcomeBannerVisible ?? true) && (
+                  <GlassNoticeCard
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => void handleJoin()}
+                        disabled={isJoining}
+                        className="flex min-h-[44px] w-full items-center justify-start px-6 py-2.5 font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
+                      >
+                        {isJoining ? 'Går med…' : 'Gå med i stegen'}
+                      </button>
+                    }
+                  >
+                    <div className="relative px-6 py-4 pr-14">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!activeLadder) return
+                          dismissJoinWelcomeBannerForLadder(activeLadder.id)
+                          setJoinWelcomeBannerDismissed(true)
+                        }}
+                        aria-label="Dölj meddelande"
+                        className="absolute top-2 right-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
+                      >
+                        <IconX size={20} stroke={1.75} aria-hidden />
+                      </button>
+                      <p className="pr-2 font-semibold text-white">
+                        Välkommen till stegen!
+                      </p>
+                      <p className="mt-0.5 text-white/70">
+                        Utmana andra spelare och klättra i rankingen. Du kan
+                        också gå med under Tabellen nedan.
+                      </p>
+                    </div>
+                  </GlassNoticeCard>
+                )}
+
+              {/* Pre-season: anmälan inte öppen ännu (join när öppet sker under Tabellen) */}
+              {activeLadder && !myParticipant && !ladderJoinOpenNow && (
+                <GlassNoticeCard>
                   <div className="px-6 py-4">
                     <p className="font-semibold text-white">
-                      {ladderJoinOpenNow
-                        ? 'Välkommen till stegen!'
-                        : 'Anmälan öppnar snart'}
+                      Anmälan öppnar snart
                     </p>
                     <p className="mt-0.5 text-white/70">
-                      {ladderJoinOpenNow
-                        ? 'Utmana andra spelare och klättra i rankingen.'
-                        : ladderJoinOpenDateLabel
-                          ? `Anmälan öppnar ${ladderJoinOpenDateLabel}. Du kan då gå med i stegen.`
-                          : 'Anmälan är inte öppen ännu.'}
+                      {ladderJoinOpenDateLabel
+                        ? `Anmälan öppnar ${ladderJoinOpenDateLabel}. Du kan då gå med i stegen under Tabellen.`
+                        : 'Anmälan är inte öppen ännu.'}
                     </p>
                   </div>
                 </GlassNoticeCard>
               )}
 
-              {activeLadder && (
+              {showLadderMainColumns && (
                 <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
                   <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
-                        Rankingslista
+                        Tabellen
                       </h2>
                       <button
                         type="button"
@@ -907,6 +1000,8 @@ export function StegenPage() {
                       currentUid={user.uid}
                       ladderJoinOpenNow={ladderJoinOpenNow}
                       isCompleted={false}
+                      onJoin={() => void handleJoin()}
+                      isJoining={isJoining}
                       onChallenge={(uid) => {
                         setChallengeOpponentUid(uid)
                         setReportingMatch(null)
@@ -1053,7 +1148,7 @@ export function StegenPage() {
                       <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
                         <div className="mb-3">
                           <h3 className="text-xs font-semibold uppercase tracking-wider text-white/70">
-                            Rankingslista
+                            Tabellen
                           </h3>
                           <p className="mt-1 text-sm font-medium text-white/90">
                             {archivedLadder.name}

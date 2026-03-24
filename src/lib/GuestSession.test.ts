@@ -6,6 +6,8 @@ import {
   setName,
   getBookingCount,
   incrementBookingCount,
+  getJoinWelcomeBannerDismissedLadderId,
+  dismissJoinWelcomeBannerForLadder,
 } from './GuestSession'
 
 beforeEach(() => {
@@ -64,5 +66,19 @@ describe('incrementBookingCount', () => {
     localStorage.setItem('htk_booking_count', '1')
     incrementBookingCount()
     expect(getBookingCount()).toBe(2)
+  })
+})
+
+describe('join welcome banner dismissal', () => {
+  it('returns null when not set', () => {
+    expect(getJoinWelcomeBannerDismissedLadderId()).toBeNull()
+  })
+
+  it('stores ladder id on dismiss', () => {
+    dismissJoinWelcomeBannerForLadder('abc123')
+    expect(
+      localStorage.getItem('htk_join_welcome_banner_dismissed_ladder_id')
+    ).toBe('abc123')
+    expect(getJoinWelcomeBannerDismissedLadderId()).toBe('abc123')
   })
 })
