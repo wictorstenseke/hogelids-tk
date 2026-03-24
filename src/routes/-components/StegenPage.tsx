@@ -491,6 +491,7 @@ export function StegenPage() {
       : ['ladder', 'matches', 'none'],
     queryFn: () => (ladder ? getLadderMatches(ladder.id) : Promise.resolve([])),
     enabled: !!ladder,
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: existingBookings = [] } = useQuery({
@@ -581,7 +582,6 @@ export function StegenPage() {
     if (!ladder || !challengeOpponentUid || !challengeOpponent || !user) return
     const start = new Date(`${date}T${startTime}`)
     const end = new Date(`${date}T${endTime}`)
-    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
     const freshBookings =
       queryClient.getQueryData<typeof existingBookings>(BOOKINGS_QUERY_KEY) ??
       existingBookings

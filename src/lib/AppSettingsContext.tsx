@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { onSnapshot, type Timestamp } from 'firebase/firestore'
+/* eslint-disable react-refresh/only-export-components -- context + hook co-located */
+import { createContext, useContext } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
-  getAppSettingsRef,
+  getAppSettings,
+  APP_SETTINGS_QUERY_KEY,
   type AppSettings,
   APP_SETTINGS_DEFAULTS,
 } from '../services/AppSettingsService'
@@ -13,49 +15,21 @@ interface AppSettingsContextValue {
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null)
 
+const FIVE_MINUTES = 5 * 60 * 1000
+
 export function AppSettingsProvider({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [settings, setSettings] = useState<AppSettings | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const ref = getAppSettingsRef()
-    const unsubscribe = onSnapshot(
-      ref,
-      (snap) => {
-        if (snap.exists()) {
-          const data = snap.data()
-          setSettings({
-            bookingEnabled:
-              data.bookingEnabled ?? APP_SETTINGS_DEFAULTS.bookingEnabled,
-            ladderEnabled:
-              data.ladderEnabled ?? APP_SETTINGS_DEFAULTS.ladderEnabled,
-            ladderJoinOpensAt:
-              data['ladderJoinOpensAt'] != null
-                ? (data['ladderJoinOpensAt'] as Timestamp)
-                : null,
-            bannerVisible:
-              data.bannerVisible ?? APP_SETTINGS_DEFAULTS.bannerVisible,
-            bannerText: data.bannerText ?? APP_SETTINGS_DEFAULTS.bannerText,
-            bannerLinkText: data.bannerLinkText,
-            bannerLinkUrl: data.bannerLinkUrl,
-          })
-        } else {
-          setSettings(APP_SETTINGS_DEFAULTS)
-        }
-        setIsLoading(false)
-      },
-      (error) => {
-        console.error('[AppSettingsContext] onSnapshot error:', error)
-        setSettings(APP_SETTINGS_DEFAULTS)
-        setIsLoading(false)
-      }
-    )
-    return () => unsubscribe()
-  }, [])
+  const { data: settings = null, isLoading } = useQuery({
+    queryKey: APP_SETTINGS_QUERY_KEY,
+    queryFn: getAppSettings,
+    staleTime: FIVE_MINUTES,
+    refetchInterval: FIVE_MINUTES,
+    // Fall back to defaults on error so the app stays functional
+    placeholderData: APP_SETTINGS_DEFAULTS,
+  })
 
   return (
     <AppSettingsContext.Provider value={{ settings, isLoading }}>
@@ -64,7 +38,6 @@ export function AppSettingsProvider({
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAppSettingsContext(): AppSettingsContextValue {
   const ctx = useContext(AppSettingsContext)
   if (!ctx)
