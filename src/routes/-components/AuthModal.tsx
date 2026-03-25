@@ -320,14 +320,20 @@ export function AuthModal({
 
           {view === 'forgot-password' && (
             <>
-              <p className="mb-6 text-sm text-gray-500">
-                Ange din e-postadress så skickar vi en länk för att återställa
-                lösenordet.
-              </p>
+              {!resetSent && (
+                <p className="mb-6 text-sm text-gray-500">
+                  Ange din e-postadress så skickar vi en återställningslänk.
+                  Mejlet kommer från en noreply-adress och ämnesraden nämner
+                  "hogelids-tk-prod" — det är rätt mejl. Det hamnar troligtvis i
+                  skräpposten.
+                </p>
+              )}
 
               {resetSent ? (
                 <div className="rounded-xl border border-green-100 bg-green-50 px-4 py-4 text-sm text-green-700">
-                  Ett e-postmeddelande har skickats. Kontrollera din inkorg.
+                  Mejlet är skickat! Det kommer från en noreply-adress med
+                  "hogelids-tk-prod" i ämnesraden — kolla skräpposten om det
+                  inte dyker upp.
                 </div>
               ) : (
                 <form
