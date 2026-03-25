@@ -2,6 +2,7 @@
 
 html {
   background-color: #2a7d44;
+  scrollbar-gutter: stable;
 }
 
 body {
