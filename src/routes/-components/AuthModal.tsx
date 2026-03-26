@@ -191,7 +191,7 @@ export function AuthModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-60"
                 >
                   {loading ? 'Laddar…' : 'Logga in'}
                 </button>
@@ -297,7 +297,7 @@ export function AuthModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-60"
                 >
                   {loading ? 'Laddar…' : 'Skapa konto'}
                 </button>
@@ -370,7 +370,7 @@ export function AuthModal({
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity disabled:opacity-60"
+                    className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#F1E334] px-4 py-3 text-sm font-semibold text-gray-900 transition-opacity hover:opacity-80 disabled:opacity-60"
                   >
                     {loading ? 'Laddar…' : 'Skicka återställningslänk'}
                   </button>

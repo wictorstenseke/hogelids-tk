@@ -52,7 +52,6 @@ describe('AuthProvider', () => {
         uid: 'uid-1',
         email: 'player@htk.se',
         displayName: 'Player One',
-        emailVerified: true,
       } as User)
     })
     expect(screen.getByTestId('loading').textContent).toBe('false')

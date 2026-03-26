@@ -37,7 +37,6 @@ vi.mock('../../lib/useAuth', () => ({
 
 vi.mock('../../services/AuthService', () => ({
   signOut: vi.fn(),
-  resendVerificationEmail: vi.fn(),
   isAdminRole: vi.fn(() => false),
 }))
 

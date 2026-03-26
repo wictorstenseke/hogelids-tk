@@ -40,7 +40,6 @@ const mockUser: AuthUser = {
   uid: 'u1',
   email: 'test@test.se',
   displayName: 'Test User',
-  emailVerified: true,
 }
 
 function wrap(ui: React.ReactElement) {

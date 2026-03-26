@@ -6,7 +6,6 @@ export interface AuthUser {
   uid: string
   email: string
   displayName: string
-  emailVerified: boolean
 }
 
 interface AuthContextValue {
@@ -29,7 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             uid: firebaseUser.uid,
             email: firebaseUser.email ?? '',
             displayName: firebaseUser.displayName ?? '',
-            emailVerified: firebaseUser.emailVerified,
           })
         } else {
           setUser(null)
