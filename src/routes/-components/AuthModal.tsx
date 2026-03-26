@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconX } from '@tabler/icons-react'
+import { IconEye, IconEyeOff, IconX } from '@tabler/icons-react'
 import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 import {
   getErrorCode,
@@ -44,6 +44,7 @@ export function AuthModal({
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   function switchView(next: View) {
     setView(next)
@@ -169,17 +170,33 @@ export function AuthModal({
                   >
                     Lösenord
                   </label>
-                  <input
-                    id="signin-password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
-                    placeholder="••••••"
-                  />
+                  <div className="relative">
+                    <input
+                      id="signin-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                      placeholder="••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-gray-400 transition-colors hover:text-gray-700"
+                      aria-label={
+                        showPassword ? 'Dölj lösenord' : 'Visa lösenord'
+                      }
+                    >
+                      {showPassword ? (
+                        <IconEyeOff size={20} stroke={1.75} aria-hidden />
+                      ) : (
+                        <IconEye size={20} stroke={1.75} aria-hidden />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
@@ -275,17 +292,33 @@ export function AuthModal({
                   >
                     Lösenord
                   </label>
-                  <input
-                    id="signup-password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
-                    placeholder="Minst 6 tecken"
-                  />
+                  <div className="relative">
+                    <input
+                      id="signup-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                      placeholder="Minst 6 tecken"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center p-1 text-gray-400 transition-colors hover:text-gray-700"
+                      aria-label={
+                        showPassword ? 'Dölj lösenord' : 'Visa lösenord'
+                      }
+                    >
+                      {showPassword ? (
+                        <IconEyeOff size={20} stroke={1.75} aria-hidden />
+                      ) : (
+                        <IconEye size={20} stroke={1.75} aria-hidden />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
