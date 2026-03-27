@@ -34,8 +34,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@eslint/js": "^9.39.4",
     "@rolldown/plugin-babel": "^0.2.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^11.4.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -57,6 +60,7 @@
     "jsdom": "^29.0.0",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
+    "secretlint": "^11.4.0",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
@@ -69,6 +73,7 @@
       "prettier --write",
       "eslint --fix"
     ],
-    "*.{json,md,css,html}": "prettier --write"
+    "*.{json,md,css,html}": "prettier --write",
+    "**/*.{ts,tsx}": "bash -c 'tsc --noEmit'"
   }
 }
