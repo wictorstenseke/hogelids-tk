@@ -50,6 +50,7 @@ npm run preview      # Preview production build locally
 | `htk_guest_email`   | Guest's email — used to identify own bookings ("Din bokning") and prefill the booking form |
 | `htk_guest_name`    | Guest's display name — used to prefill the booking form                                    |
 | `htk_booking_count` | Guest booking count — used to determine when to show the nudge prompt                      |
+| `htk_query_cache`   | TanStack Query persisted cache — survives page refreshes; maxAge 7 days                    |
 
 Never access localStorage directly in components. Read/write through the `GuestSession` module (Phase 2+).
 

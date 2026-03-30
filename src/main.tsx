@@ -5,15 +5,13 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
-import { queryClient } from './queryClient'
+import { queryClient, SEVEN_DAYS_MS } from './queryClient'
 import './index.css'
 
 const localStoragePersister = createSyncStoragePersister({
   storage: window.localStorage,
   key: 'htk_query_cache',
 })
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
 const BROWSER_TAB_TITLE_BASE = 'Högelids Tennisklubb – Boka bana'
 const tabPrefix = import.meta.env.VITE_BROWSER_TAB_PREFIX?.trim()
