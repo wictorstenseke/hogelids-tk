@@ -25,6 +25,7 @@ import {
   type BookingWithId,
 } from '../../services/BookingService'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
+import { msUntilMidnight } from '../../lib/msUntilMidnight'
 import { computeStats } from './historyStats'
 
 interface HistorySectionProps {
@@ -68,10 +69,11 @@ function YearBookings({
   year: number
   onResult: (result: YearQueryResult) => void
 }) {
+  const currentYear = new Date().getFullYear()
   const { data, isLoading } = useQuery({
     queryKey: ['bookings', 'history', year],
     queryFn: () => getBookingsByYear(year),
-    staleTime: Infinity,
+    staleTime: year === currentYear ? msUntilMidnight() : Infinity,
     gcTime: Infinity,
   })
 
@@ -468,10 +470,10 @@ export function HistorySection({
     years.push(y)
   }
 
-  const [selectedYears, setSelectedYears] = useState<number[]>([...years])
+  const [selectedYears, setSelectedYears] = useState<number[]>([currentYear])
 
   useEffect(() => {
-    setSelectedYears([...years])
+    setSelectedYears([currentYear])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [earliestYear])
 
