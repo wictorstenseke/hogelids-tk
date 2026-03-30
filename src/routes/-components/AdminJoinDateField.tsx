@@ -28,6 +28,8 @@ interface AdminJoinDateFieldProps {
   onSelect: (yyyyMmDd: string) => void
   disabled?: boolean
   saving?: boolean
+  /** Match `BookingForm` / home green cards (`#194b29`) vs white admin rows */
+  appearance?: 'green' | 'light'
 }
 
 export function AdminJoinDateField({
@@ -35,7 +37,9 @@ export function AdminJoinDateField({
   onSelect,
   disabled = false,
   saving = false,
+  appearance = 'light',
 }: AdminJoinDateFieldProps) {
+  const isGreen = appearance === 'green'
   const isDesktop = useIsDesktop()
   const [sheetOpen, setSheetOpen] = useState(false)
   /** Mobile sheet: draft until user taps Spara (does not save on day tap). */
@@ -93,8 +97,9 @@ export function AdminJoinDateField({
     </div>
   )
 
-  const mobileTriggerClass =
-    'w-full min-h-[44px] cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm text-gray-900 transition-colors hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#F1E334]/40 disabled:cursor-not-allowed disabled:opacity-40'
+  const mobileTriggerClass = isGreen
+    ? 'w-full min-h-[44px] cursor-pointer rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-left text-sm text-white transition-colors hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30 disabled:cursor-not-allowed disabled:opacity-40'
+    : 'w-full min-h-[44px] cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm text-gray-900 transition-colors hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#F1E334]/40 disabled:cursor-not-allowed disabled:opacity-40'
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -109,7 +114,9 @@ export function AdminJoinDateField({
             placeholderText="Välj datum"
             autoComplete="off"
             disabled={disabled}
-            customInput={<DateDisplayInput appearance="light" />}
+            customInput={
+              <DateDisplayInput appearance={isGreen ? 'green' : 'light'} />
+            }
             renderCustomHeader={renderCustomHeader}
           />
         </div>
@@ -127,9 +134,13 @@ export function AdminJoinDateField({
             aria-expanded={sheetOpen}
           >
             {value ? (
-              <span className="text-gray-900">{displayDateLabel(value)}</span>
+              <span className={isGreen ? 'text-white' : 'text-gray-900'}>
+                {displayDateLabel(value)}
+              </span>
             ) : (
-              <span className="text-gray-400">Välj datum</span>
+              <span className={isGreen ? 'text-white/40' : 'text-gray-400'}>
+                Välj datum
+              </span>
             )}
           </button>
           {sheetOpen && (
@@ -168,7 +179,11 @@ export function AdminJoinDateField({
       )}
       {saving && (
         <span
-          className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700"
+          className={
+            isGreen
+              ? 'h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white'
+              : 'h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700'
+          }
           aria-hidden
         />
       )}

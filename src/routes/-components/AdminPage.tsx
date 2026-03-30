@@ -37,9 +37,21 @@ interface ToggleProps {
   checked: boolean
   onChange: (value: boolean) => void
   id: string
+  /** Track colors for use on `#194b29` panels (same as booking cards) */
+  darkSurface?: boolean
 }
 
-function Toggle({ checked, onChange, id }: ToggleProps) {
+function Toggle({ checked, onChange, id, darkSurface = false }: ToggleProps) {
+  const trackClass = darkSurface
+    ? checked
+      ? 'bg-[#F1E334] focus-visible:ring-[#F1E334]/50'
+      : 'bg-[#112e18] focus-visible:ring-white/30'
+    : checked
+      ? 'bg-gray-900 focus-visible:ring-gray-600'
+      : 'bg-gray-200 focus-visible:ring-gray-400'
+  const thumbClass =
+    darkSurface && checked ? 'bg-gray-900 shadow-md' : 'bg-white shadow'
+
   return (
     <button
       id={id}
@@ -48,13 +60,17 @@ function Toggle({ checked, onChange, id }: ToggleProps) {
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={[
-        'relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-        checked ? 'bg-gray-900' : 'bg-gray-200',
+        'relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2',
+        darkSurface
+          ? 'focus-visible:ring-offset-transparent'
+          : 'focus-visible:ring-offset-2 focus-visible:ring-offset-white',
+        trackClass,
       ].join(' ')}
     >
       <span
         className={[
-          'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200',
+          'inline-block h-5 w-5 rounded-full transition-transform duration-200',
+          thumbClass,
           checked ? 'translate-x-6' : 'translate-x-1',
         ].join(' ')}
       />
@@ -606,13 +622,13 @@ export function AdminPage() {
                   </p>
                 </div>
                 {activeLadder ? (
-                  <div className="mx-4 my-3 overflow-hidden rounded-lg border border-gray-200/80 bg-gray-50 divide-y divide-gray-200/70">
+                  <div className="mx-4 my-3 overflow-hidden rounded-lg border border-white/20 bg-[#194b29] divide-y divide-white/15">
                     <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <p className="text-base font-semibold text-gray-900">
+                        <p className="text-base font-semibold text-white">
                           {activeLadder.name}
                         </p>
-                        <span className="inline-flex shrink-0 items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium text-white ring-1 ring-white/25">
                           Aktiv
                         </span>
                       </div>
@@ -622,7 +638,7 @@ export function AdminPage() {
                           void handleCompleteLadderClick(activeLadder.id)
                         }
                         disabled={loadingCompleteForId === activeLadder.id}
-                        className="min-h-[36px] w-full shrink-0 cursor-pointer rounded-lg border border-gray-300/90 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+                        className="min-h-[36px] w-full shrink-0 cursor-pointer rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-white/20 disabled:opacity-50 sm:w-auto"
                       >
                         {loadingCompleteForId === activeLadder.id
                           ? 'Laddar…'
@@ -630,12 +646,13 @@ export function AdminPage() {
                       </button>
                     </div>
                     <div className="space-y-2 px-3 py-3 sm:px-4">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-white">
                         Anmälningsstart för {activeLadder.name}
                       </p>
                       <div className="flex items-center gap-2 pt-0.5">
                         <AdminJoinDateField
                           key={activeLadder.id}
+                          appearance="green"
                           value={timestampToDateInput(activeLadder.joinOpensAt)}
                           onSelect={(v) => void handleSaveJoinDate(v)}
                           disabled={isSavingJoinDate}
@@ -645,13 +662,14 @@ export function AdminPage() {
                     </div>
                     <div className="flex min-h-[56px] items-center justify-between gap-4 px-3 py-3 sm:px-4">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-white">
                           Visa välkomstbanner
                         </p>
                       </div>
                       <div className="shrink-0">
                         <Toggle
                           id="stegen-welcome-banner-toggle"
+                          darkSurface
                           checked={
                             settings?.stegenJoinWelcomeBannerVisible ?? true
                           }
