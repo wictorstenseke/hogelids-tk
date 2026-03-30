@@ -19,7 +19,6 @@
   "dependencies": {
     "@ncdai/react-wheel-picker": "^1.2.0",
     "@tabler/icons-react": "^3.40.0",
-    "@tailwindcss/vite": "^4.2.1",
     "@tanstack/query-persist-client-core": "^5.95.2",
     "@tanstack/query-sync-storage-persister": "^5.95.2",
     "@tanstack/react-query": "^5.95.2",
@@ -42,6 +41,7 @@
     "@eslint/js": "^9.39.4",
     "@rolldown/plugin-babel": "^0.2.0",
     "@secretlint/secretlint-rule-preset-recommend": "^11.4.0",
+    "@tailwindcss/vite": "^4.2.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
