@@ -4,13 +4,32 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { Timestamp } from 'firebase/firestore'
 import { routeTree } from './routeTree.gen'
 import { queryClient, SEVEN_DAYS_MS } from './queryClient'
 import './index.css'
 
+function reviveTimestamps(_key: string, value: unknown): unknown {
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    'seconds' in value &&
+    'nanoseconds' in value &&
+    typeof (value as Record<string, unknown>).seconds === 'number' &&
+    typeof (value as Record<string, unknown>).nanoseconds === 'number'
+  ) {
+    return new Timestamp(
+      (value as { seconds: number }).seconds,
+      (value as { nanoseconds: number }).nanoseconds
+    )
+  }
+  return value
+}
+
 const localStoragePersister = createSyncStoragePersister({
   storage: window.localStorage,
   key: 'htk_query_cache',
+  deserialize: (str) => JSON.parse(str, reviveTimestamps),
 })
 
 const BROWSER_TAB_TITLE_BASE = 'Högelids Tennisklubb – Boka bana'
