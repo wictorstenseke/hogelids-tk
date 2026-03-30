@@ -26,7 +26,6 @@ export function AppSettingsProvider({
     queryKey: APP_SETTINGS_QUERY_KEY,
     queryFn: getAppSettings,
     staleTime: FIVE_MINUTES,
-    refetchInterval: FIVE_MINUTES,
     // Fall back to defaults on error so the app stays functional
     placeholderData: APP_SETTINGS_DEFAULTS,
   })

@@ -143,7 +143,7 @@ export function HomePage() {
   } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
-    staleTime: 1000 * 60 * 2,
+    staleTime: user ? 15 * 60 * 1000 : Infinity,
   })
 
   const { settings: appSettings } = useAppSettings()
@@ -155,6 +155,7 @@ export function HomePage() {
     queryFn: getEarliestBookingYear,
     staleTime: Infinity,
     gcTime: Infinity,
+    enabled: !!user,
   })
 
   // Prefetch profile and ladder as soon as user is known

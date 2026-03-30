@@ -21,7 +21,6 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     },
     enabled: !loading && !!user,
     staleTime: TEN_MINUTES,
-    refetchInterval: TEN_MINUTES,
   })
 
   return <RoleContext.Provider value={role}>{children}</RoleContext.Provider>
