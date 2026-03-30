@@ -1,11 +1,19 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { queryClient } from './queryClient'
 import './index.css'
+
+const localStoragePersister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: 'htk_query_cache',
+})
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
 const BROWSER_TAB_TITLE_BASE = 'Högelids Tennisklubb – Boka bana'
 const tabPrefix = import.meta.env.VITE_BROWSER_TAB_PREFIX?.trim()
@@ -34,9 +42,15 @@ declare module '@tanstack/react-router' {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: localStoragePersister,
+        maxAge: SEVEN_DAYS_MS,
+      }}
+    >
       <RouterProvider router={router} />
       <ReactQueryDevtools buttonPosition="bottom-right" />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </StrictMode>
 )
