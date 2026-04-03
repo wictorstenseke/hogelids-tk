@@ -31,6 +31,7 @@ import { LadderRulesSheetDialog } from './LadderRulesSheetDialog'
 import { SheetDialogShell } from './SheetDialogShell'
 import { GlassNoticeCard } from './GlassNoticeCard'
 import { ParticipantPhoneSheetDialog } from './ParticipantPhoneSheetDialog'
+import { LadderStatsCards } from './LadderStatsCards'
 import { MenuSelect } from './MenuSelect'
 import {
   deleteMemberBooking,
@@ -1172,6 +1173,10 @@ export function StegenPage() {
                       ))}
                   </div>
                 </div>
+              )}
+
+              {activeLadder && (
+                <LadderStatsCards participants={activeLadder.participants} />
               )}
 
               {completedLadders.length > 0 && (

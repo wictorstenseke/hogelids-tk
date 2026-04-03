@@ -3,6 +3,7 @@ import {
   getChallengeEligibility,
   applyMatchResult,
   formatStats,
+  getStatsLeaders,
 } from './ladder'
 import type { LadderParticipant } from '../services/LadderService'
 
@@ -221,6 +222,121 @@ describe('applyMatchResult', () => {
     expect(result.find((p) => p.uid === 'c')!.position).toBe(1)
     expect(result.find((p) => p.uid === 'c')!.wins).toBe(0)
     expect(result.find((p) => p.uid === 'c')!.losses).toBe(0)
+  })
+})
+
+// ─── formatStats ─────────────────────────────────────────────────────────────
+
+// ─── getStatsLeaders ─────────────────────────────────────────────────────────
+
+describe('getStatsLeaders', () => {
+  function makeWithStats(
+    entries: Array<{
+      uid: string
+      displayName?: string
+      position: number
+      wins?: number
+      losses?: number
+      paused?: boolean
+    }>
+  ): LadderParticipant[] {
+    return entries.map(
+      ({
+        uid,
+        displayName = uid,
+        position,
+        wins = 0,
+        losses = 0,
+        paused = false,
+      }) => ({
+        uid,
+        displayName,
+        position,
+        wins,
+        losses,
+        paused,
+      })
+    )
+  }
+
+  it('returns null when no matches have been completed', () => {
+    const participants = makeWithStats([
+      { uid: 'a', position: 1 },
+      { uid: 'b', position: 2 },
+      { uid: 'c', position: 3 },
+    ])
+    expect(getStatsLeaders(participants)).toBeNull()
+  })
+
+  it('returns correct leaders when there are clear winners', () => {
+    const participants = makeWithStats([
+      { uid: 'anna', displayName: 'Anna', position: 1, wins: 5, losses: 1 },
+      { uid: 'erik', displayName: 'Erik', position: 2, wins: 2, losses: 8 },
+      { uid: 'lisa', displayName: 'Lisa', position: 3, wins: 3, losses: 3 },
+    ])
+    const leaders = getStatsLeaders(participants)!
+    expect(leaders).toHaveLength(3)
+
+    // Most matches: Erik (2+8=10)
+    expect(leaders[0]).toEqual({
+      label: 'Flest matcher',
+      playerName: 'Erik',
+      value: 10,
+      valueSuffix: 'matcher',
+    })
+
+    // Most wins: Anna (5)
+    expect(leaders[1]).toEqual({
+      label: 'Flest vinster',
+      playerName: 'Anna',
+      value: 5,
+      valueSuffix: 'segrar',
+    })
+
+    // Most losses (mest orädd): Erik (8)
+    expect(leaders[2]).toEqual({
+      label: 'Mest orädd',
+      playerName: 'Erik',
+      value: 8,
+      valueSuffix: 'förluster',
+    })
+  })
+
+  it('breaks ties by highest-ranked player (lowest position)', () => {
+    const participants = makeWithStats([
+      { uid: 'anna', displayName: 'Anna', position: 3, wins: 4, losses: 2 },
+      { uid: 'erik', displayName: 'Erik', position: 1, wins: 4, losses: 2 },
+      { uid: 'lisa', displayName: 'Lisa', position: 2, wins: 4, losses: 2 },
+    ])
+    const leaders = getStatsLeaders(participants)!
+
+    // All tied — Erik (position 1) should win all three
+    expect(leaders[0].playerName).toBe('Erik')
+    expect(leaders[1].playerName).toBe('Erik')
+    expect(leaders[2].playerName).toBe('Erik')
+  })
+
+  it('includes paused players in stats', () => {
+    const participants = makeWithStats([
+      { uid: 'anna', displayName: 'Anna', position: 1, wins: 1, losses: 0 },
+      {
+        uid: 'erik',
+        displayName: 'Erik',
+        position: 2,
+        wins: 10,
+        losses: 5,
+        paused: true,
+      },
+    ])
+    const leaders = getStatsLeaders(participants)!
+
+    expect(leaders[0].playerName).toBe('Erik') // most matches
+    expect(leaders[1].playerName).toBe('Erik') // most wins
+    expect(leaders[2].playerName).toBe('Erik') // most losses
+  })
+
+  it('returns null for empty participants array', () => {
+    expect(getStatsLeaders([])).toBeNull()
   })
 })
 

@@ -97,6 +97,60 @@ export function applyMatchResult(
   })
 }
 
+export interface StatLeader {
+  label: string
+  playerName: string
+  value: number
+  valueSuffix: string
+}
+
+/**
+ * Returns the three stat leaders (most matches, most wins, most fearless)
+ * from the given participants, or null if no matches have been completed.
+ */
+export function getStatsLeaders(
+  participants: LadderParticipant[]
+): StatLeader[] | null {
+  const hasMatches = participants.some((p) => p.wins > 0 || p.losses > 0)
+  if (!hasMatches) return null
+
+  const byPosition = (a: LadderParticipant, b: LadderParticipant) =>
+    a.position - b.position
+
+  const sorted = [...participants].sort(byPosition)
+
+  const mostMatches = sorted.reduce((best, p) =>
+    p.wins + p.losses > best.wins + best.losses ? p : best
+  )
+
+  const mostWins = sorted.reduce((best, p) => (p.wins > best.wins ? p : best))
+
+  const mostLosses = sorted.reduce((best, p) =>
+    p.losses > best.losses ? p : best
+  )
+
+  return [
+    {
+      label: 'Flest matcher',
+      playerName: mostMatches.displayName,
+      value: mostMatches.wins + mostMatches.losses,
+      valueSuffix: 'matcher',
+    },
+    {
+      label: 'Flest vinster',
+      playerName: mostWins.displayName,
+      value: mostWins.wins,
+      valueSuffix: 'segrar',
+    },
+    {
+      label: 'Mest orädd',
+      playerName: mostLosses.displayName,
+      value: mostLosses.losses,
+      valueSuffix: 'förluster',
+    },
+  ]
+}
+
 /**
  * Returns a formatted wins/losses string for display (e.g. "3V 1F").
  */
