@@ -140,7 +140,10 @@ async function listMyBookings(db: Firestore, uid: string): Promise<ToolResult> {
     .get()
 
   const bookings = snapshot.docs
-    .filter((doc) => doc.data().ownerUid === uid)
+    .filter((doc) => {
+      const d = doc.data()
+      return d.ownerUid === uid || d.playerAId === uid || d.playerBId === uid
+    })
     .map((doc) => {
       const data = doc.data()
       const start = (data.startTime as FirebaseFirestore.Timestamp).toDate()
