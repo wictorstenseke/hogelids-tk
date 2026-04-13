@@ -9,6 +9,8 @@ export interface AppSettings {
   bannerLinkUrl?: string
   /** När false döljs välkomstbannern på /stegen (knapp under Tabellen visas ändå). */
   stegenJoinWelcomeBannerVisible: boolean
+  /** När true visas AI-assistenten (Cmd/Ctrl+K) för inloggade användare. */
+  aiAssistantEnabled: boolean
 }
 
 // Writable partial that allows FieldValue sentinels (e.g. deleteField()) for
@@ -25,6 +27,7 @@ export const APP_SETTINGS_DEFAULTS: AppSettings = {
   bannerVisible: false,
   bannerText: '',
   stegenJoinWelcomeBannerVisible: true,
+  aiAssistantEnabled: false,
 }
 
 // Returns the Firestore DocumentReference for the app settings document.
@@ -48,6 +51,8 @@ export async function getAppSettings(): Promise<AppSettings> {
     stegenJoinWelcomeBannerVisible:
       data.stegenJoinWelcomeBannerVisible ??
       APP_SETTINGS_DEFAULTS.stegenJoinWelcomeBannerVisible,
+    aiAssistantEnabled:
+      data.aiAssistantEnabled ?? APP_SETTINGS_DEFAULTS.aiAssistantEnabled,
   }
 }
 

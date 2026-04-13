@@ -12,6 +12,7 @@ import { Footer } from './-components/Footer'
 import { Header } from './-components/Header'
 import { AuthModal } from './-components/AuthModal'
 import { ProfileModal } from './-components/ProfileModal'
+import { AiChat } from './-components/AiChat'
 
 function AppShellInner() {
   const { user, loading: authLoading } = useAuth()
@@ -43,6 +44,7 @@ function AppShellInner() {
       {user && showProfile && (
         <ProfileModal user={user} onClose={() => setShowProfile(false)} />
       )}
+      <AiChat />
     </div>
   )
 }

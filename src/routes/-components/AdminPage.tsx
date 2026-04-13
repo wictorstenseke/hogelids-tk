@@ -605,6 +605,31 @@ export function AdminPage() {
             </SettingsRow>
           </SettingsSection>
 
+          <SettingsSection title="AI-assistent">
+            <SettingsRow
+              label="AI-assistent aktiverad"
+              description="Låt inloggade användare använda AI-assistenten (Cmd/Ctrl+K)"
+            >
+              <Toggle
+                id="ai-assistant-toggle"
+                checked={settings?.aiAssistantEnabled ?? false}
+                onChange={(value) => {
+                  updateSettingsMutation.mutate(
+                    { aiAssistantEnabled: value },
+                    {
+                      onSuccess: () =>
+                        addToast(
+                          value
+                            ? 'AI-assistent aktiverad'
+                            : 'AI-assistent inaktiverad'
+                        ),
+                    }
+                  )
+                }}
+              />
+            </SettingsRow>
+          </SettingsSection>
+
           <section className="space-y-3">
             <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-white/70">
               Stegen
