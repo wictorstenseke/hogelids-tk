@@ -1,6 +1,19 @@
 import type { Firestore } from 'firebase-admin/firestore'
 
 const MAX_CHALLENGE_DISTANCE = 4
+const TZ = 'Europe/Stockholm'
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString('sv-SE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: TZ,
+  })
+}
+
+function formatDate(date: Date, opts?: Intl.DateTimeFormatOptions): string {
+  return date.toLocaleDateString('sv-SE', { timeZone: TZ, ...opts })
+}
 
 interface ToolResult {
   success: boolean
@@ -30,15 +43,24 @@ async function listAvailableTimes(
   db: Firestore,
   dateStr: string
 ): Promise<ToolResult> {
-  const date = new Date(dateStr + 'T00:00:00')
+  // Parse date as Swedish local time by using timezone-aware formatting
+  // We construct dates assuming CET/CEST and let the query handle UTC conversion
+  const date = new Date(dateStr + 'T12:00:00')
   if (isNaN(date.getTime())) {
     return { success: false, error: 'Ogiltigt datum.' }
   }
 
-  const dayStart = new Date(date)
-  dayStart.setHours(7, 0, 0, 0)
-  const dayEnd = new Date(date)
-  dayEnd.setHours(22, 0, 0, 0)
+  // Get the UTC offset for Stockholm on this date
+  const sampleDate = new Date(`${dateStr}T12:00:00Z`)
+  const stockholmTime = new Date(
+    sampleDate.toLocaleString('en-US', { timeZone: TZ })
+  )
+  const offsetMs = sampleDate.getTime() - stockholmTime.getTime()
+
+  const dayStart = new Date(`${dateStr}T07:00:00Z`)
+  dayStart.setTime(dayStart.getTime() + offsetMs)
+  const dayEnd = new Date(`${dateStr}T22:00:00Z`)
+  dayEnd.setTime(dayEnd.getTime() + offsetMs)
 
   const snapshot = await db
     .collection('bookings')
@@ -50,12 +72,10 @@ async function listAvailableTimes(
   const bookedSlots = snapshot.docs.map((doc) => {
     const data = doc.data()
     return {
-      start: (data.startTime as FirebaseFirestore.Timestamp)
-        .toDate()
-        .toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
-      end: (data.endTime as FirebaseFirestore.Timestamp)
-        .toDate()
-        .toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+      start: formatTime(
+        (data.startTime as FirebaseFirestore.Timestamp).toDate()
+      ),
+      end: formatTime((data.endTime as FirebaseFirestore.Timestamp).toDate()),
     }
   })
 
@@ -76,14 +96,8 @@ async function listAvailableTimes(
   for (const booking of bookings) {
     if (cursor < booking.start) {
       freeSlots.push({
-        start: cursor.toLocaleTimeString('sv-SE', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        end: booking.start.toLocaleTimeString('sv-SE', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
+        start: formatTime(cursor),
+        end: formatTime(booking.start),
       })
     }
     if (booking.end > cursor) {
@@ -92,18 +106,12 @@ async function listAvailableTimes(
   }
   if (cursor < dayEnd) {
     freeSlots.push({
-      start: cursor.toLocaleTimeString('sv-SE', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      end: dayEnd.toLocaleTimeString('sv-SE', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      start: formatTime(cursor),
+      end: formatTime(dayEnd),
     })
   }
 
-  const weekday = date.toLocaleDateString('sv-SE', { weekday: 'long' })
+  const weekday = formatDate(date, { weekday: 'long' })
 
   return {
     success: true,
@@ -123,42 +131,39 @@ async function listAvailableTimes(
 async function listMyBookings(db: Firestore, uid: string): Promise<ToolResult> {
   const now = new Date()
 
+  // Query upcoming bookings first, then filter by owner in code
+  // (avoids needing a composite index on ownerUid + startTime)
   const snapshot = await db
     .collection('bookings')
-    .where('ownerUid', '==', uid)
     .where('startTime', '>=', now)
     .orderBy('startTime', 'asc')
     .get()
 
-  const bookings = snapshot.docs.map((doc) => {
-    const data = doc.data()
-    const start = (data.startTime as FirebaseFirestore.Timestamp).toDate()
-    const end = (data.endTime as FirebaseFirestore.Timestamp).toDate()
+  const bookings = snapshot.docs
+    .filter((doc) => doc.data().ownerUid === uid)
+    .map((doc) => {
+      const data = doc.data()
+      const start = (data.startTime as FirebaseFirestore.Timestamp).toDate()
+      const end = (data.endTime as FirebaseFirestore.Timestamp).toDate()
 
-    return {
-      id: doc.id,
-      date: start.toLocaleDateString('sv-SE', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      }),
-      startTime: start.toLocaleTimeString('sv-SE', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      endTime: end.toLocaleTimeString('sv-SE', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      type: data.type,
-      isLadderMatch: !!data.ladderId,
-      opponent: data.playerBId
-        ? data.playerAId === uid
-          ? data.playerBName
-          : data.playerAName
-        : null,
-    }
-  })
+      return {
+        id: doc.id,
+        date: formatDate(start, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        }),
+        startTime: formatTime(start),
+        endTime: formatTime(end),
+        type: data.type,
+        isLadderMatch: !!data.ladderId,
+        opponent: data.playerBId
+          ? data.playerAId === uid
+            ? data.playerBName
+            : data.playerAName
+          : null,
+      }
+    })
 
   return {
     success: true,

@@ -226,6 +226,7 @@ export function AiChat() {
                     toolCall={msg.toolCall}
                     onConfirm={() => handleToolConfirmed(msg.id)}
                     onEdit={() => handleToolEdit(msg.id)}
+                    onClose={handleClose}
                   />
                 </div>
               )}

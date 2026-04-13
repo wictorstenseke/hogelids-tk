@@ -17,6 +17,7 @@ interface AiConfirmationCardProps {
   toolCall: PendingToolCall
   onConfirm: () => void
   onEdit: () => void
+  onClose: () => void
 }
 
 function parseDateTime(date: string, time: string): Date {
@@ -27,6 +28,7 @@ export function AiConfirmationCard({
   toolCall,
   onConfirm,
   onEdit,
+  onClose,
 }: AiConfirmationCardProps) {
   const { user } = useAuth()
   const { addToast } = useToast()
@@ -99,6 +101,7 @@ export function AiConfirmationCard({
       await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
       setExecuted(true)
       onConfirm()
+      onClose()
     } catch (err) {
       console.error('Failed to execute tool call:', err)
       addToast('Något gick fel. Försök igen.', 'error')
