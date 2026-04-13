@@ -168,10 +168,10 @@ export function AiChat() {
           'inset-x-0 bottom-0 top-12 rounded-t-3xl',
           'transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
           visible
-            ? 'translate-y-0 sm:translate-y-0 sm:opacity-100'
+            ? 'translate-y-0 sm:opacity-100'
             : 'translate-y-full sm:translate-y-0 sm:opacity-0',
           // Desktop: centered modal
-          'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2',
+          'sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2',
           'sm:h-[min(600px,80vh)] sm:w-full sm:max-w-md sm:rounded-2xl',
           'sm:transition-opacity sm:duration-150 sm:ease-out',
         ].join(' ')}
@@ -265,6 +265,13 @@ export function AiChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Skriv ett meddelande…"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
               maxLength={500}
               disabled={isLoading}
               className="min-h-[44px] flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:bg-white focus:outline-none disabled:opacity-50"

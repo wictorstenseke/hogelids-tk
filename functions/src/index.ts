@@ -17,7 +17,12 @@ const MAX_MESSAGES = 20
 const MODEL = 'google/gemini-2.0-flash-001'
 
 export const aiChat = onCall(
-  { secrets: [openrouterApiKey], region: 'europe-west1' },
+  {
+    secrets: [openrouterApiKey],
+    region: 'europe-west1',
+    cors: true,
+    invoker: 'public',
+  },
   async (request) => {
     // 1. Auth check
     if (!request.auth) {

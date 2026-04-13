@@ -1,7 +1,5 @@
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { app } from '../lib/firebase'
-
-const functions = getFunctions(app, 'europe-west1')
+import { httpsCallable } from 'firebase/functions'
+import { functions } from '../lib/firebase'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
