@@ -215,10 +215,13 @@ export const aiChatStream = onRequest(
 
       // 6. Stream every LLM call — consumeStream forwards text deltas via SSE
       //    and collects tool_calls silently.
+      const availableTools = bookingEnabled
+        ? TOOLS
+        : TOOLS.filter((t) => !BOOKING_TOOLS.has(t.function.name))
       const stream = await openai.chat.completions.create({
         model: MODEL,
         messages: allMessages,
-        tools: TOOLS,
+        tools: availableTools,
         tool_choice: 'auto',
         max_tokens: MAX_TOKENS,
         stream: true,
@@ -229,43 +232,6 @@ export const aiChatStream = onRequest(
       // 7. Tool-call loop
       for (let i = 0; i < 5 && assistantMessage.tool_calls?.length; i++) {
         const toolCalls = assistantMessage.tool_calls
-
-        // Guard: booking disabled — reject booking tool calls with a message
-        if (!bookingEnabled) {
-          const blockedTool = toolCalls.find((tc) =>
-            BOOKING_TOOLS.has(tc.function.name)
-          )
-          if (blockedTool) {
-            allMessages = [
-              systemMessage,
-              ...messages,
-              {
-                role: 'assistant' as const,
-                content: assistantMessage.content,
-                tool_calls: [blockedTool],
-              },
-              {
-                role: 'tool' as const,
-                tool_call_id: blockedTool.id,
-                content: JSON.stringify({
-                  error:
-                    'Bokning är avstängd just nu. Administratören har stängt av bokningar tillfälligt.',
-                }),
-              },
-            ]
-
-            const s = await openai.chat.completions.create({
-              model: MODEL,
-              messages: allMessages,
-              tools: TOOLS,
-              tool_choice: 'auto',
-              max_tokens: MAX_TOKENS,
-              stream: true,
-            })
-            assistantMessage = await consumeStream(s, res)
-            continue
-          }
-        }
 
         // Guard: booking without availability check
         const bookingTool = toolCalls.find((tc) =>
@@ -310,7 +276,7 @@ export const aiChatStream = onRequest(
             const s = await openai.chat.completions.create({
               model: MODEL,
               messages: allMessages,
-              tools: TOOLS,
+              tools: availableTools,
               tool_choice: 'auto',
               max_tokens: MAX_TOKENS,
               stream: true,
@@ -360,7 +326,7 @@ export const aiChatStream = onRequest(
           const s = await openai.chat.completions.create({
             model: MODEL,
             messages: allMessages,
-            tools: TOOLS,
+            tools: availableTools,
             tool_choice: 'auto',
             max_tokens: MAX_TOKENS,
             stream: true,
@@ -420,7 +386,7 @@ export const aiChatStream = onRequest(
         const s = await openai.chat.completions.create({
           model: MODEL,
           messages: allMessages,
-          tools: TOOLS,
+          tools: availableTools,
           tool_choice: 'auto',
           max_tokens: MAX_TOKENS,
           stream: true,
