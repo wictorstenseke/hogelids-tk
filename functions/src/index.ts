@@ -11,7 +11,8 @@ initializeApp()
 
 const MAX_MESSAGE_LENGTH = 500
 const MAX_MESSAGES = 20
-const MODEL = 'google/gemini-2.0-flash-001'
+const MODEL = 'anthropic/claude-haiku-4.5'
+const MAX_TOKENS = 1024
 
 export const aiChat = functions
   .runWith({ secrets: ['OPENROUTER_API_KEY'] })
@@ -87,6 +88,7 @@ export const aiChat = functions
       messages: [systemMessage, ...messages],
       tools: TOOLS,
       tool_choice: 'auto',
+      max_tokens: MAX_TOKENS,
     })
 
     let assistantMessage = response.choices[0]?.message
@@ -140,7 +142,7 @@ export const aiChat = functions
               ...messages,
               {
                 role: 'assistant' as const,
-                content: null,
+                content: '',
                 tool_calls: [
                   {
                     id: 'forced_avail_check',
@@ -160,6 +162,7 @@ export const aiChat = functions
             ],
             tools: TOOLS,
             tool_choice: 'auto',
+            max_tokens: MAX_TOKENS,
           })
           assistantMessage = response.choices[0]?.message
           continue
@@ -187,7 +190,7 @@ export const aiChat = functions
             ...messages,
             {
               role: 'assistant' as const,
-              content: null,
+              content: '',
               tool_calls: [
                 {
                   id: 'forced_ladder_check',
@@ -207,6 +210,7 @@ export const aiChat = functions
           ],
           tools: TOOLS,
           tool_choice: 'auto',
+          max_tokens: MAX_TOKENS,
         })
         assistantMessage = response.choices[0]?.message
         continue
@@ -261,6 +265,7 @@ export const aiChat = functions
         ],
         tools: TOOLS,
         tool_choice: 'auto',
+        max_tokens: MAX_TOKENS,
       })
 
       assistantMessage = response.choices[0]?.message
