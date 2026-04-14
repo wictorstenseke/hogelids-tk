@@ -9,6 +9,7 @@ import {
   getUpcomingBookings,
   hasConflict,
 } from '../../services/BookingService'
+import { getAppSettings } from '../../services/AppSettingsService'
 import {
   createLadderMatch,
   LADDER_MATCHES_QUERY_KEY,
@@ -46,6 +47,19 @@ export function AiConfirmationCard({
     setIsExecuting(true)
 
     try {
+      // Guard: check if bookings are enabled before creating
+      if (
+        toolCall.name === 'create_booking' ||
+        toolCall.name === 'create_ladder_match'
+      ) {
+        const currentSettings = await getAppSettings()
+        if (!currentSettings.bookingEnabled) {
+          addToast('Bokning är avstängd just nu.', 'error')
+          setIsExecuting(false)
+          return
+        }
+      }
+
       if (toolCall.name === 'create_booking') {
         const start = parseDateTime(
           args.date as string,

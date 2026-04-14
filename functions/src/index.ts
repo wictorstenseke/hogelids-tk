@@ -143,6 +143,8 @@ export const aiChatStream = onRequest(
       return
     }
 
+    const bookingEnabled = settings?.bookingEnabled ?? true
+
     // 3. Validate input
     const messages: ChatCompletionMessageParam[] = req.body?.messages
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -178,7 +180,13 @@ export const aiChatStream = onRequest(
     try {
       // 5. Build system prompt
       const now = new Date()
-      const userContext = buildUserContext(uid, displayName, email, now)
+      const userContext = buildUserContext(
+        uid,
+        displayName,
+        email,
+        now,
+        bookingEnabled
+      )
       const systemMessage: ChatCompletionMessageParam = {
         role: 'system',
         content: `${SYSTEM_PROMPT}\n\n${userContext}`,
@@ -221,6 +229,43 @@ export const aiChatStream = onRequest(
       // 7. Tool-call loop
       for (let i = 0; i < 5 && assistantMessage.tool_calls?.length; i++) {
         const toolCalls = assistantMessage.tool_calls
+
+        // Guard: booking disabled — reject booking tool calls with a message
+        if (!bookingEnabled) {
+          const blockedTool = toolCalls.find((tc) =>
+            BOOKING_TOOLS.has(tc.function.name)
+          )
+          if (blockedTool) {
+            allMessages = [
+              systemMessage,
+              ...messages,
+              {
+                role: 'assistant' as const,
+                content: assistantMessage.content,
+                tool_calls: [blockedTool],
+              },
+              {
+                role: 'tool' as const,
+                tool_call_id: blockedTool.id,
+                content: JSON.stringify({
+                  error:
+                    'Bokning är avstängd just nu. Administratören har stängt av bokningar tillfälligt.',
+                }),
+              },
+            ]
+
+            const s = await openai.chat.completions.create({
+              model: MODEL,
+              messages: allMessages,
+              tools: TOOLS,
+              tool_choice: 'auto',
+              max_tokens: MAX_TOKENS,
+              stream: true,
+            })
+            assistantMessage = await consumeStream(s, res)
+            continue
+          }
+        }
 
         // Guard: booking without availability check
         const bookingTool = toolCalls.find((tc) =>

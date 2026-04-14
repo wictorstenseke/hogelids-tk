@@ -46,7 +46,8 @@ export function buildUserContext(
   uid: string,
   displayName: string,
   email: string,
-  now: Date
+  now: Date,
+  bookingEnabled: boolean
 ): string {
   const TZ = 'Europe/Stockholm'
   const dateStr = now.toLocaleDateString('sv-SE', {
@@ -67,5 +68,6 @@ export function buildUserContext(
 - E-post: ${email}
 - Användar-ID: ${uid}
 - Datum: ${dateStr}
-- Tid: ${timeStr}`
+- Tid: ${timeStr}
+- Bokning: ${bookingEnabled ? 'aktiverad' : 'AVSTÄNGD — informera användaren att bokning inte är möjlig just nu'}`
 }
