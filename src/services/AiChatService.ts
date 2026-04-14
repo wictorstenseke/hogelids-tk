@@ -1,8 +1,6 @@
 import { auth } from '../lib/firebase'
 
-const AI_CHAT_URL =
-  import.meta.env.VITE_AI_CHAT_URL ??
-  'https://europe-west1-hogelids-tk-dev.cloudfunctions.net/aiChatStream'
+const AI_CHAT_URL = import.meta.env.VITE_AI_CHAT_URL ?? '/api/aiChat'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
