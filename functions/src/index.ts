@@ -344,6 +344,18 @@ export const aiChatStream = onRequest(
           const writeTool = toolCalls.find((tc) =>
             WRITE_TOOLS.has(tc.function.name)
           )!
+
+          // Block booking writes when bookings are disabled
+          if (!bookingEnabled && BOOKING_TOOLS.has(writeTool.function.name)) {
+            sendSSE(res, {
+              type: 'delta',
+              content: 'Bokning är avstängd just nu. Försök igen senare!',
+            })
+            sendSSE(res, { type: 'done' })
+            res.end()
+            return
+          }
+
           sendSSE(res, {
             type: 'tool',
             reply: assistantMessage.content ?? '',
