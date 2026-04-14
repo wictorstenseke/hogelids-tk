@@ -95,6 +95,7 @@ export const aiChatStream = onRequest(
     secrets: [openrouterApiKey],
     timeoutSeconds: 120,
     region: 'europe-west1',
+    invoker: 'public',
   },
   async (req, res) => {
     // Manual CORS to avoid middleware buffering
