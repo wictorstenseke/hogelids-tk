@@ -1,4 +1,5 @@
-import * as functions from 'firebase-functions/v1'
+import { onRequest } from 'firebase-functions/v2/https'
+import { defineSecret } from 'firebase-functions/params'
 import { initializeApp, getApps } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
@@ -10,8 +11,11 @@ import type {
 import { SYSTEM_PROMPT, buildUserContext } from './prompt'
 import { TOOLS } from './tools'
 import { executeReadTool } from './toolExecution'
+import type { Response } from 'express'
 
 if (getApps().length === 0) initializeApp()
+
+const openrouterApiKey = defineSecret('OPENROUTER_API_KEY')
 
 const MAX_MESSAGE_LENGTH = 500
 const MAX_MESSAGES = 20
@@ -25,14 +29,14 @@ const WRITE_TOOLS = new Set([
 ])
 const BOOKING_TOOLS = new Set(['create_booking', 'create_ladder_match'])
 
-function sendSSE(res: functions.Response, data: Record<string, unknown>): void {
+function sendSSE(res: Response, data: Record<string, unknown>): void {
   res.write(`data: ${JSON.stringify(data)}\n\n`)
 }
 
 /** Collect a streamed response, forwarding text deltas via SSE. */
 async function consumeStream(
   stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>,
-  res: functions.Response
+  res: Response
 ): Promise<ChatCompletionMessage> {
   let content = ''
   const toolCallsMap = new Map<
@@ -86,11 +90,14 @@ async function consumeStream(
   }
 }
 
-export const aiChatStream = functions
-  .runWith({ secrets: ['OPENROUTER_API_KEY'], timeoutSeconds: 120 })
-  .region('europe-west1')
-  .https.onRequest(async (req, res) => {
-    // CORS
+export const aiChatStream = onRequest(
+  {
+    secrets: [openrouterApiKey],
+    timeoutSeconds: 120,
+    region: 'europe-west1',
+  },
+  async (req, res) => {
+    // Manual CORS to avoid middleware buffering
     res.set('Access-Control-Allow-Origin', '*')
     res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type')
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -389,4 +396,5 @@ export const aiChatStream = functions
       sendSSE(res, { type: 'error', message })
       res.end()
     }
-  })
+  }
+)

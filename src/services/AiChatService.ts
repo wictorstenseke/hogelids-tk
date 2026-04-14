@@ -1,5 +1,9 @@
 import { auth } from '../lib/firebase'
 
+const AI_CHAT_URL =
+  import.meta.env.VITE_AI_CHAT_URL ??
+  'https://europe-west1-hogelids-tk-dev.cloudfunctions.net/aiChatStream'
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -46,7 +50,7 @@ export async function streamAiChat(
 
   const token = await user.getIdToken()
 
-  const response = await fetch('/api/aiChat', {
+  const response = await fetch(AI_CHAT_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
