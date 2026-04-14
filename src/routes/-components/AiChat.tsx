@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconSend2, IconX, IconSparkles } from '@tabler/icons-react'
 import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 import {
-  sendAiChat,
+  streamAiChat,
   type ChatMessage,
   type PendingToolCall,
 } from '../../services/AiChatService'
 import { useAuth } from '../../lib/useAuth'
 import { useAppSettings } from '../../lib/useAppSettings'
 import { AiConfirmationCard } from './AiConfirmationCard'
+import { AiMarkdown } from './AiMarkdown'
 
 const MAX_MESSAGES = 20
 
@@ -105,22 +106,56 @@ export function AiChat() {
           { role: 'user' as const, content: trimmed },
         ]
 
-        const response = await sendAiChat(apiMessages)
+        const assistantId = crypto.randomUUID()
+        let firstDelta = true
 
-        const assistantMsg: DisplayMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: response.reply,
-          toolCall: response.toolCall ?? undefined,
+        const response = await streamAiChat(apiMessages, (delta) => {
+          if (firstDelta) {
+            firstDelta = false
+            setIsLoading(false)
+            setMessages((prev) => [
+              ...prev,
+              { id: assistantId, role: 'assistant', content: delta },
+            ])
+          } else {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: m.content + delta } : m
+              )
+            )
+          }
+        })
+
+        // Update with final toolCall if present
+        if (response.toolCall) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? { ...m, toolCall: response.toolCall ?? undefined }
+                : m
+            )
+          )
         }
 
-        setMessages((prev) => [...prev, assistantMsg])
+        // If no deltas were received (e.g. tool-only response), add the message
+        if (firstDelta && response.reply) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantId,
+              role: 'assistant',
+              content: response.reply,
+              toolCall: response.toolCall ?? undefined,
+            },
+          ])
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Något gick fel. Försök igen.'
         setError(message)
       } finally {
         setIsLoading(false)
+        requestAnimationFrame(() => inputRef.current?.focus())
       }
     },
     [messages, isLoading]
@@ -217,7 +252,11 @@ export function AiChat() {
                       : 'bg-gray-100 text-gray-900',
                   ].join(' ')}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <AiMarkdown content={msg.content} />
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
               {msg.toolCall && (
