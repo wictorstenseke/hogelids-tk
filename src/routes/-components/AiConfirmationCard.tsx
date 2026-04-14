@@ -9,7 +9,10 @@ import {
   getUpcomingBookings,
   hasConflict,
 } from '../../services/BookingService'
-import { createLadderMatch } from '../../services/LadderService'
+import {
+  createLadderMatch,
+  LADDER_MATCHES_QUERY_KEY,
+} from '../../services/LadderService'
 import { useToast } from '../../lib/ToastContext'
 import type { PendingToolCall } from '../../services/AiChatService'
 
@@ -99,6 +102,11 @@ export function AiConfirmationCard({
       }
 
       await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
+      if (toolCall.name === 'create_ladder_match' && args.ladderId) {
+        await queryClient.invalidateQueries({
+          queryKey: LADDER_MATCHES_QUERY_KEY(args.ladderId as string),
+        })
+      }
       setExecuted(true)
       onConfirm()
       onClose()
