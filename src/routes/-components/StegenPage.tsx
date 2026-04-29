@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
 
 import {
@@ -52,8 +52,14 @@ import {
 
 function getActiveParticipants(participants: LadderParticipant[]) {
   return participants
-    .filter((p) => !p.paused)
+    .filter((p) => !p.paused && p.inPool !== true)
     .sort((a, b) => a.position - b.position)
+}
+
+function getPoolParticipants(participants: LadderParticipant[]) {
+  return participants
+    .filter((p) => !p.paused && p.inPool === true)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, 'sv-SE'))
 }
 
 function getPausedParticipants(participants: LadderParticipant[]) {
@@ -103,26 +109,22 @@ interface RankingsTableProps {
   /** När satt: visar "Gå med i stegen" i tom lista (under text) eller ovanför listan om andra redan gått med. */
   onJoin?: () => void
   isJoining?: boolean
-  /** Inloggad användares profiltelefon — används på egen rad om stege-dokumentet saknar phone. */
-  viewerProfilePhone?: string | null
+  /** Profile phone per uid — fresh source of truth, supersedes the snapshot in the ladder doc. */
+  phonesByUid?: Record<string, string | null>
 }
 
 const joinCtaButtonClass =
   'flex min-h-[44px] w-full min-[480px]:w-auto cursor-pointer items-center justify-center rounded-lg border border-[#d4c92e] bg-[#F1E334] px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50'
 
-/** Ladder doc may omit phone until next join; fall back to viewer profile on own row. */
+/** Profile is source of truth; ladder snapshot is fallback for offline/loading state. */
 function resolveParticipantPhoneDisplay(
   participant: LadderParticipant,
-  currentUid: string,
-  viewerProfilePhone: string | null | undefined
+  phonesByUid: Record<string, string | null> | undefined
 ): string | null {
+  const fromProfile = phonesByUid?.[participant.uid]?.trim()
+  if (fromProfile) return fromProfile
   const fromLadder = participant.phone?.trim()
-  if (fromLadder) return fromLadder
-  if (participant.uid === currentUid) {
-    const fromProfile = viewerProfilePhone?.trim()
-    return fromProfile || null
-  }
-  return null
+  return fromLadder || null
 }
 
 function RankingsTable({
@@ -133,9 +135,10 @@ function RankingsTable({
   isCompleted,
   onJoin,
   isJoining = false,
-  viewerProfilePhone,
+  phonesByUid,
 }: RankingsTableProps) {
   const active = getActiveParticipants(ladder.participants)
+  const pool = getPoolParticipants(ladder.participants)
   const paused = getPausedParticipants(ladder.participants)
   const me = ladder.participants.find((p) => p.uid === currentUid)
   const isMember = !!me
@@ -146,7 +149,7 @@ function RankingsTable({
     ladderJoinOpenNow &&
     typeof onJoin === 'function'
 
-  if (active.length === 0 && paused.length === 0) {
+  if (active.length === 0 && pool.length === 0 && paused.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/20 px-4 py-10 text-center text-sm">
         {!ladderJoinOpenNow ? (
@@ -174,18 +177,6 @@ function RankingsTable({
 
   return (
     <div>
-      {showJoinCta && (
-        <div className="mb-3">
-          <button
-            type="button"
-            onClick={() => void onJoin()}
-            disabled={isJoining}
-            className={joinCtaButtonClass}
-          >
-            {isJoining ? 'Går med…' : 'Gå med i stegen'}
-          </button>
-        </div>
-      )}
       {active.length > 0 && (
         <ul className="border-t border-white/10">
           {active.map((participant) => {
@@ -203,8 +194,7 @@ function RankingsTable({
             const name = participant.displayName || participant.uid
             const phoneDisplay = resolveParticipantPhoneDisplay(
               participant,
-              currentUid,
-              viewerProfilePhone
+              phonesByUid
             )
 
             const rowClass = 'flex min-w-0 items-center gap-3 py-2.5 pr-2'
@@ -258,6 +248,96 @@ function RankingsTable({
         </ul>
       )}
 
+      {pool.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-white/40">
+            Nya spelare
+          </p>
+          <p className="mb-1.5 px-1 text-xs text-white/55">
+            Får utmana vem som helst tills första matchen är spelad.
+          </p>
+          <ul className="border-t border-white/10">
+            {pool.map((participant) => {
+              const eligibility =
+                isMember && !isCompleted && participant.uid !== currentUid
+                  ? getChallengeEligibility(
+                      ladder.participants,
+                      currentUid,
+                      participant.uid
+                    )
+                  : null
+              const isChallengeable = eligibility?.eligible === true
+              const isMe = participant.uid === currentUid
+
+              const name = participant.displayName || participant.uid
+              const phoneDisplay = resolveParticipantPhoneDisplay(
+                participant,
+                phonesByUid
+              )
+
+              const rowClass =
+                'flex min-w-0 items-center gap-3 py-2.5 pr-2 pl-3'
+
+              const rowContent = (
+                <>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <span
+                      title={name}
+                      className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none ${
+                        isMe
+                          ? 'bg-[#F1E334] text-gray-900'
+                          : 'bg-white/15 text-white/90'
+                      }`}
+                    >
+                      {name}
+                    </span>
+                    {phoneDisplay ? (
+                      <ParticipantPhoneSheetDialog
+                        displayName={name}
+                        phone={phoneDisplay}
+                      />
+                    ) : null}
+                  </div>
+                  <span className="shrink-0 text-xs font-medium tracking-[-0.02em] text-white/55">
+                    Ny
+                  </span>
+                </>
+              )
+
+              return (
+                <li key={participant.uid} className="border-b border-white/10">
+                  {isChallengeable ? (
+                    <button
+                      type="button"
+                      onClick={() => onChallenge(participant.uid)}
+                      className={`${rowClass} w-full cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
+                      aria-label={`Utmana ${name}`}
+                    >
+                      {rowContent}
+                    </button>
+                  ) : (
+                    <div className={rowClass}>{rowContent}</div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {showJoinCta && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void onJoin()}
+            disabled={isJoining}
+            className="flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-[#d4c92e] bg-[#F1E334] px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
+          >
+            {isJoining ? 'Går med…' : 'Gå med i stegen'}
+          </button>
+        </div>
+      )}
+
       {paused.length > 0 && (
         <div className="mt-4">
           <p className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wider text-white/40">
@@ -269,8 +349,7 @@ function RankingsTable({
               const isMe = participant.uid === currentUid
               const phoneDisplay = resolveParticipantPhoneDisplay(
                 participant,
-                currentUid,
-                viewerProfilePhone
+                phonesByUid
               )
               return (
                 <li
@@ -769,6 +848,28 @@ export function StegenPage() {
   const archivedLadder =
     completedLadders.find((l) => l.id === effectiveArchivedLadderId) ?? null
 
+  const participantUids = useMemo(() => {
+    const set = new Set<string>()
+    activeLadder?.participants.forEach((p) => set.add(p.uid))
+    archivedLadder?.participants.forEach((p) => set.add(p.uid))
+    return [...set]
+  }, [activeLadder, archivedLadder])
+
+  const participantProfileQueries = useQueries({
+    queries: participantUids.map((uid) => ({
+      queryKey: [PROFILE_QUERY_KEY, uid],
+      queryFn: () => getProfile(uid),
+    })),
+  })
+
+  const phonesByUid = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    for (const q of participantProfileQueries) {
+      if (q.data) map[q.data.uid] = q.data.phone ?? null
+    }
+    return map
+  }, [participantProfileQueries])
+
   const archivedLadderOptions = useMemo(
     () => [
       { value: '', label: 'Välj stege' },
@@ -1057,7 +1158,7 @@ export function StegenPage() {
                       isCompleted={false}
                       onJoin={() => void handleJoin()}
                       isJoining={isJoining}
-                      viewerProfilePhone={profile?.phone ?? null}
+                      phonesByUid={phonesByUid}
                       onChallenge={(uid) => {
                         setChallengeOpponentUid(uid)
                         setReportingMatch(null)
@@ -1219,7 +1320,7 @@ export function StegenPage() {
                           currentUid={user.uid}
                           ladderJoinOpenNow={false}
                           isCompleted
-                          viewerProfilePhone={profile?.phone ?? null}
+                          phonesByUid={phonesByUid}
                           onChallenge={() => {}}
                         />
                       </section>

@@ -8,15 +8,21 @@ import {
 import type { LadderParticipant } from '../services/LadderService'
 
 function makeParticipants(
-  entries: Array<{ uid: string; position: number; paused?: boolean }>
+  entries: Array<{
+    uid: string
+    position: number
+    paused?: boolean
+    inPool?: boolean
+  }>
 ): LadderParticipant[] {
-  return entries.map(({ uid, position, paused = false }) => ({
+  return entries.map(({ uid, position, paused = false, inPool = false }) => ({
     uid,
     displayName: uid,
     position,
     wins: 0,
     losses: 0,
     paused,
+    inPool,
   }))
 }
 
@@ -102,6 +108,45 @@ describe('getChallengeEligibility', () => {
     expect(result.eligible).toBe(false)
     expect(result.reason).toBe('not-found')
   })
+
+  it('allows pool member to challenge another pool member', () => {
+    const pp = makeParticipants([
+      { uid: 'pool1', position: 0, inPool: true },
+      { uid: 'pool2', position: 0, inPool: true },
+    ])
+    expect(getChallengeEligibility(pp, 'pool1', 'pool2').eligible).toBe(true)
+  })
+
+  it('allows pool member to challenge a top-ranked ladder player (no distance limit)', () => {
+    const pp = makeParticipants([
+      { uid: 'p1', position: 1 },
+      { uid: 'p2', position: 2 },
+      { uid: 'p10', position: 10 },
+      { uid: 'pool', position: 0, inPool: true },
+    ])
+    expect(getChallengeEligibility(pp, 'pool', 'p1').eligible).toBe(true)
+    expect(getChallengeEligibility(pp, 'pool', 'p10').eligible).toBe(true)
+  })
+
+  it('rejects ladder player challenging a pool member', () => {
+    const pp = makeParticipants([
+      { uid: 'p1', position: 1 },
+      { uid: 'pool', position: 0, inPool: true },
+    ])
+    const result = getChallengeEligibility(pp, 'p1', 'pool')
+    expect(result.eligible).toBe(false)
+    expect(result.reason).toBe('ladder-cannot-challenge-pool')
+  })
+
+  it('rejects challenging a paused pool member', () => {
+    const pp = makeParticipants([
+      { uid: 'pool1', position: 0, inPool: true },
+      { uid: 'pool2', position: 0, inPool: true, paused: true },
+    ])
+    const result = getChallengeEligibility(pp, 'pool1', 'pool2')
+    expect(result.eligible).toBe(false)
+    expect(result.reason).toBe('paused-opponent')
+  })
 })
 
 // ─── applyMatchResult ─────────────────────────────────────────────────────────
@@ -114,16 +159,25 @@ describe('applyMatchResult', () => {
       wins?: number
       losses?: number
       paused?: boolean
+      inPool?: boolean
     }>
   ): LadderParticipant[] {
     return entries.map(
-      ({ uid, position, wins = 0, losses = 0, paused = false }) => ({
+      ({
+        uid,
+        position,
+        wins = 0,
+        losses = 0,
+        paused = false,
+        inPool = false,
+      }) => ({
         uid,
         displayName: uid,
         position,
         wins,
         losses,
         paused,
+        inPool,
       })
     )
   }
@@ -222,6 +276,193 @@ describe('applyMatchResult', () => {
     expect(result.find((p) => p.uid === 'c')!.position).toBe(1)
     expect(result.find((p) => p.uid === 'c')!.wins).toBe(0)
     expect(result.find((p) => p.uid === 'c')!.losses).toBe(0)
+  })
+
+  // ─── Pool vs ladder: pool wins ──────────────────────────────────────────────
+
+  it('pool wins vs ladder: pool takes opponent position, others below shift down', () => {
+    const participants = makeWithStats([
+      { uid: 'p1', position: 1 },
+      { uid: 'p2', position: 2 },
+      { uid: 'p3', position: 3 },
+      { uid: 'p4', position: 4 },
+      { uid: 'pool', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'pool', 'p3')
+    const byUid = (uid: string) => result.find((p) => p.uid === uid)!
+
+    expect(byUid('pool').position).toBe(3)
+    expect(byUid('pool').inPool).toBe(false)
+    expect(byUid('pool').wins).toBe(1)
+
+    expect(byUid('p1').position).toBe(1)
+    expect(byUid('p2').position).toBe(2)
+    expect(byUid('p3').position).toBe(4) // pushed down
+    expect(byUid('p4').position).toBe(5) // pushed down
+    expect(byUid('p3').losses).toBe(1)
+  })
+
+  it('pool wins vs top-ranked ladder player: pool jumps to position 1', () => {
+    const participants = makeWithStats([
+      { uid: 'top', position: 1, wins: 2 },
+      { uid: 'pool', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'pool', 'top')
+    expect(result.find((p) => p.uid === 'pool')!.position).toBe(1)
+    expect(result.find((p) => p.uid === 'pool')!.inPool).toBe(false)
+    expect(result.find((p) => p.uid === 'top')!.position).toBe(2)
+  })
+
+  // ─── Pool vs ladder: pool loses ─────────────────────────────────────────────
+
+  it('pool loses vs ladder: pool placed at bottom, ladder unchanged', () => {
+    const participants = makeWithStats([
+      { uid: 'p1', position: 1 },
+      { uid: 'p2', position: 2 },
+      { uid: 'p3', position: 3 },
+      { uid: 'pool', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'p1', 'pool')
+    const byUid = (uid: string) => result.find((p) => p.uid === uid)!
+
+    expect(byUid('pool').position).toBe(4)
+    expect(byUid('pool').inPool).toBe(false)
+    expect(byUid('pool').losses).toBe(1)
+    expect(byUid('p1').position).toBe(1)
+    expect(byUid('p1').wins).toBe(1)
+    expect(byUid('p2').position).toBe(2)
+    expect(byUid('p3').position).toBe(3)
+  })
+
+  it('pool loses against an empty ladder (only pool was challenger): pool ends at position 1', () => {
+    // Edge case: this can't happen via UI because both would be in pool, but
+    // verifies that activeLadderMaxPosition handles an empty ladder gracefully.
+    const participants = makeWithStats([
+      { uid: 'lonely', position: 1 },
+      { uid: 'pool', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'lonely', 'pool')
+    expect(result.find((p) => p.uid === 'pool')!.position).toBe(2)
+    expect(result.find((p) => p.uid === 'pool')!.inPool).toBe(false)
+  })
+
+  // ─── Pool vs pool ───────────────────────────────────────────────────────────
+
+  it('pool vs pool on empty ladder: winner = 1, loser = 2', () => {
+    const participants = makeWithStats([
+      { uid: 'a', position: 0, inPool: true },
+      { uid: 'b', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'a', 'b')
+    expect(result.find((p) => p.uid === 'a')!.position).toBe(1)
+    expect(result.find((p) => p.uid === 'a')!.inPool).toBe(false)
+    expect(result.find((p) => p.uid === 'a')!.wins).toBe(1)
+    expect(result.find((p) => p.uid === 'b')!.position).toBe(2)
+    expect(result.find((p) => p.uid === 'b')!.inPool).toBe(false)
+    expect(result.find((p) => p.uid === 'b')!.losses).toBe(1)
+  })
+
+  it('pool vs pool: matches the example of 5 sequential matches in an empty ladder', () => {
+    // Simulate 5 pool-vs-pool matches with 10 fresh players.
+    let participants = makeWithStats(
+      Array.from({ length: 10 }, (_, i) => ({
+        uid: `p${i + 1}`,
+        position: 0,
+        inPool: true,
+      }))
+    )
+
+    // Match 1: p1 beats p2
+    participants = applyMatchResult(participants, 'p1', 'p2')
+    // Match 2: p3 beats p4
+    participants = applyMatchResult(participants, 'p3', 'p4')
+    // Match 3: p5 beats p6
+    participants = applyMatchResult(participants, 'p5', 'p6')
+    // Match 4: p7 beats p8
+    participants = applyMatchResult(participants, 'p7', 'p8')
+    // Match 5: p9 beats p10
+    participants = applyMatchResult(participants, 'p9', 'p10')
+
+    const byUid = (uid: string) => participants.find((p) => p.uid === uid)!
+
+    // Winners on positions 1-5 (in order)
+    expect(byUid('p1').position).toBe(1)
+    expect(byUid('p3').position).toBe(2)
+    expect(byUid('p5').position).toBe(3)
+    expect(byUid('p7').position).toBe(4)
+    expect(byUid('p9').position).toBe(5)
+
+    // Losers on positions 6-10 (in order)
+    expect(byUid('p2').position).toBe(6)
+    expect(byUid('p4').position).toBe(7)
+    expect(byUid('p6').position).toBe(8)
+    expect(byUid('p8').position).toBe(9)
+    expect(byUid('p10').position).toBe(10)
+
+    // All have left the pool with correct stats
+    for (const p of participants) {
+      expect(p.inPool).toBe(false)
+    }
+    expect(byUid('p1').wins).toBe(1)
+    expect(byUid('p2').losses).toBe(1)
+  })
+
+  it('pool vs pool when ladder has 1V players + 0V players: winner above 0Vs, loser at the bottom', () => {
+    const participants = makeWithStats([
+      { uid: 'w1', position: 1, wins: 1 },
+      { uid: 'w2', position: 2, wins: 1 },
+      { uid: 'w3', position: 3, wins: 1 },
+      { uid: 'l1', position: 4, losses: 1 },
+      { uid: 'l2', position: 5, losses: 1 },
+      { uid: 'a', position: 0, inPool: true },
+      { uid: 'b', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'a', 'b')
+    const byUid = (uid: string) => result.find((p) => p.uid === uid)!
+
+    // Existing winners untouched
+    expect(byUid('w1').position).toBe(1)
+    expect(byUid('w2').position).toBe(2)
+    expect(byUid('w3').position).toBe(3)
+    // Pool winner inserted at position 4 (above all 0V players)
+    expect(byUid('a').position).toBe(4)
+    expect(byUid('a').inPool).toBe(false)
+    // 0V ladder players shift down by 1
+    expect(byUid('l1').position).toBe(5)
+    expect(byUid('l2').position).toBe(6)
+    // Pool loser at the bottom
+    expect(byUid('b').position).toBe(7)
+    expect(byUid('b').inPool).toBe(false)
+  })
+
+  it('pool vs pool when nobody in the ladder has a win: winner = 1, all 0V players shift down', () => {
+    const participants = makeWithStats([
+      { uid: 'l1', position: 1, losses: 1 },
+      { uid: 'l2', position: 2, losses: 1 },
+      { uid: 'a', position: 0, inPool: true },
+      { uid: 'b', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'a', 'b')
+    const byUid = (uid: string) => result.find((p) => p.uid === uid)!
+
+    expect(byUid('a').position).toBe(1)
+    expect(byUid('a').inPool).toBe(false)
+    expect(byUid('l1').position).toBe(2)
+    expect(byUid('l2').position).toBe(3)
+    expect(byUid('b').position).toBe(4)
+    expect(byUid('b').inPool).toBe(false)
+  })
+
+  it('does not affect paused ladder players when pool wins vs ladder', () => {
+    const participants = makeWithStats([
+      { uid: 'p1', position: 1 },
+      { uid: 'p2', position: 2 },
+      { uid: 'paused', position: 99, paused: true },
+      { uid: 'pool', position: 0, inPool: true },
+    ])
+    const result = applyMatchResult(participants, 'pool', 'p1')
+    expect(result.find((p) => p.uid === 'paused')!.position).toBe(99)
+    expect(result.find((p) => p.uid === 'paused')!.paused).toBe(true)
   })
 })
 

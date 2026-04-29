@@ -459,6 +459,7 @@ export function AdminPage() {
         bannerLinkText: bannerLinkText,
         bannerLinkUrl: bannerLinkUrl,
       })
+      await queryClient.invalidateQueries({ queryKey: APP_SETTINGS_QUERY_KEY })
       addToast('Bannertext sparad')
     } catch (err) {
       console.error('Failed to save banner text:', err)

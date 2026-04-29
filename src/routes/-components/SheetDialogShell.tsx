@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { IconX } from '@tabler/icons-react'
 import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 
@@ -152,7 +153,9 @@ export function SheetDialogShell({
   const sheetTransformStyle =
     dragY > 0 ? ({ transform: `translateY(${dragY}px)` } as const) : undefined
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <>
       <div
         className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 motion-reduce:backdrop-blur-none sm:duration-150 ${visible ? 'opacity-100' : 'opacity-0'}`}
@@ -254,6 +257,7 @@ export function SheetDialogShell({
           ) : null}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }

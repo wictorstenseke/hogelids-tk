@@ -19,27 +19,42 @@ export function LadderRulesSheetDialog({
         </p>
         <ul className="list-disc space-y-3 pl-5 marker:text-gray-300">
           <li>
+            <span className="font-semibold text-gray-900">Nya spelare:</span>{' '}
+            När du går med blir du nykomling tills du spelat din första match.
+            Som nykomling får du utmana vem som helst — andra nykomlingar eller
+            spelare i tabellen, oavsett position.
+          </li>
+          <li>
             <span className="font-semibold text-gray-900">
-              Vem du får utmana:
+              Vem du får utmana från tabellen:
             </span>{' '}
-            Du får bara utmana spelare som ligger högre i listan än du.
-            Motståndaren får högst ligga {MAX_CHALLENGE_DISTANCE} platser
-            ovanför dig.
+            När du är i tabellen får du bara utmana spelare som ligger högre i
+            listan än du. Motståndaren får högst ligga {MAX_CHALLENGE_DISTANCE}{' '}
+            platser ovanför dig. Spelare i tabellen kan inte utmana nykomlingar.
           </li>
           <li>
             <span className="font-semibold text-gray-900">Boka match:</span>{' '}
-            Tryck på en spelares rad i tabellen när raden är klickbar; då öppnas
-            bokning av stegmatch.
+            Tryck på en spelares rad i tabellen eller bland nykomlingarna när
+            raden är klickbar; då öppnas bokning av stegmatch.
           </li>
           <li>
             <span className="font-semibold text-gray-900">
-              Resultat och placering:
+              Resultat och placering i tabellen:
             </span>{' '}
             Rapportera under fliken{' '}
             <strong className="font-semibold text-gray-900">Kommande</strong>.
             Vinst och förlust sparas alltid. Ni byter plats bara om vinnaren
             stod under förloraren och högst {MAX_CHALLENGE_DISTANCE} platser
-            ifrån — då byter ni plats med varandra.
+            ifrån.
+          </li>
+          <li>
+            <span className="font-semibold text-gray-900">
+              Första matchen som nykomling:
+            </span>{' '}
+            Om en nykomling vinner mot någon i tabellen tar de motståndarens
+            plats; alla nedanför skuffas ner ett steg. Vid förlust hamnar
+            nykomlingen sist. Om två nykomlingar möts hamnar vinnaren direkt
+            ovanför alla utan vinst, och förloraren placeras sist.
           </li>
         </ul>
       </div>
