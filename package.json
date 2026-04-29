@@ -14,6 +14,7 @@
     "test:run": "vitest run",
     "preview": "vite preview",
     "icons:generate": "node scripts/generate-app-icons.mjs",
+    "archive:build": "tsx scripts/build-history-archive.ts",
     "prepare": "husky"
   },
   "dependencies": {
