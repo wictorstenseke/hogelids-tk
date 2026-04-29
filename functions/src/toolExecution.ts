@@ -210,17 +210,39 @@ async function listLadderOpponents(
     wins: number
     losses: number
     paused: boolean
+    inPool?: boolean
   }>
 
+  const tournamentStartsAt =
+    ladder.tournamentStartsAt != null
+      ? (ladder.tournamentStartsAt as FirebaseFirestore.Timestamp)
+      : null
+  const tournamentStartDate = tournamentStartsAt?.toDate() ?? null
+  const tournamentStarted =
+    tournamentStartDate == null || tournamentStartDate.getTime() <= Date.now()
+  const tournamentStartLabel = tournamentStartDate
+    ? formatDate(tournamentStartDate, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      })
+    : null
+
   const challenger = participants.find((p) => p.uid === uid)
+  const challengerInPool = challenger?.inPool === true
 
   if (!challenger) {
     return {
       success: true,
       data: {
         participants: [],
-        message: 'Du är inte med i stegen. Gå med i stegen först.',
+        registered: false,
+        tournamentStarted,
+        tournamentStartLabel,
         ladderName: ladder.name,
+        message: tournamentStarted
+          ? 'Du är inte med i stegen. Gå med i stegen först.'
+          : `Stegen har inte startat än${tournamentStartLabel ? ` (start ${tournamentStartLabel})` : ''}, och du är inte registrerad. Gå med i stegen först.`,
       },
     }
   }
@@ -230,9 +252,33 @@ async function listLadderOpponents(
       success: true,
       data: {
         participants: [],
+        registered: true,
+        paused: true,
+        inPool: challengerInPool,
+        tournamentStarted,
+        tournamentStartLabel,
+        yourPosition: challengerInPool ? null : challenger.position,
         message:
           'Du är pausad i stegen och kan inte utmana någon just nu. Återaktivera dig först.',
-        yourPosition: challenger.position,
+      },
+    }
+  }
+
+  if (!tournamentStarted) {
+    return {
+      success: true,
+      data: {
+        opponents: [],
+        registered: true,
+        inPool: challengerInPool,
+        tournamentStarted: false,
+        tournamentStartLabel,
+        ladderId: ladderDoc.id,
+        ladderName: ladder.name,
+        yourPosition: challengerInPool ? null : challenger.position,
+        message: challengerInPool
+          ? `Stegen har inte startat än${tournamentStartLabel ? ` (start ${tournamentStartLabel})` : ''}. Du är registrerad som ny spelare och börjar i poolen.`
+          : `Stegen har inte startat än${tournamentStartLabel ? ` (start ${tournamentStartLabel})` : ''}. Du är registrerad på position ${challenger.position}.`,
       },
     }
   }
@@ -241,29 +287,44 @@ async function listLadderOpponents(
     .filter((p) => {
       if (p.uid === uid) return false
       if (p.paused) return false
-      if (challenger.position <= p.position) return false // can only challenge higher-ranked
+      const opponentInPool = p.inPool === true
+      if (challengerInPool) return true // pool players can challenge anyone non-paused
+      if (opponentInPool) return false // ladder players can't challenge pool players
+      if (challenger.position <= p.position) return false
       if (challenger.position - p.position > MAX_CHALLENGE_DISTANCE)
         return false
       return true
     })
-    .sort((a, b) => a.position - b.position)
+    .sort((a, b) => {
+      const aPool = a.inPool === true
+      const bPool = b.inPool === true
+      if (aPool && !bPool) return 1
+      if (!aPool && bPool) return -1
+      return a.position - b.position
+    })
     .map((p) => ({
       uid: p.uid,
       displayName: p.displayName,
-      position: p.position,
+      position: p.inPool === true ? null : p.position,
+      inPool: p.inPool === true,
       stats: `${p.wins}V ${p.losses}F`,
     }))
 
   return {
     success: true,
     data: {
-      yourPosition: challenger.position,
+      registered: true,
+      inPool: challengerInPool,
+      tournamentStarted: true,
+      yourPosition: challengerInPool ? null : challenger.position,
       opponents: eligible,
       ladderId: ladderDoc.id,
       message:
         eligible.length === 0
           ? 'Det finns inga spelare du kan utmana just nu.'
-          : `Du kan utmana ${eligible.length} spelare.`,
+          : challengerInPool
+            ? `Du är ny i stegen och kan utmana ${eligible.length} spelare.`
+            : `Du kan utmana ${eligible.length} spelare.`,
     },
   }
 }
