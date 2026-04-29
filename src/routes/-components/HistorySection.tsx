@@ -24,6 +24,12 @@ import {
   getBookingsByYear,
   type BookingWithId,
 } from '../../services/BookingService'
+import {
+  HISTORY_ARCHIVE_QUERY_KEY,
+  getArchivedBookingsByYear,
+  loadHistoryArchive,
+  type LoadedArchive,
+} from '../../services/HistoryArchiveService'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { msUntilMidnight } from '../../lib/msUntilMidnight'
 import { computeStats } from './historyStats'
@@ -70,12 +76,30 @@ function YearBookings({
   onResult: (result: YearQueryResult) => void
 }) {
   const currentYear = new Date().getFullYear()
-  const { data, isLoading } = useQuery({
+  const archiveQuery = useQuery<LoadedArchive>({
+    queryKey: HISTORY_ARCHIVE_QUERY_KEY,
+    queryFn: loadHistoryArchive,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+
+  const isArchived =
+    archiveQuery.data !== undefined &&
+    year <= archiveQuery.data.lastArchivedYear
+
+  const liveQuery = useQuery({
     queryKey: ['bookings', 'history', year],
     queryFn: () => getBookingsByYear(year),
+    enabled: !archiveQuery.isLoading && !isArchived,
     staleTime: year === currentYear ? msUntilMidnight() : Infinity,
     gcTime: Infinity,
   })
+
+  const data = isArchived
+    ? getArchivedBookingsByYear(archiveQuery.data!, year)
+    : liveQuery.data
+  const isLoading =
+    archiveQuery.isLoading || (!isArchived && liveQuery.isLoading)
 
   useEffect(() => {
     onResult({ year, data, isLoading })
