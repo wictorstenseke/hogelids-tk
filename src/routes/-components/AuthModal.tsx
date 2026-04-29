@@ -6,6 +6,10 @@ import {
   getFirebaseErrorMessage,
 } from '../../lib/firebaseAuthErrors'
 import { signIn, signUp, sendPasswordReset } from '../../services/AuthService'
+import {
+  formatPhoneForDisplay,
+  formatPhoneForStorage,
+} from '../../lib/phoneFormat'
 
 type View = 'sign-in' | 'sign-up' | 'forgot-password'
 
@@ -43,6 +47,7 @@ export function AuthModal({
   // Form fields
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState(initialEmail)
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
@@ -71,7 +76,7 @@ export function AuthModal({
     setLoading(true)
     setError(null)
     try {
-      await signUp(email, password, displayName)
+      await signUp(email, password, displayName, formatPhoneForStorage(phone))
       onClose()
     } catch (err) {
       setError(getFirebaseErrorMessage(getErrorCode(err)))
@@ -283,6 +288,34 @@ export function AuthModal({
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
                     placeholder="din@epost.se"
                   />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="signup-phone"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    Telefon
+                  </label>
+                  <input
+                    id="signup-phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    onBlur={() => {
+                      const next = formatPhoneForDisplay(phone)
+                      if (next !== phone) setPhone(next)
+                    }}
+                    disabled={loading}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-gray-400 focus:outline-none disabled:opacity-50"
+                    placeholder="070 - 123 45 67"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Primärt för stegturneringen (valfritt, kan läggas till
+                    senare).
+                  </p>
                 </div>
 
                 <div>

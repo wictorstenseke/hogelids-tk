@@ -30,7 +30,8 @@ export interface UserProfile {
 export async function signUp(
   email: string,
   password: string,
-  displayName: string
+  displayName: string,
+  phone: string | null = null
 ): Promise<void> {
   const credential = await createUserWithEmailAndPassword(auth, email, password)
   const user = credential.user
@@ -40,7 +41,7 @@ export async function signUp(
   await setDoc(doc(db, 'users', user.uid), {
     email,
     displayName,
-    phone: null,
+    phone,
     createdAt: Timestamp.now(),
     role: 'user' as UserRole,
   } satisfies Omit<UserProfile, 'uid'>)
