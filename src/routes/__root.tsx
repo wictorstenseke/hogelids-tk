@@ -1,11 +1,14 @@
 /* eslint-disable react-refresh/only-export-components -- TanStack Router root route exports Route */
-import { useState } from 'react'
 import { createRootRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { ToastProvider } from '../lib/ToastContext'
 import { AppSettingsProvider } from '../lib/AppSettingsContext'
 import { RoleProvider } from '../lib/RoleContext'
 import { AuthProvider } from '../lib/AuthContext'
 import { AuthModalProvider, useAuthModal } from '../lib/AuthModalContext'
+import {
+  ProfileModalProvider,
+  useProfileModal,
+} from '../lib/ProfileModalContext'
 import { useAuth } from '../lib/useAuth'
 import { signOut } from '../services/AuthService'
 import { Footer } from './-components/Footer'
@@ -17,14 +20,18 @@ import { AiChat } from './-components/AiChat'
 function AppShellInner() {
   const { user, loading: authLoading } = useAuth()
   const { authModalState, closeAuthModal } = useAuthModal()
-  const [showProfile, setShowProfile] = useState(false)
+  const {
+    isOpen: showProfile,
+    openProfileModal,
+    closeProfileModal,
+  } = useProfileModal()
   const navigate = useNavigate()
   return (
     <div className="flex min-h-screen flex-col">
       <Header
         user={user}
         authLoading={authLoading}
-        onOpenProfile={() => setShowProfile(true)}
+        onOpenProfile={openProfileModal}
         onSignOut={async () => {
           await signOut()
           navigate({ to: '/' })
@@ -42,7 +49,7 @@ function AppShellInner() {
         />
       )}
       {user && showProfile && (
-        <ProfileModal user={user} onClose={() => setShowProfile(false)} />
+        <ProfileModal user={user} onClose={closeProfileModal} />
       )}
       <AiChat />
     </div>
@@ -51,9 +58,11 @@ function AppShellInner() {
 
 function AppShell() {
   return (
-    <AuthModalProvider>
-      <AppShellInner />
-    </AuthModalProvider>
+    <ProfileModalProvider>
+      <AuthModalProvider>
+        <AppShellInner />
+      </AuthModalProvider>
+    </ProfileModalProvider>
   )
 }
 

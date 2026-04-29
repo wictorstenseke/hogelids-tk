@@ -2,12 +2,14 @@ import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
 
 import {
+  IconPhoneOff,
   IconSquareRoundedChevronRight,
   IconTrash,
   IconX,
 } from '@tabler/icons-react'
 import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
+import { useProfileModal } from '../../lib/ProfileModalContext'
 import {
   getAllLadders,
   joinLadder,
@@ -119,6 +121,43 @@ interface RankingsTableProps {
 const joinCtaButtonClass =
   'flex min-h-[44px] w-full min-[480px]:w-auto cursor-pointer items-center justify-center rounded-lg border border-[#d4c92e] bg-[#F1E334] px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50'
 
+function MissingPhoneIcon({
+  displayName,
+  isMe,
+}: {
+  displayName: string
+  isMe: boolean
+}) {
+  const { openProfileModal } = useProfileModal()
+  const { addToast } = useToast()
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        if (isMe) {
+          openProfileModal()
+        } else {
+          addToast(
+            `${displayName} har inte lagt till ett telefonnummer ännu`,
+            'error'
+          )
+        }
+      }}
+      aria-label={
+        isMe
+          ? 'Lägg till ditt telefonnummer i profilen'
+          : `${displayName} har inget telefonnummer`
+      }
+      title={isMe ? 'Lägg till telefonnummer' : 'Telefonnummer saknas'}
+      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-white/25 transition-colors hover:bg-white/10 hover:text-white/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
+    >
+      <IconPhoneOff size={18} stroke={1.75} aria-hidden />
+    </button>
+  )
+}
+
 /** Profile is source of truth; ladder snapshot is fallback for offline/loading state. */
 function resolveParticipantPhoneDisplay(
   participant: LadderParticipant,
@@ -202,14 +241,14 @@ function RankingsTable({
               phonesByUid
             )
 
-            const rowClass = 'flex min-w-0 items-center gap-3 py-2.5 pr-2'
+            const rowClass = 'flex min-w-0 items-center gap-1 py-2.5 pr-2'
 
             const rowContent = (
               <>
                 <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
                   {participant.position}
                 </span>
-                <div className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center">
                   <span
                     title={name}
                     className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none ${
@@ -220,16 +259,20 @@ function RankingsTable({
                   >
                     {name}
                   </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
+                    {formatStats(participant.wins, participant.losses)}
+                  </span>
                   {phoneDisplay ? (
                     <ParticipantPhoneSheetDialog
                       displayName={name}
                       phone={phoneDisplay}
                     />
-                  ) : null}
+                  ) : (
+                    <MissingPhoneIcon displayName={name} isMe={isMe} />
+                  )}
                 </div>
-                <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
-                  {formatStats(participant.wins, participant.losses)}
-                </span>
               </>
             )
 
@@ -281,12 +324,11 @@ function RankingsTable({
                 phonesByUid
               )
 
-              const rowClass =
-                'flex min-w-0 items-center gap-3 py-2.5 pr-2 pl-3'
+              const rowClass = 'flex min-w-0 items-center gap-1 py-2.5 pr-2'
 
               const rowContent = (
                 <>
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <div className="flex min-w-0 flex-1 items-center">
                     <span
                       title={name}
                       className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none ${
@@ -297,16 +339,20 @@ function RankingsTable({
                     >
                       {name}
                     </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs font-medium tracking-[-0.02em] text-white/55">
+                      Ny
+                    </span>
                     {phoneDisplay ? (
                       <ParticipantPhoneSheetDialog
                         displayName={name}
                         phone={phoneDisplay}
                       />
-                    ) : null}
+                    ) : (
+                      <MissingPhoneIcon displayName={name} isMe={isMe} />
+                    )}
                   </div>
-                  <span className="shrink-0 text-xs font-medium tracking-[-0.02em] text-white/55">
-                    Ny
-                  </span>
                 </>
               )
 
@@ -360,12 +406,12 @@ function RankingsTable({
               return (
                 <li
                   key={participant.uid}
-                  className="flex min-w-0 items-center gap-3 border-b border-white/10 py-2.5 pr-2"
+                  className="flex min-w-0 items-center gap-1 border-b border-white/10 py-2.5 pr-2"
                 >
                   <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/30">
                     —
                   </span>
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <div className="flex min-w-0 flex-1 items-center">
                     <span
                       title={name}
                       className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none opacity-50 ${
@@ -376,16 +422,20 @@ function RankingsTable({
                     >
                       {name}
                     </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs font-medium tabular-nums tracking-[-0.02em] text-white/30">
+                      {formatStats(participant.wins, participant.losses)}
+                    </span>
                     {phoneDisplay ? (
                       <ParticipantPhoneSheetDialog
                         displayName={name}
                         phone={phoneDisplay}
                       />
-                    ) : null}
+                    ) : (
+                      <MissingPhoneIcon displayName={name} isMe={isMe} />
+                    )}
                   </div>
-                  <span className="shrink-0 text-xs font-medium tabular-nums tracking-[-0.02em] text-white/30">
-                    {formatStats(participant.wins, participant.losses)}
-                  </span>
                 </li>
               )
             })}
@@ -1164,13 +1214,10 @@ export function StegenPage() {
                   <GlassNoticeCard>
                     <div className="px-6 py-4">
                       <p className="font-semibold text-white">
-                        Turneringen startar{' '}
+                        Stegen öppnas för matchspel den{' '}
                         {new Intl.DateTimeFormat('sv-SE', {
                           dateStyle: 'long',
                         }).format(tournamentStartsAt.toDate())}
-                      </p>
-                      <p className="mt-0.5 text-white/70">
-                        Utmaningar öppnas då.
                       </p>
                     </div>
                   </GlassNoticeCard>
