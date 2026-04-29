@@ -9,6 +9,7 @@
 - **Guest state = localStorage only** — never hit Firebase for guest session. Always go through `GuestSession`, never touch localStorage directly in components.
 - `**hasConflict()` is the single source of truth\*\* for overlap — use for both inline validation AND pre-write guard. Never allow overlapping bookings.
 - **Cancellation**: anyone can delete guest bookings; members can delete only their own member bookings. Must match between Firestore rules and UI.
+- **History archive** — past-year bookings live in `public/history-archive.json`, regenerated annually via `npm run archive:build` (after Jan 1, before deploy). UI uses archive for `year <= lastArchivedYear`, Firestore otherwise. See `scripts/README.md`.
 
 ## Learning
 
