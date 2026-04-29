@@ -14,6 +14,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { isLadderJoinOpenNow } from '../lib/ladderJoinWindow'
+import { isLadderChallengeOpenNow } from '../lib/ladderTournamentStart'
+import { getAppSettingsRef, APP_SETTINGS_DEFAULTS } from './AppSettingsService'
 
 export interface LadderParticipant {
   uid: string
@@ -287,10 +289,6 @@ export async function createLadderMatch(
   endTime: Date
 ): Promise<string> {
   const { addDoc } = await import('firebase/firestore')
-  const { isLadderChallengeOpenNow } =
-    await import('../lib/ladderTournamentStart')
-  const { getAppSettingsRef, APP_SETTINGS_DEFAULTS } =
-    await import('./AppSettingsService')
 
   const ladderRef = doc(db, 'ladders', ladderId)
   const ladderSnap = await getDoc(ladderRef)

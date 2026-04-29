@@ -14,7 +14,10 @@ vi.mock('firebase/firestore', async () => {
     getDoc: (...args: unknown[]) => getDocMock(...args),
     addDoc: (...args: unknown[]) => addDocMock(...args),
     collection: vi.fn(() => ({})),
-    doc: vi.fn(() => ({})),
+    // doc returns a tagged ref so the mock can dispatch on it.
+    doc: vi.fn((_db: unknown, ...path: string[]) => ({
+      __path: path.join('/'),
+    })),
     Timestamp: actual.Timestamp,
   }
 })
@@ -35,19 +38,22 @@ describe('createLadderMatch', () => {
     tournamentStartsAt: Timestamp | null
     bookingEnabled: boolean
   }) {
-    let call = 0
-    getDocMock.mockImplementation(() => {
-      call += 1
-      // First call → ladder; second → settings.
-      if (call === 1) {
+    getDocMock.mockImplementation((ref: { __path?: string }) => {
+      if (ref?.__path?.startsWith('ladders/')) {
         return Promise.resolve({
           exists: () => true,
           data: () => ({ tournamentStartsAt: opts.tournamentStartsAt }),
         })
       }
+      if (ref?.__path?.startsWith('settings/')) {
+        return Promise.resolve({
+          exists: () => true,
+          data: () => ({ bookingEnabled: opts.bookingEnabled }),
+        })
+      }
       return Promise.resolve({
-        exists: () => true,
-        data: () => ({ bookingEnabled: opts.bookingEnabled }),
+        exists: () => false,
+        data: () => ({}),
       })
     })
   }
