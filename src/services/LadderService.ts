@@ -20,10 +20,13 @@ export interface LadderParticipant {
   displayName: string
   /** From profile at join / rejoin; shown in rankings for contact. */
   phone?: string | null
-  position: number // 1-indexed; lower = higher ranked
+  /** 1-indexed; lower = higher ranked. 0 when participant is in the pool. */
+  position: number
   wins: number
   losses: number
   paused: boolean
+  /** True until the participant has played their first match. Pool members are not part of the ranking table. */
+  inPool?: boolean
 }
 
 export interface Ladder {
@@ -121,7 +124,9 @@ export async function joinLadder(
   if (participants.some((p) => p.uid === uid && !p.paused)) return
 
   const existing = participants.find((p) => p.uid === uid)
-  const activeCount = participants.filter((p) => !p.paused).length
+  const activeLadderCount = participants.filter(
+    (p) => !p.paused && !p.inPool
+  ).length
 
   // New sign-ups only (not paused rejoin) respect the optional open date.
   if (!existing && !isLadderJoinOpenNow({ joinOpensAt }, new Date())) {
@@ -129,29 +134,32 @@ export async function joinLadder(
   }
 
   if (existing) {
-    // Rejoin: move to bottom, keep stats, mark active
+    // Rejoin: move to bottom of ladder (or back to pool if they were pool members), keep stats, mark active
+    const wasInPool = existing.inPool === true
     const updated = participants.map((p) =>
       p.uid === uid
         ? {
             ...p,
             displayName,
             paused: false,
-            position: activeCount + 1,
+            position: wasInPool ? 0 : activeLadderCount + 1,
+            inPool: wasInPool,
             phone: phone ?? p.phone ?? null,
           }
         : p
     )
     await updateDoc(ladderRef, { participants: updated })
   } else {
-    // New join: add at bottom
+    // New join: enter the pool (no ranking position yet)
     const newParticipant: LadderParticipant = {
       uid,
       displayName,
       phone: phone || null,
-      position: activeCount + 1,
+      position: 0,
       wins: 0,
       losses: 0,
       paused: false,
+      inPool: true,
     }
     await updateDoc(ladderRef, {
       participants: [...participants, newParticipant],
@@ -170,19 +178,31 @@ export async function pauseLadder(
   const participants: LadderParticipant[] = (data['participants'] ??
     []) as LadderParticipant[]
 
+  const target = participants.find((p) => p.uid === uid)
+
+  // Pool members never entered the ranking — drop them entirely on leave.
+  if (target?.inPool === true) {
+    const remaining = participants.filter((p) => p.uid !== uid)
+    await updateDoc(ladderRef, { participants: remaining })
+    return
+  }
+
   const pausedParticipants = participants.map((p) =>
     p.uid === uid ? { ...p, paused: true } : p
   )
 
-  // Compact positions for remaining active participants
-  const sorted = pausedParticipants
-    .filter((p) => !p.paused)
+  // Compact positions for remaining active ladder participants (skip pool members).
+  const activeLadder = pausedParticipants
+    .filter((p) => !p.paused && !p.inPool)
     .sort((a, b) => a.position - b.position)
     .map((p, i) => ({ ...p, position: i + 1 }))
 
+  const pool = pausedParticipants.filter((p) => !p.paused && p.inPool)
   const paused = pausedParticipants.filter((p) => p.paused)
 
-  await updateDoc(ladderRef, { participants: [...sorted, ...paused] })
+  await updateDoc(ladderRef, {
+    participants: [...activeLadder, ...pool, ...paused],
+  })
 }
 
 export interface LadderMatch {
