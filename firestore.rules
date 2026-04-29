@@ -19,6 +19,12 @@ service cloud.firestore {
     // - Anyone can delete guest bookings
     // - Members can delete their own member bookings
     // - Authenticated users can update bookings (migration: reassign guest → member)
+    //
+    // NOTE: settings/app.bookingEnabled and ladders/<id>.tournamentStartsAt are
+    // enforced client-side only (HomePage / StegenPage / AiConfirmationCard
+    // hide the UI; LadderService.createLadderMatch throws before write). This
+    // matches the existing trust model — bookings are public-creatable and
+    // the toggle is a "we are closed" sign, not a hard lockdown.
     match /bookings/{bookingId} {
       allow read: if true;
       allow create: if true;
