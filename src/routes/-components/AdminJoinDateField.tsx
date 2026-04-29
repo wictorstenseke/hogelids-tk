@@ -30,6 +30,10 @@ interface AdminJoinDateFieldProps {
   saving?: boolean
   /** Match `BookingForm` / home green cards (`#194b29`) vs white admin rows */
   appearance?: 'green' | 'light'
+  /** yyyy-MM-dd lower bound; if set, dates before this are non-selectable. */
+  minDate?: string
+  /** Title shown in the mobile sheet dialog. Defaults to "Anmälningsstart". */
+  sheetTitle?: string
 }
 
 export function AdminJoinDateField({
@@ -38,6 +42,8 @@ export function AdminJoinDateField({
   disabled = false,
   saving = false,
   appearance = 'light',
+  minDate,
+  sheetTitle,
 }: AdminJoinDateFieldProps) {
   const isGreen = appearance === 'green'
   const isDesktop = useIsDesktop()
@@ -52,6 +58,7 @@ export function AdminJoinDateField({
   }, [isDesktop])
 
   const selectedDate = value ? new Date(`${value}T12:00:00`) : null
+  const minDateValue = minDate ? new Date(`${minDate}T12:00:00`) : undefined
 
   function handleDesktopDateChange(date: Date | null) {
     if (!date) return
@@ -114,6 +121,7 @@ export function AdminJoinDateField({
             placeholderText="Välj datum"
             autoComplete="off"
             disabled={disabled}
+            minDate={minDateValue}
             customInput={
               <DateDisplayInput appearance={isGreen ? 'green' : 'light'} />
             }
@@ -146,7 +154,7 @@ export function AdminJoinDateField({
           {sheetOpen && (
             <SheetDialogShell
               titleId={SHEET_TITLE_ID}
-              title="Anmälningsstart"
+              title={sheetTitle ?? 'Anmälningsstart'}
               onClose={() => setSheetOpen(false)}
               maxHeightVariant="tall"
               dialogMaxWidth="md"
@@ -170,6 +178,7 @@ export function AdminJoinDateField({
                   }}
                   locale="sv"
                   disabled={disabled}
+                  minDate={minDateValue}
                   renderCustomHeader={renderCustomHeader}
                 />
               </div>
