@@ -23,6 +23,7 @@ import {
 import { formatPhoneForStorage } from '../../lib/phoneFormat'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { isLadderJoinOpenNow } from '../../lib/ladderJoinWindow'
+import { isLadderChallengeOpenNow } from '../../lib/ladderTournamentStart'
 import { useState, useMemo, useEffect } from 'react'
 import { BookingForm } from './BookingForm'
 import { BookingDrawer } from './BookingDrawer'
@@ -105,6 +106,8 @@ interface RankingsTableProps {
   currentUid: string
   onChallenge: (opponentUid: string) => void
   ladderJoinOpenNow: boolean
+  /** When false, participant rows render as plain text (no challenge button). */
+  challengesEnabled: boolean
   isCompleted: boolean
   /** När satt: visar "Gå med i stegen" i tom lista (under text) eller ovanför listan om andra redan gått med. */
   onJoin?: () => void
@@ -132,6 +135,7 @@ function RankingsTable({
   currentUid,
   onChallenge,
   ladderJoinOpenNow,
+  challengesEnabled,
   isCompleted,
   onJoin,
   isJoining = false,
@@ -188,7 +192,8 @@ function RankingsTable({
                     participant.uid
                   )
                 : null
-            const isChallengeable = eligibility?.eligible === true
+            const isChallengeable =
+              challengesEnabled && eligibility?.eligible === true
             const isMe = participant.uid === currentUid
 
             const name = participant.displayName || participant.uid
@@ -266,7 +271,8 @@ function RankingsTable({
                       participant.uid
                     )
                   : null
-              const isChallengeable = eligibility?.eligible === true
+              const isChallengeable =
+                challengesEnabled && eligibility?.eligible === true
               const isMe = participant.uid === currentUid
 
               const name = participant.displayName || participant.uid
@@ -912,6 +918,12 @@ export function StegenPage() {
     { joinOpensAt: activeLadder?.joinOpensAt ?? null },
     new Date()
   )
+  const challengeOpenNow = isLadderChallengeOpenNow(
+    { tournamentStartsAt: activeLadder?.tournamentStartsAt ?? null },
+    { bookingEnabled: appSettings?.bookingEnabled ?? true },
+    new Date()
+  )
+  const tournamentStartsAt = activeLadder?.tournamentStartsAt ?? null
   const ladderJoinOpensAt = activeLadder?.joinOpensAt ?? null
   const ladderJoinOpenDateLabel =
     ladderJoinOpensAt != null
@@ -1005,6 +1017,15 @@ export function StegenPage() {
   ) {
     if (!activeLadder || !challengeOpponentUid || !challengeOpponent || !user)
       return
+    if (
+      !isLadderChallengeOpenNow(
+        { tournamentStartsAt: activeLadder.tournamentStartsAt },
+        { bookingEnabled: appSettings?.bookingEnabled ?? true },
+        new Date()
+      )
+    ) {
+      throw new Error('Utmaningar är inte öppna ännu.')
+    }
     const resolved = resolveBookingInterval(date, startTime, endTime)
     if (!resolved) {
       throw new Error('Sluttiden måste vara efter starttiden.')
@@ -1136,6 +1157,25 @@ export function StegenPage() {
                 </GlassNoticeCard>
               )}
 
+              {activeLadder &&
+                (appSettings?.bookingEnabled ?? true) &&
+                tournamentStartsAt &&
+                Date.now() < tournamentStartsAt.toMillis() && (
+                  <GlassNoticeCard>
+                    <div className="px-6 py-4">
+                      <p className="font-semibold text-white">
+                        Turneringen startar{' '}
+                        {new Intl.DateTimeFormat('sv-SE', {
+                          dateStyle: 'long',
+                        }).format(tournamentStartsAt.toDate())}
+                      </p>
+                      <p className="mt-0.5 text-white/70">
+                        Utmaningar öppnas då.
+                      </p>
+                    </div>
+                  </GlassNoticeCard>
+                )}
+
               {showLadderMainColumns && (
                 <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
                   <section className="min-w-0 w-full rounded-2xl bg-[#194b29] px-4 py-4 md:flex-1">
@@ -1155,6 +1195,7 @@ export function StegenPage() {
                       ladder={activeLadder}
                       currentUid={user.uid}
                       ladderJoinOpenNow={ladderJoinOpenNow}
+                      challengesEnabled={challengeOpenNow}
                       isCompleted={false}
                       onJoin={() => void handleJoin()}
                       isJoining={isJoining}
@@ -1319,6 +1360,7 @@ export function StegenPage() {
                           ladder={archivedLadder}
                           currentUid={user.uid}
                           ladderJoinOpenNow={false}
+                          challengesEnabled={false}
                           isCompleted
                           phonesByUid={phonesByUid}
                           onChallenge={() => {}}
