@@ -288,8 +288,6 @@ export async function createLadderMatch(
   startTime: Date,
   endTime: Date
 ): Promise<string> {
-  const { addDoc } = await import('firebase/firestore')
-
   const ladderRef = doc(db, 'ladders', ladderId)
   const ladderSnap = await getDoc(ladderRef)
   if (!ladderSnap.exists()) throw new Error('Ladder not found')

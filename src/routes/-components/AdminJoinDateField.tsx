@@ -46,6 +46,7 @@ export function AdminJoinDateField({
   const isGreen = appearance === 'green'
   const isDesktop = useIsDesktop()
   const sheetTitleId = useId()
+  const desktopInputId = useId()
   const [sheetOpen, setSheetOpen] = useState(false)
   /** Mobile sheet: draft until user taps Spara (does not save on day tap). */
   const [mobileSheetDraft, setMobileSheetDraft] = useState<Date | null>(null)
@@ -112,7 +113,7 @@ export function AdminJoinDateField({
       {isDesktop ? (
         <div className="min-w-0 flex-1">
           <DatePicker
-            id="admin-join-date-desktop"
+            id={desktopInputId}
             selected={selectedDate}
             onChange={(date: Date | null) => handleDesktopDateChange(date)}
             locale="sv"

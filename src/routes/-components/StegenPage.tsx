@@ -1159,8 +1159,8 @@ export function StegenPage() {
 
               {activeLadder &&
                 (appSettings?.bookingEnabled ?? true) &&
-                tournamentStartsAt &&
-                Date.now() < tournamentStartsAt.toMillis() && (
+                !challengeOpenNow &&
+                tournamentStartsAt && (
                   <GlassNoticeCard>
                     <div className="px-6 py-4">
                       <p className="font-semibold text-white">
