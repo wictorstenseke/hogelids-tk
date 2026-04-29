@@ -90,7 +90,10 @@ export function ParticipantPhoneSheetDialog({
             </div>
             <button
               type="button"
-              onClick={() => void handleCopy()}
+              onClick={(e) => {
+                e.stopPropagation()
+                void handleCopy()
+              }}
               title={
                 copyPhase === 'confirming'
                   ? 'Kopierat!'
