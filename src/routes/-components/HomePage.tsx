@@ -8,6 +8,11 @@ import {
 } from '../../services/BookingService'
 import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
 import { getActiveLadder, LADDER_QUERY_KEY } from '../../services/LadderService'
+import {
+  HISTORY_ARCHIVE_QUERY_KEY,
+  loadHistoryArchive,
+  type LoadedArchive,
+} from '../../services/HistoryArchiveService'
 import { getEmail } from '../../lib/GuestSession'
 import { useAuth, type AuthUser } from '../../lib/useAuth'
 import { useAppSettings } from '../../lib/useAppSettings'
@@ -150,13 +155,23 @@ export function HomePage() {
 
   const currentYear = new Date().getFullYear()
 
-  const { data: earliestYear } = useQuery({
-    queryKey: ['bookings', 'earliestYear'],
-    queryFn: getEarliestBookingYear,
+  const archiveQuery = useQuery<LoadedArchive>({
+    queryKey: HISTORY_ARCHIVE_QUERY_KEY,
+    queryFn: loadHistoryArchive,
     staleTime: Infinity,
     gcTime: Infinity,
     enabled: !!user,
   })
+  const earliestYearQuery = useQuery({
+    queryKey: ['bookings', 'earliestYear'],
+    queryFn: getEarliestBookingYear,
+    enabled:
+      !!user && archiveQuery.data === undefined && !archiveQuery.isLoading,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+  const earliestYear =
+    archiveQuery.data?.earliestYear ?? earliestYearQuery.data ?? currentYear
 
   // Prefetch profile and ladder as soon as user is known
   useEffect(() => {
