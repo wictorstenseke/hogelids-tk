@@ -287,6 +287,36 @@ export async function createLadderMatch(
   endTime: Date
 ): Promise<string> {
   const { addDoc } = await import('firebase/firestore')
+  const { isLadderChallengeOpenNow } =
+    await import('../lib/ladderTournamentStart')
+  const { getAppSettingsRef, APP_SETTINGS_DEFAULTS } =
+    await import('./AppSettingsService')
+
+  const ladderRef = doc(db, 'ladders', ladderId)
+  const ladderSnap = await getDoc(ladderRef)
+  if (!ladderSnap.exists()) throw new Error('Ladder not found')
+  const ladderData = ladderSnap.data()
+  const tournamentStartsAt =
+    ladderData['tournamentStartsAt'] != null
+      ? (ladderData['tournamentStartsAt'] as Timestamp)
+      : null
+
+  const settingsSnap = await getDoc(getAppSettingsRef())
+  const bookingEnabled = settingsSnap.exists()
+    ? (settingsSnap.data().bookingEnabled ??
+      APP_SETTINGS_DEFAULTS.bookingEnabled)
+    : APP_SETTINGS_DEFAULTS.bookingEnabled
+
+  if (
+    !isLadderChallengeOpenNow(
+      { tournamentStartsAt },
+      { bookingEnabled },
+      new Date()
+    )
+  ) {
+    throw new Error('Challenges are not open yet')
+  }
+
   const bookingsRef = collection(db, 'bookings')
   const docRef = await addDoc(bookingsRef, {
     type: 'member',
