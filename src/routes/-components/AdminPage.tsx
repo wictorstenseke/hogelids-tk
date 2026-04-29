@@ -399,6 +399,7 @@ export function AdminPage() {
       await setLadderJoinDate(activeLadder.id, date)
       await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Anmälningsdatum sparat')
+      setTournamentStartError(null)
     } catch (err) {
       console.error('Failed to save joinOpensAt:', err)
       addToast('Kunde inte spara. Försök igen.', 'error')
@@ -746,7 +747,8 @@ export function AdminPage() {
                         />
                       </div>
                       <p className="text-xs text-white/55">
-                        Datum då utmaningar öppnar. Lämna tomt för direkt start.
+                        Datum då utmaningar öppnar. Krävs när anmälan har ett
+                        datum.
                       </p>
                     </div>
                     <div className="flex min-h-[56px] items-center justify-between gap-4 px-3 py-3 sm:px-4">
