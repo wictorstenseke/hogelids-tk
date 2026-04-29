@@ -14,6 +14,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { isLadderJoinOpenNow } from '../lib/ladderJoinWindow'
+import { isLadderChallengeOpenNow } from '../lib/ladderTournamentStart'
+import { getAppSettingsRef, APP_SETTINGS_DEFAULTS } from './AppSettingsService'
 
 export interface LadderParticipant {
   uid: string
@@ -35,6 +37,7 @@ export interface Ladder {
   year: number
   status: 'active' | 'completed'
   joinOpensAt: Timestamp | null
+  tournamentStartsAt: Timestamp | null
   createdAt: Timestamp
   participants: LadderParticipant[]
 }
@@ -52,6 +55,10 @@ function mapDocToLadder(docSnap: { id: string; data: () => any }): Ladder {
     status: data['status'] as 'active' | 'completed',
     joinOpensAt:
       data['joinOpensAt'] != null ? (data['joinOpensAt'] as Timestamp) : null,
+    tournamentStartsAt:
+      data['tournamentStartsAt'] != null
+        ? (data['tournamentStartsAt'] as Timestamp)
+        : null,
     createdAt: data['createdAt'] as Timestamp,
     participants: (data['participants'] ?? []) as LadderParticipant[],
   }
@@ -82,6 +89,7 @@ export async function createLadder(
     year,
     status: 'active',
     joinOpensAt: null,
+    tournamentStartsAt: null,
     participants: [],
     createdAt: Timestamp.fromDate(new Date()),
   })
@@ -102,6 +110,20 @@ export async function setLadderJoinDate(
     await updateDoc(ladderRef, { joinOpensAt: deleteField() })
   } else {
     await updateDoc(ladderRef, { joinOpensAt: Timestamp.fromDate(date) })
+  }
+}
+
+export async function setLadderTournamentStartDate(
+  ladderId: string,
+  date: Date | null
+): Promise<void> {
+  const ladderRef = doc(db, 'ladders', ladderId)
+  if (date === null) {
+    await updateDoc(ladderRef, { tournamentStartsAt: deleteField() })
+  } else {
+    await updateDoc(ladderRef, {
+      tournamentStartsAt: Timestamp.fromDate(date),
+    })
   }
 }
 
@@ -266,7 +288,31 @@ export async function createLadderMatch(
   startTime: Date,
   endTime: Date
 ): Promise<string> {
-  const { addDoc } = await import('firebase/firestore')
+  const ladderRef = doc(db, 'ladders', ladderId)
+  const ladderSnap = await getDoc(ladderRef)
+  if (!ladderSnap.exists()) throw new Error('Ladder not found')
+  const ladderData = ladderSnap.data()
+  const tournamentStartsAt =
+    ladderData['tournamentStartsAt'] != null
+      ? (ladderData['tournamentStartsAt'] as Timestamp)
+      : null
+
+  const settingsSnap = await getDoc(getAppSettingsRef())
+  const bookingEnabled = settingsSnap.exists()
+    ? (settingsSnap.data().bookingEnabled ??
+      APP_SETTINGS_DEFAULTS.bookingEnabled)
+    : APP_SETTINGS_DEFAULTS.bookingEnabled
+
+  if (
+    !isLadderChallengeOpenNow(
+      { tournamentStartsAt },
+      { bookingEnabled },
+      new Date()
+    )
+  ) {
+    throw new Error('Challenges are not open yet')
+  }
+
   const bookingsRef = collection(db, 'bookings')
   const docRef = await addDoc(bookingsRef, {
     type: 'member',

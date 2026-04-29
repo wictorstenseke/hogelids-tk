@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import { sv } from 'date-fns/locale'
 import { format } from 'date-fns'
@@ -9,8 +9,6 @@ import { SheetDialogShell } from './SheetDialogShell'
 import 'react-datepicker/dist/react-datepicker.css'
 
 registerLocale('sv', sv)
-
-const SHEET_TITLE_ID = 'admin-join-date-sheet-title'
 
 function displayDateLabel(value: string): string {
   if (!value) return ''
@@ -30,6 +28,10 @@ interface AdminJoinDateFieldProps {
   saving?: boolean
   /** Match `BookingForm` / home green cards (`#194b29`) vs white admin rows */
   appearance?: 'green' | 'light'
+  /** yyyy-MM-dd lower bound; if set, dates before this are non-selectable. */
+  minDate?: string
+  /** Title shown in the mobile sheet dialog. Defaults to "Anmälningsstart". */
+  sheetTitle?: string
 }
 
 export function AdminJoinDateField({
@@ -38,9 +40,13 @@ export function AdminJoinDateField({
   disabled = false,
   saving = false,
   appearance = 'light',
+  minDate,
+  sheetTitle,
 }: AdminJoinDateFieldProps) {
   const isGreen = appearance === 'green'
   const isDesktop = useIsDesktop()
+  const sheetTitleId = useId()
+  const desktopInputId = useId()
   const [sheetOpen, setSheetOpen] = useState(false)
   /** Mobile sheet: draft until user taps Spara (does not save on day tap). */
   const [mobileSheetDraft, setMobileSheetDraft] = useState<Date | null>(null)
@@ -52,6 +58,7 @@ export function AdminJoinDateField({
   }, [isDesktop])
 
   const selectedDate = value ? new Date(`${value}T12:00:00`) : null
+  const minDateValue = minDate ? new Date(`${minDate}T12:00:00`) : undefined
 
   function handleDesktopDateChange(date: Date | null) {
     if (!date) return
@@ -106,7 +113,7 @@ export function AdminJoinDateField({
       {isDesktop ? (
         <div className="min-w-0 flex-1">
           <DatePicker
-            id="admin-join-date-desktop"
+            id={desktopInputId}
             selected={selectedDate}
             onChange={(date: Date | null) => handleDesktopDateChange(date)}
             locale="sv"
@@ -114,6 +121,7 @@ export function AdminJoinDateField({
             placeholderText="Välj datum"
             autoComplete="off"
             disabled={disabled}
+            minDate={minDateValue}
             customInput={
               <DateDisplayInput appearance={isGreen ? 'green' : 'light'} />
             }
@@ -145,8 +153,8 @@ export function AdminJoinDateField({
           </button>
           {sheetOpen && (
             <SheetDialogShell
-              titleId={SHEET_TITLE_ID}
-              title="Anmälningsstart"
+              titleId={sheetTitleId}
+              title={sheetTitle ?? 'Anmälningsstart'}
               onClose={() => setSheetOpen(false)}
               maxHeightVariant="tall"
               dialogMaxWidth="md"
@@ -170,6 +178,7 @@ export function AdminJoinDateField({
                   }}
                   locale="sv"
                   disabled={disabled}
+                  minDate={minDateValue}
                   renderCustomHeader={renderCustomHeader}
                 />
               </div>

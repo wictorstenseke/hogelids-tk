@@ -12,8 +12,10 @@ import {
 import { getAppSettings } from '../../services/AppSettingsService'
 import {
   createLadderMatch,
+  getActiveLadder,
   LADDER_MATCHES_QUERY_KEY,
 } from '../../services/LadderService'
+import { isLadderChallengeOpenNow } from '../../lib/ladderTournamentStart'
 import { useToast } from '../../lib/ToastContext'
 import type { PendingToolCall } from '../../services/AiChatService'
 
@@ -48,13 +50,36 @@ export function AiConfirmationCard({
 
     try {
       // Guard: check if bookings are enabled before creating
+      let currentSettings: Awaited<ReturnType<typeof getAppSettings>> | null =
+        null
       if (
         toolCall.name === 'create_booking' ||
         toolCall.name === 'create_ladder_match'
       ) {
-        const currentSettings = await getAppSettings()
+        currentSettings = await getAppSettings()
         if (!currentSettings.bookingEnabled) {
           addToast('Bokning är avstängd just nu.', 'error')
+          setIsExecuting(false)
+          return
+        }
+      }
+
+      if (toolCall.name === 'create_ladder_match' && currentSettings) {
+        const ladderId = args.ladderId as string | undefined
+        const ladder = await getActiveLadder()
+        if (!ladder || ladder.id !== ladderId) {
+          addToast('Stegen är inte aktiv.', 'error')
+          setIsExecuting(false)
+          return
+        }
+        if (
+          !isLadderChallengeOpenNow(
+            { tournamentStartsAt: ladder.tournamentStartsAt },
+            { bookingEnabled: currentSettings.bookingEnabled },
+            new Date()
+          )
+        ) {
+          addToast('Utmaningar är inte öppna ännu.', 'error')
           setIsExecuting(false)
           return
         }

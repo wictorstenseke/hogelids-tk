@@ -25,11 +25,13 @@ import {
   getAllLadders,
   getLadderMatches,
   setLadderJoinDate,
+  setLadderTournamentStartDate,
   LADDER_QUERY_KEY,
   LADDERS_QUERY_KEY,
   LADDER_MATCHES_QUERY_KEY,
 } from '../../services/LadderService'
 import { AdminJoinDateField } from './AdminJoinDateField'
+import { AdminTournamentStartDateField } from './AdminTournamentStartDateField'
 import { MenuSelect } from './MenuSelect'
 
 // A simple toggle switch component.
@@ -317,6 +319,10 @@ export function AdminPage() {
 
   // Join date state
   const [isSavingJoinDate, setIsSavingJoinDate] = useState(false)
+  const [isSavingTournamentStart, setIsSavingTournamentStart] = useState(false)
+  const [tournamentStartError, setTournamentStartError] = useState<
+    string | null
+  >(null)
 
   function openCreateDialog() {
     setNewLadderName(`Stegen ${new Date().getFullYear()}`)
@@ -393,11 +399,44 @@ export function AdminPage() {
       await setLadderJoinDate(activeLadder.id, date)
       await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Anmälningsdatum sparat')
+      setTournamentStartError(null)
     } catch (err) {
       console.error('Failed to save joinOpensAt:', err)
       addToast('Kunde inte spara. Försök igen.', 'error')
     } finally {
       setIsSavingJoinDate(false)
+    }
+  }
+
+  async function handleSaveTournamentStart(dateString: string) {
+    if (!activeLadder) return
+    // Cross-field validation: when joinOpensAt is set, tournamentStartsAt
+    // must be set and >= joinOpensAt (calendar-day comparison via yyyy-MM-dd).
+    const joinDateString = timestampToDateInput(activeLadder.joinOpensAt)
+    if (joinDateString && !dateString) {
+      setTournamentStartError(
+        'Stegen måste ha ett startdatum när anmälan har ett datum.'
+      )
+      return
+    }
+    if (joinDateString && dateString && dateString < joinDateString) {
+      setTournamentStartError(
+        'Stegen måste starta samma dag eller senare än anmälan öppnar.'
+      )
+      return
+    }
+    setTournamentStartError(null)
+    setIsSavingTournamentStart(true)
+    try {
+      const date = dateString ? new Date(dateString) : null
+      await setLadderTournamentStartDate(activeLadder.id, date)
+      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
+      addToast('Startdatum sparat')
+    } catch (err) {
+      console.error('Failed to save tournamentStartsAt:', err)
+      addToast('Kunde inte spara. Försök igen.', 'error')
+    } finally {
+      setIsSavingTournamentStart(false)
     }
   }
 
@@ -685,6 +724,32 @@ export function AdminPage() {
                           saving={isSavingJoinDate}
                         />
                       </div>
+                    </div>
+                    <div className="space-y-2 px-3 py-3 sm:px-4">
+                      <p className="text-sm font-medium text-white">
+                        Stegen startar för {activeLadder.name}
+                      </p>
+                      <div className="pt-0.5">
+                        <AdminTournamentStartDateField
+                          key={activeLadder.id}
+                          appearance="green"
+                          value={timestampToDateInput(
+                            activeLadder.tournamentStartsAt
+                          )}
+                          onSelect={(v) => void handleSaveTournamentStart(v)}
+                          disabled={isSavingTournamentStart}
+                          saving={isSavingTournamentStart}
+                          minDate={
+                            timestampToDateInput(activeLadder.joinOpensAt) ||
+                            undefined
+                          }
+                          errorMessage={tournamentStartError}
+                        />
+                      </div>
+                      <p className="text-xs text-white/55">
+                        Datum då utmaningar öppnar. Krävs när anmälan har ett
+                        datum.
+                      </p>
                     </div>
                     <div className="flex min-h-[56px] items-center justify-between gap-4 px-3 py-3 sm:px-4">
                       <div className="min-w-0">
