@@ -336,7 +336,7 @@ export function BookingForm({
                 placeholderText="Välj datum"
                 autoComplete="off"
                 portalId="datepicker-portal"
-                popperClassName="!z-50"
+                popperClassName="!z-[60]"
                 customInput={
                   <DateDisplayInput appearance={isDialog ? 'light' : 'green'} />
                 }
