@@ -19,11 +19,9 @@ export function LadderRulesSheetDialog({
         </p>
         <ul className="list-disc space-y-3 pl-5 marker:text-gray-300">
           <li>
-            <span className="font-semibold text-gray-900">
-              Poolen för nya spelare:
-            </span>{' '}
-            När du går med hamnar du i poolen tills du spelat din första match.
-            Från poolen får du utmana vem som helst — andra i poolen eller
+            <span className="font-semibold text-gray-900">Nya spelare:</span>{' '}
+            När du går med blir du nykomling tills du spelat din första match.
+            Som nykomling får du utmana vem som helst — andra nykomlingar eller
             spelare i tabellen, oavsett position.
           </li>
           <li>
@@ -32,13 +30,12 @@ export function LadderRulesSheetDialog({
             </span>{' '}
             När du är i tabellen får du bara utmana spelare som ligger högre i
             listan än du. Motståndaren får högst ligga {MAX_CHALLENGE_DISTANCE}{' '}
-            platser ovanför dig. Spelare i tabellen kan inte utmana spelare i
-            poolen.
+            platser ovanför dig. Spelare i tabellen kan inte utmana nykomlingar.
           </li>
           <li>
             <span className="font-semibold text-gray-900">Boka match:</span>{' '}
-            Tryck på en spelares rad i tabellen eller poolen när raden är
-            klickbar; då öppnas bokning av stegmatch.
+            Tryck på en spelares rad i tabellen eller bland nykomlingarna när
+            raden är klickbar; då öppnas bokning av stegmatch.
           </li>
           <li>
             <span className="font-semibold text-gray-900">
@@ -52,11 +49,11 @@ export function LadderRulesSheetDialog({
           </li>
           <li>
             <span className="font-semibold text-gray-900">
-              Första matchen ut ur poolen:
+              Första matchen som nykomling:
             </span>{' '}
-            Om en poolspelare vinner mot någon i tabellen tar de motståndarens
+            Om en nykomling vinner mot någon i tabellen tar de motståndarens
             plats; alla nedanför skuffas ner ett steg. Vid förlust hamnar
-            poolspelaren sist. Om två poolspelare möts hamnar vinnaren direkt
+            nykomlingen sist. Om två nykomlingar möts hamnar vinnaren direkt
             ovanför alla utan vinst, och förloraren placeras sist.
           </li>
         </ul>
