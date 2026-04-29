@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import { sv } from 'date-fns/locale'
 import { format } from 'date-fns'
@@ -9,8 +9,6 @@ import { SheetDialogShell } from './SheetDialogShell'
 import 'react-datepicker/dist/react-datepicker.css'
 
 registerLocale('sv', sv)
-
-const SHEET_TITLE_ID = 'admin-join-date-sheet-title'
 
 function displayDateLabel(value: string): string {
   if (!value) return ''
@@ -47,6 +45,7 @@ export function AdminJoinDateField({
 }: AdminJoinDateFieldProps) {
   const isGreen = appearance === 'green'
   const isDesktop = useIsDesktop()
+  const sheetTitleId = useId()
   const [sheetOpen, setSheetOpen] = useState(false)
   /** Mobile sheet: draft until user taps Spara (does not save on day tap). */
   const [mobileSheetDraft, setMobileSheetDraft] = useState<Date | null>(null)
@@ -153,7 +152,7 @@ export function AdminJoinDateField({
           </button>
           {sheetOpen && (
             <SheetDialogShell
-              titleId={SHEET_TITLE_ID}
+              titleId={sheetTitleId}
               title={sheetTitle ?? 'Anmälningsstart'}
               onClose={() => setSheetOpen(false)}
               maxHeightVariant="tall"

@@ -38,7 +38,13 @@ export function AdminTournamentStartDateField({
         sheetTitle="Stegen startar"
       />
       {errorMessage ? (
-        <p className="text-xs text-red-200">{errorMessage}</p>
+        <p
+          className={`text-xs ${
+            appearance === 'green' ? 'text-red-300' : 'text-red-600'
+          }`}
+        >
+          {errorMessage}
+        </p>
       ) : null}
     </div>
   )
