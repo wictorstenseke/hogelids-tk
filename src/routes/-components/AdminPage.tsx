@@ -30,6 +30,7 @@ import {
   LADDERS_QUERY_KEY,
   LADDER_MATCHES_QUERY_KEY,
 } from '../../services/LadderService'
+import { COMPLETED_LADDERS_QUERY_KEY } from '../../services/LaddersArchiveService'
 import { AdminJoinDateField } from './AdminJoinDateField'
 import { AdminTournamentStartDateField } from './AdminTournamentStartDateField'
 import { MenuSelect } from './MenuSelect'
@@ -339,6 +340,9 @@ export function AdminPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY }),
+        queryClient.invalidateQueries({
+          queryKey: COMPLETED_LADDERS_QUERY_KEY,
+        }),
       ])
       setShowCreateDialog(false)
       addToast('Stege skapad!')
@@ -376,6 +380,9 @@ export function AdminPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY }),
+        queryClient.invalidateQueries({
+          queryKey: COMPLETED_LADDERS_QUERY_KEY,
+        }),
         queryClient.invalidateQueries({
           queryKey: LADDER_MATCHES_QUERY_KEY(completingLadderId),
         }),

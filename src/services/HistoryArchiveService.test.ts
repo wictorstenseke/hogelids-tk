@@ -72,6 +72,7 @@ describe('getArchivedBookingsByYear', () => {
     const loaded = {
       ...archive,
       bookings: archive.bookings.map(archivedToBooking),
+      completedLadders: [],
     }
     const got2024 = getArchivedBookingsByYear(loaded, 2024)
     expect(got2024.map((b) => b.id).sort()).toEqual(['b', 'c'])
@@ -83,6 +84,7 @@ describe('getArchivedBookingsByYear', () => {
     const loaded = {
       ...archive,
       bookings: archive.bookings.map(archivedToBooking),
+      completedLadders: [],
     }
     expect(getArchivedBookingsByYear(loaded, 2026)).toEqual([])
     expect(getArchivedBookingsByYear(loaded, 1999)).toEqual([])

@@ -1,5 +1,10 @@
-import { archivedToBooking, type HistoryArchive } from '../lib/historyArchive'
+import {
+  archivedToBooking,
+  archivedToLadder,
+  type HistoryArchive,
+} from '../lib/historyArchive'
 import type { BookingWithId } from './BookingService'
+import type { Ladder } from './LadderService'
 
 export const HISTORY_ARCHIVE_PATH = '/history-archive.json'
 export const HISTORY_ARCHIVE_QUERY_KEY = ['history-archive'] as const
@@ -10,6 +15,7 @@ interface LoadedArchive {
   earliestYear: number
   lastArchivedYear: number
   bookings: BookingWithId[]
+  completedLadders: Ladder[]
 }
 
 export async function loadHistoryArchive(): Promise<LoadedArchive> {
@@ -27,6 +33,7 @@ export async function loadHistoryArchive(): Promise<LoadedArchive> {
     earliestYear: raw.earliestYear,
     lastArchivedYear: raw.lastArchivedYear,
     bookings: raw.bookings.map(archivedToBooking),
+    completedLadders: (raw.completedLadders ?? []).map(archivedToLadder),
   }
 }
 

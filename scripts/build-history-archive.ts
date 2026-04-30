@@ -21,6 +21,7 @@ import {
   type HistoryArchive,
 } from '../src/lib/historyArchive'
 import type { BookingWithId } from '../src/services/BookingService'
+import type { Ladder, LadderParticipant } from '../src/services/LadderService'
 
 const PROJECT_ID = process.env['FIREBASE_PROJECT_ID'] ?? 'hogelids-tk-prod'
 const OUT_PATH = resolve(process.cwd(), 'public', 'history-archive.json')
@@ -76,10 +77,48 @@ async function main() {
     return base
   })
 
-  const archive: HistoryArchive = buildArchive(bookings, currentYear)
+  console.log(
+    `[archive] reading completed ladders from project ${PROJECT_ID}...`
+  )
+  const laddersSnap = await db
+    .collection('ladders')
+    .where('status', '==', 'completed')
+    .get()
+
+  const completedLadders: Ladder[] = laddersSnap.docs.map((doc) => {
+    const data = doc.data()
+    return {
+      id: doc.id,
+      name: data['name'] as string,
+      year: data['year'] as number,
+      status: 'completed',
+      joinOpensAt:
+        data['joinOpensAt'] != null
+          ? (data['joinOpensAt'] as unknown as Ladder['joinOpensAt'])
+          : null,
+      tournamentStartsAt:
+        data['tournamentStartsAt'] != null
+          ? (data[
+              'tournamentStartsAt'
+            ] as unknown as Ladder['tournamentStartsAt'])
+          : null,
+      createdAt: data['createdAt'] as unknown as Ladder['createdAt'],
+      completedAt:
+        data['completedAt'] != null
+          ? (data['completedAt'] as unknown as Ladder['completedAt'])
+          : null,
+      participants: (data['participants'] ?? []) as LadderParticipant[],
+    }
+  })
+
+  const archive: HistoryArchive = buildArchive(
+    bookings,
+    currentYear,
+    completedLadders
+  )
   writeFileSync(OUT_PATH, JSON.stringify(archive))
   console.log(
-    `[archive] wrote ${archive.bookings.length} bookings (years ${archive.earliestYear}-${archive.lastArchivedYear}) to ${OUT_PATH} (version ${HISTORY_ARCHIVE_VERSION})`
+    `[archive] wrote ${archive.bookings.length} bookings + ${archive.completedLadders.length} completed ladders (years ${archive.earliestYear}-${archive.lastArchivedYear}) to ${OUT_PATH} (version ${HISTORY_ARCHIVE_VERSION})`
   )
 }
 

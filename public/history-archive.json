@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": 1777446607898,
+  "generatedAt": 1777553414726,
   "earliestYear": 2016,
   "lastArchivedYear": 2025,
   "bookings": [
@@ -5108,6 +5108,172 @@
       "startTime": { "seconds": 1758461100, "nanoseconds": 0 },
       "endTime": { "seconds": 1758465600, "nanoseconds": 0 },
       "createdAt": { "seconds": 1758460852, "nanoseconds": 0 }
+    }
+  ],
+  "completedLadders": [
+    {
+      "id": "45DexdyW2mpxIkOaYpVU",
+      "name": "Högelids TK Stege 2025",
+      "year": 2025,
+      "status": "completed",
+      "joinOpensAt": null,
+      "tournamentStartsAt": null,
+      "createdAt": { "seconds": 1746688065, "nanoseconds": 0 },
+      "completedAt": null,
+      "participants": [
+        {
+          "uid": "LM6CUZQgTHrdoRPotTmr",
+          "displayName": "Albin Andreasson",
+          "position": 1,
+          "wins": 2,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "RfATagBgEXFWhUVj5CLn",
+          "displayName": "Carl Quint",
+          "position": 2,
+          "wins": 1,
+          "losses": 2,
+          "paused": false
+        },
+        {
+          "uid": "sbA9hJWGnY2qRgXPfjrM",
+          "displayName": "Johan Quint",
+          "position": 3,
+          "wins": 0,
+          "losses": 1,
+          "paused": false
+        },
+        {
+          "uid": "z1MpX8EK4THctM1uNRUF",
+          "displayName": "Joakim Alriksson",
+          "position": 4,
+          "wins": 1,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "aziq9j3ouFuTnjVJ4hvo",
+          "displayName": "Ludvig Jerkefjord",
+          "position": 5,
+          "wins": 0,
+          "losses": 1,
+          "paused": false
+        },
+        {
+          "uid": "bCYvVukin5H0LxfviTOF",
+          "displayName": "Wictor Stenseke",
+          "position": 6,
+          "wins": 1,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "84hpq3gDA4JwkNAKymiI",
+          "displayName": "Anders Forsberg",
+          "position": 7,
+          "wins": 2,
+          "losses": 1,
+          "paused": false
+        },
+        {
+          "uid": "eYJdRVedcMpSeZmd593t",
+          "displayName": "Viktor Andreasson",
+          "position": 8,
+          "wins": 1,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "hI6oeB5lDnNbkb11Eckq",
+          "displayName": "Dennis",
+          "position": 9,
+          "wins": 0,
+          "losses": 3,
+          "paused": false
+        },
+        {
+          "uid": "BzjzscW10qQAJXEsfbld",
+          "displayName": "Arvid Bergstrand",
+          "position": 10,
+          "wins": 0,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "CuM6EdtMHLmBX3cVG81I",
+          "displayName": "Joel Atterlöf",
+          "position": 11,
+          "wins": 0,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "ccXEPptmXHN5U4IX7Mbx",
+          "displayName": "Natanael Danielsson",
+          "position": 12,
+          "wins": 0,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "tSrOTmEvXROvFJNF3RKM",
+          "displayName": "Vilhelm Danielsson",
+          "position": 13,
+          "wins": 1,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "4oORDpKv0Ue6IJAINWLw",
+          "displayName": "Annie Götsten",
+          "position": 14,
+          "wins": 2,
+          "losses": 1,
+          "paused": false
+        },
+        {
+          "uid": "wam72vhVpllvWtFtX33J",
+          "displayName": "Jakob Danielsson",
+          "position": 15,
+          "wins": 2,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "yrwrETp29qJcLCyEFsTx",
+          "displayName": "Hugo Mellgren",
+          "position": 16,
+          "wins": 1,
+          "losses": 3,
+          "paused": false
+        },
+        {
+          "uid": "Y8eooQuyczTzmG76alZ4",
+          "displayName": "Rasmus Lindholm",
+          "position": 17,
+          "wins": 2,
+          "losses": 3,
+          "paused": false
+        },
+        {
+          "uid": "0OssUrKz9rpOfEP5KVCY",
+          "displayName": "Philip Wadström",
+          "position": 18,
+          "wins": 1,
+          "losses": 0,
+          "paused": false
+        },
+        {
+          "uid": "R2Chl71N7iYbWRFfTvTO",
+          "displayName": "Sven Skarstedt",
+          "position": 19,
+          "wins": 0,
+          "losses": 1,
+          "paused": false
+        }
+      ]
     }
   ]
 }

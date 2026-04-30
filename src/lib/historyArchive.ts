@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import type { BookingWithId } from '../services/BookingService'
+import type { Ladder, LadderParticipant } from '../services/LadderService'
 
 export const HISTORY_ARCHIVE_VERSION = 1 as const
 
@@ -24,12 +25,25 @@ export interface ArchivedBooking {
   playerBName?: string
 }
 
+export interface ArchivedLadder {
+  id: string
+  name: string
+  year: number
+  status: 'completed'
+  joinOpensAt: ArchivedTimestamp | null
+  tournamentStartsAt: ArchivedTimestamp | null
+  createdAt: ArchivedTimestamp
+  completedAt: ArchivedTimestamp | null
+  participants: LadderParticipant[]
+}
+
 export interface HistoryArchive {
   version: typeof HISTORY_ARCHIVE_VERSION
   generatedAt: number
   earliestYear: number
   lastArchivedYear: number
   bookings: ArchivedBooking[]
+  completedLadders: ArchivedLadder[]
 }
 
 function tsToArchived(ts: Timestamp): ArchivedTimestamp {
@@ -57,9 +71,26 @@ function bookingToArchived(b: BookingWithId): ArchivedBooking {
   return base
 }
 
+function ladderToArchived(l: Ladder): ArchivedLadder {
+  return {
+    id: l.id,
+    name: l.name,
+    year: l.year,
+    status: 'completed',
+    joinOpensAt: l.joinOpensAt ? tsToArchived(l.joinOpensAt) : null,
+    tournamentStartsAt: l.tournamentStartsAt
+      ? tsToArchived(l.tournamentStartsAt)
+      : null,
+    createdAt: tsToArchived(l.createdAt),
+    completedAt: l.completedAt ? tsToArchived(l.completedAt) : null,
+    participants: l.participants,
+  }
+}
+
 export function buildArchive(
   bookings: BookingWithId[],
-  currentYear: number
+  currentYear: number,
+  completedLadders: Ladder[] = []
 ): HistoryArchive {
   const cutoff = currentYear
   const archived = bookings
@@ -75,6 +106,30 @@ export function buildArchive(
     earliestYear,
     lastArchivedYear: cutoff - 1,
     bookings: archived,
+    completedLadders: completedLadders.map(ladderToArchived),
+  }
+}
+
+export function archivedToLadder(a: ArchivedLadder): Ladder {
+  return {
+    id: a.id,
+    name: a.name,
+    year: a.year,
+    status: 'completed',
+    joinOpensAt: a.joinOpensAt
+      ? new Timestamp(a.joinOpensAt.seconds, a.joinOpensAt.nanoseconds)
+      : null,
+    tournamentStartsAt: a.tournamentStartsAt
+      ? new Timestamp(
+          a.tournamentStartsAt.seconds,
+          a.tournamentStartsAt.nanoseconds
+        )
+      : null,
+    createdAt: new Timestamp(a.createdAt.seconds, a.createdAt.nanoseconds),
+    completedAt: a.completedAt
+      ? new Timestamp(a.completedAt.seconds, a.completedAt.nanoseconds)
+      : null,
+    participants: a.participants,
   }
 }
 

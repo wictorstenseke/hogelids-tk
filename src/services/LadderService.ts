@@ -39,6 +39,7 @@ export interface Ladder {
   joinOpensAt: Timestamp | null
   tournamentStartsAt: Timestamp | null
   createdAt: Timestamp
+  completedAt: Timestamp | null
   participants: LadderParticipant[]
 }
 
@@ -60,6 +61,8 @@ function mapDocToLadder(docSnap: { id: string; data: () => any }): Ladder {
         ? (data['tournamentStartsAt'] as Timestamp)
         : null,
     createdAt: data['createdAt'] as Timestamp,
+    completedAt:
+      data['completedAt'] != null ? (data['completedAt'] as Timestamp) : null,
     participants: (data['participants'] ?? []) as LadderParticipant[],
   }
 }
@@ -98,7 +101,10 @@ export async function createLadder(
 
 export async function completeLadder(ladderId: string): Promise<void> {
   const ladderRef = doc(db, 'ladders', ladderId)
-  await updateDoc(ladderRef, { status: 'completed' })
+  await updateDoc(ladderRef, {
+    status: 'completed',
+    completedAt: Timestamp.fromDate(new Date()),
+  })
 }
 
 export async function setLadderJoinDate(

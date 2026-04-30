@@ -11,17 +11,21 @@ import { useAuth } from '../../lib/useAuth'
 import { useToast } from '../../lib/ToastContext'
 import { useProfileModal } from '../../lib/ProfileModalContext'
 import {
-  getAllLadders,
+  getActiveLadder,
   joinLadder,
   getLadderMatches,
   reportLadderResult,
   createLadderMatch,
-  LADDERS_QUERY_KEY,
+  LADDER_QUERY_KEY,
   LADDER_MATCHES_QUERY_KEY,
   type LadderParticipant,
   type Ladder,
   type LadderMatch,
 } from '../../services/LadderService'
+import {
+  loadCompletedLadders,
+  COMPLETED_LADDERS_QUERY_KEY,
+} from '../../services/LaddersArchiveService'
 import { formatPhoneForStorage } from '../../lib/phoneFormat'
 import { getChallengeEligibility, formatStats } from '../../lib/ladder'
 import { isLadderJoinOpenNow } from '../../lib/ladderJoinWindow'
@@ -673,7 +677,7 @@ function ReportForm({
     setSaving(true)
     try {
       await reportLadderResult(ladderId, match.id, winnerId, loserId, comment)
-      await queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY })
+      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       await queryClient.invalidateQueries({
         queryKey: LADDER_MATCHES_QUERY_KEY(ladderId),
       })
@@ -861,16 +865,21 @@ export function StegenPage() {
     enabled: !!user?.uid,
   })
 
-  const { data: allLadders = [], isLoading: laddersLoading } = useQuery({
-    queryKey: LADDERS_QUERY_KEY,
-    queryFn: getAllLadders,
-    enabled: !!user,
-  })
+  const { data: activeLadder = null, isLoading: activeLadderLoading } =
+    useQuery({
+      queryKey: LADDER_QUERY_KEY,
+      queryFn: getActiveLadder,
+      enabled: !!user,
+    })
 
-  const activeLadder = useMemo(
-    () => allLadders.find((l) => l.status === 'active') ?? null,
-    [allLadders]
-  )
+  const { data: completedLadders = [], isLoading: completedLaddersLoading } =
+    useQuery({
+      queryKey: COMPLETED_LADDERS_QUERY_KEY,
+      queryFn: loadCompletedLadders,
+      enabled: !!user,
+    })
+
+  const laddersLoading = activeLadderLoading || completedLaddersLoading
 
   useEffect(() => {
     if (!activeLadder) {
@@ -882,27 +891,25 @@ export function StegenPage() {
     )
   }, [activeLadder])
 
-  const completedLadders = useMemo(
-    () =>
-      allLadders
-        .filter((l) => l.status === 'completed')
-        .sort((a, b) => b.year - a.year),
-    [allLadders]
+  const sortedCompletedLadders = useMemo(
+    () => [...completedLadders].sort((a, b) => b.year - a.year),
+    [completedLadders]
   )
 
   const effectiveArchivedLadderId = useMemo(() => {
-    if (completedLadders.length === 0) return null
+    if (sortedCompletedLadders.length === 0) return null
     if (
       archivedLadderId &&
-      completedLadders.some((l) => l.id === archivedLadderId)
+      sortedCompletedLadders.some((l) => l.id === archivedLadderId)
     ) {
       return archivedLadderId
     }
     return null
-  }, [completedLadders, archivedLadderId])
+  }, [sortedCompletedLadders, archivedLadderId])
 
   const archivedLadder =
-    completedLadders.find((l) => l.id === effectiveArchivedLadderId) ?? null
+    sortedCompletedLadders.find((l) => l.id === effectiveArchivedLadderId) ??
+    null
 
   const participantUids = useMemo(() => {
     const set = new Set<string>()
@@ -929,12 +936,12 @@ export function StegenPage() {
   const archivedLadderOptions = useMemo(
     () => [
       { value: '', label: 'Välj stege' },
-      ...completedLadders.map((l) => ({
+      ...sortedCompletedLadders.map((l) => ({
         value: l.id,
         label: `${l.name} (Avslutad)`,
       })),
     ],
-    [completedLadders]
+    [sortedCompletedLadders]
   )
 
   const { data: activeMatches = [] } = useQuery({
@@ -1038,7 +1045,7 @@ export function StegenPage() {
         user!.displayName ?? '',
         formatPhoneForStorage(profile?.phone ?? '') ?? null
       )
-      await queryClient.invalidateQueries({ queryKey: LADDERS_QUERY_KEY })
+      await queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY })
       addToast('Du har gått med i stegen!')
     } catch (err) {
       console.error('Failed to join ladder:', err)
@@ -1120,7 +1127,7 @@ export function StegenPage() {
                 <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/25 border-t-white" />
               </div>
             </GlassNoticeCard>
-          ) : allLadders.length === 0 ? (
+          ) : !activeLadder && sortedCompletedLadders.length === 0 ? (
             <GlassNoticeCard>
               <div className="px-6 py-10 text-center">
                 <p className="font-display mb-4 text-[20px] font-bold uppercase tracking-wide text-white">
@@ -1141,7 +1148,7 @@ export function StegenPage() {
                     </p>
                     <p className="mt-2 text-sm text-white/70">
                       Det finns ingen pågående stegturnering.
-                      {completedLadders.length > 0
+                      {sortedCompletedLadders.length > 0
                         ? ' Tidigare resultat hittar du under Gamla turneringar nedan.'
                         : ''}
                     </p>
@@ -1367,7 +1374,7 @@ export function StegenPage() {
                 <LadderStatsCards participants={activeLadder.participants} />
               )}
 
-              {completedLadders.length > 0 && (
+              {sortedCompletedLadders.length > 0 && (
                 <section className="rounded-2xl bg-[#194b29] px-4 py-4">
                   <div className="flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between min-[480px]:gap-4">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
