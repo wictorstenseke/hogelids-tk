@@ -9,7 +9,13 @@ import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { queryClient, SEVEN_DAYS_MS } from './queryClient'
 import { reviveTimestamps } from './lib/timestampRevive'
+import {
+  installStaleChunkHandlers,
+  maybeReloadOnStaleChunk,
+} from './lib/staleChunkReload'
 import './index.css'
+
+installStaleChunkHandlers()
 
 const localStoragePersister = createSyncStoragePersister({
   storage: window.localStorage,
@@ -42,10 +48,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+const sentryReactErrorHandler = reactErrorHandler()
+function handleReactError(...args: Parameters<typeof sentryReactErrorHandler>) {
+  maybeReloadOnStaleChunk(args[0])
+  sentryReactErrorHandler(...args)
+}
+
 createRoot(document.getElementById('root')!, {
-  onUncaughtError: reactErrorHandler(),
-  onCaughtError: reactErrorHandler(),
-  onRecoverableError: reactErrorHandler(),
+  onUncaughtError: handleReactError,
+  onCaughtError: handleReactError,
+  onRecoverableError: handleReactError,
 }).render(
   <StrictMode>
     <PersistQueryClientProvider
