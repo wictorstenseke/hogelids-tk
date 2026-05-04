@@ -924,19 +924,57 @@ export function AdminPage() {
               <div className="px-4 py-4 text-sm text-red-600">
                 Kunde inte hämta användare. Försök igen.
               </div>
-            ) : !users || users.length === 0 ? (
+            ) : (
+              (() => {
+                const regularUsers =
+                  users?.filter((p) => p.role === 'user') ?? []
+                if (regularUsers.length === 0) {
+                  return (
+                    <div className="px-4 py-4 text-sm text-gray-500">
+                      Inga användare registrerade.
+                    </div>
+                  )
+                }
+                return regularUsers.map((profile) => (
+                  <UserRow
+                    key={profile.uid}
+                    profile={profile}
+                    isSelf={user?.uid === profile.uid}
+                    isSuperuser={role === 'superuser'}
+                  />
+                ))
+              })()
+            )}
+          </SettingsSection>
+
+          <SettingsSection title="Admins & superusers">
+            {usersLoading ? (
               <div className="px-4 py-4 text-sm text-gray-500">
-                Inga användare registrerade.
+                Laddar användare…
+              </div>
+            ) : usersError ? (
+              <div className="px-4 py-4 text-sm text-red-600">
+                Kunde inte hämta användare. Försök igen.
               </div>
             ) : (
-              users.map((profile) => (
-                <UserRow
-                  key={profile.uid}
-                  profile={profile}
-                  isSelf={user?.uid === profile.uid}
-                  isSuperuser={role === 'superuser'}
-                />
-              ))
+              (() => {
+                const staffUsers = users?.filter((p) => p.role !== 'user') ?? []
+                if (staffUsers.length === 0) {
+                  return (
+                    <div className="px-4 py-4 text-sm text-gray-500">
+                      Inga admins eller superusers.
+                    </div>
+                  )
+                }
+                return staffUsers.map((profile) => (
+                  <UserRow
+                    key={profile.uid}
+                    profile={profile}
+                    isSelf={user?.uid === profile.uid}
+                    isSuperuser={role === 'superuser'}
+                  />
+                ))
+              })()
             )}
           </SettingsSection>
         </div>
