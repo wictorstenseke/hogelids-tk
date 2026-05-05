@@ -1,11 +1,17 @@
 // Detects errors caused by a stale tab requesting a JS chunk that no longer
 // exists after a deploy. The SPA fallback serves index.html (text/html), which
-// the browser refuses to execute as a module. Reloads the page once when this
-// happens; sessionStorage guards against reload loops if the server is actually
-// broken.
+// the browser refuses to execute as a module.
+//
+// On detection, dispatches a cancelable `htk:stale-chunk` event so UI can
+// show a "Ladda om" banner instead of nuking unsaved form state. If nothing
+// cancels the event (e.g. React render error tore down the tree), falls back
+// to an automatic reload. A per-session counter caps total reloads so a
+// genuinely-broken server cannot trap the user in an infinite reload loop.
 
-const RELOAD_GUARD_KEY = 'htk_stale_chunk_reload_at'
-const RELOAD_GUARD_WINDOW_MS = 10_000
+const RELOAD_COUNT_KEY = 'htk_stale_chunk_reload_count'
+const MAX_RELOADS_PER_SESSION = 2
+
+export const STALE_CHUNK_EVENT = 'htk:stale-chunk'
 
 const STALE_CHUNK_PATTERNS = [
   /is not a valid JavaScript MIME type/i,
@@ -29,16 +35,41 @@ export function isStaleChunkError(error: unknown): boolean {
   return STALE_CHUNK_PATTERNS.some((p) => p.test(message))
 }
 
+function readReloadCount(): number {
+  try {
+    return Number(sessionStorage.getItem(RELOAD_COUNT_KEY) ?? 0)
+  } catch {
+    return 0
+  }
+}
+
+function bumpReloadCount(): void {
+  try {
+    sessionStorage.setItem(RELOAD_COUNT_KEY, String(readReloadCount() + 1))
+  } catch {
+    // sessionStorage unavailable (private mode quotas) — proceed without guard
+  }
+}
+
+export function canReloadForStaleChunk(): boolean {
+  return readReloadCount() < MAX_RELOADS_PER_SESSION
+}
+
+export function reloadForStaleChunk(): void {
+  if (!canReloadForStaleChunk()) return
+  bumpReloadCount()
+  window.location.reload()
+}
+
 export function maybeReloadOnStaleChunk(error: unknown): boolean {
   if (!isStaleChunkError(error)) return false
-  try {
-    const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) ?? 0)
-    if (Date.now() - last < RELOAD_GUARD_WINDOW_MS) return false
-    sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()))
-  } catch {
-    // sessionStorage unavailable (private mode quotas) — skip the guard
-  }
-  window.location.reload()
+  if (!canReloadForStaleChunk()) return false
+
+  const event = new CustomEvent(STALE_CHUNK_EVENT, { cancelable: true })
+  window.dispatchEvent(event)
+  if (event.defaultPrevented) return true
+
+  reloadForStaleChunk()
   return true
 }
 

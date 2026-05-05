@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { isStaleChunkError, maybeReloadOnStaleChunk } from './staleChunkReload'
+import {
+  STALE_CHUNK_EVENT,
+  canReloadForStaleChunk,
+  isStaleChunkError,
+  maybeReloadOnStaleChunk,
+  reloadForStaleChunk,
+} from './staleChunkReload'
 
 describe('isStaleChunkError', () => {
   it('detects Safari MIME type message', () => {
@@ -61,28 +67,66 @@ describe('maybeReloadOnStaleChunk', () => {
     sessionStorage.clear()
   })
 
-  it('reloads on a stale-chunk error', () => {
-    const handled = maybeReloadOnStaleChunk(
-      new TypeError("'text/html' is not a valid JavaScript MIME type.")
-    )
+  function staleError() {
+    return new TypeError("'text/html' is not a valid JavaScript MIME type.")
+  }
+
+  it('reloads on a stale-chunk error when no listener cancels', () => {
+    const handled = maybeReloadOnStaleChunk(staleError())
     expect(handled).toBe(true)
     expect(reloadSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('does not reload twice within the guard window', () => {
-    maybeReloadOnStaleChunk(
-      new TypeError("'text/html' is not a valid JavaScript MIME type.")
-    )
-    const second = maybeReloadOnStaleChunk(
-      new TypeError("'text/html' is not a valid JavaScript MIME type.")
-    )
-    expect(second).toBe(false)
-    expect(reloadSpy).toHaveBeenCalledTimes(1)
+  it('does not reload when a listener calls preventDefault', () => {
+    const listener = (event: Event) => event.preventDefault()
+    window.addEventListener(STALE_CHUNK_EVENT, listener)
+    try {
+      const handled = maybeReloadOnStaleChunk(staleError())
+      expect(handled).toBe(true)
+      expect(reloadSpy).not.toHaveBeenCalled()
+    } finally {
+      window.removeEventListener(STALE_CHUNK_EVENT, listener)
+    }
+  })
+
+  it('caps total reloads per session', () => {
+    expect(maybeReloadOnStaleChunk(staleError())).toBe(true)
+    expect(maybeReloadOnStaleChunk(staleError())).toBe(true)
+    expect(reloadSpy).toHaveBeenCalledTimes(2)
+    expect(canReloadForStaleChunk()).toBe(false)
+    expect(maybeReloadOnStaleChunk(staleError())).toBe(false)
+    expect(reloadSpy).toHaveBeenCalledTimes(2)
   })
 
   it('ignores unrelated errors', () => {
     const handled = maybeReloadOnStaleChunk(new Error('something else'))
     expect(handled).toBe(false)
     expect(reloadSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('reloadForStaleChunk', () => {
+  let reloadSpy: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    sessionStorage.clear()
+    reloadSpy = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload: reloadSpy },
+    })
+  })
+
+  afterEach(() => {
+    sessionStorage.clear()
+  })
+
+  it('reloads and bumps the session counter', () => {
+    reloadForStaleChunk()
+    expect(reloadSpy).toHaveBeenCalledTimes(1)
+    reloadForStaleChunk()
+    expect(reloadSpy).toHaveBeenCalledTimes(2)
+    reloadForStaleChunk()
+    expect(reloadSpy).toHaveBeenCalledTimes(2)
   })
 })
