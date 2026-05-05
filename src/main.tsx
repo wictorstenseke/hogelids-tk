@@ -65,6 +65,7 @@ createRoot(document.getElementById('root')!, {
       persistOptions={{
         persister: localStoragePersister,
         maxAge: SEVEN_DAYS_MS,
+        buster: __BUILD_ID__,
       }}
     >
       <RouterProvider router={router} />
