@@ -16,6 +16,7 @@ import { Header } from './-components/Header'
 import { AuthModal } from './-components/AuthModal'
 import { ProfileModal } from './-components/ProfileModal'
 import { AiChat } from './-components/AiChat'
+import { StaleChunkBanner } from './-components/StaleChunkBanner'
 
 function AppShellInner() {
   const { user, loading: authLoading } = useAuth()
@@ -52,6 +53,7 @@ function AppShellInner() {
         <ProfileModal user={user} onClose={closeProfileModal} />
       )}
       <AiChat />
+      <StaleChunkBanner />
     </div>
   )
 }
