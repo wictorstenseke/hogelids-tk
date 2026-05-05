@@ -7,8 +7,12 @@ import {
   type QueryDocumentSnapshot,
   type DocumentData,
 } from 'firebase/firestore'
+import type { QueryClient } from '@tanstack/react-query'
 import { db } from '../lib/firebase'
-import { loadHistoryArchive } from './HistoryArchiveService'
+import {
+  loadHistoryArchive,
+  HISTORY_ARCHIVE_QUERY_KEY,
+} from './HistoryArchiveService'
 import type { Ladder, LadderParticipant } from './LadderService'
 
 export const COMPLETED_LADDERS_QUERY_KEY = ['ladders', 'completed'] as const
@@ -59,13 +63,32 @@ async function fetchCompletedFromFirestore(
  * Returns completed ladders.
  * - Prod: bundled JSON archive + Firestore fallback for ladders completed since archive build.
  * - Other envs: full Firestore query (test data differs from prod, no archive).
+ *
+ * Reuses the cached archive via queryClient so HomePage / HistorySection don't
+ * re-fetch + re-parse the 190KB blob. Fallback query failures (e.g. missing
+ * composite index) are swallowed so the archive view still renders.
  */
-export async function loadCompletedLadders(): Promise<Ladder[]> {
+export async function loadCompletedLadders(
+  queryClient: QueryClient
+): Promise<Ladder[]> {
   if (!isProd()) {
     return fetchCompletedFromFirestore()
   }
-  const archive = await loadHistoryArchive()
-  const fresh = await fetchCompletedFromFirestore(archive.generatedAt)
+  const archive = await queryClient.fetchQuery({
+    queryKey: HISTORY_ARCHIVE_QUERY_KEY,
+    queryFn: loadHistoryArchive,
+    staleTime: Infinity,
+  })
+  let fresh: Ladder[] = []
+  try {
+    fresh = await fetchCompletedFromFirestore(archive.generatedAt)
+  } catch (err) {
+    // Missing composite index or transient error — keep archive view alive.
+    console.warn(
+      'completed-ladders fallback query failed; serving archive only',
+      err
+    )
+  }
   const byId = new Map<string, Ladder>(
     archive.completedLadders.map((l) => [l.id, l])
   )

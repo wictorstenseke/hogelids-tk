@@ -875,8 +875,9 @@ export function StegenPage() {
   const { data: completedLadders = [], isLoading: completedLaddersLoading } =
     useQuery({
       queryKey: COMPLETED_LADDERS_QUERY_KEY,
-      queryFn: loadCompletedLadders,
+      queryFn: () => loadCompletedLadders(queryClient),
       enabled: !!user,
+      staleTime: 5 * 60 * 1000,
     })
 
   const laddersLoading = activeLadderLoading || completedLaddersLoading
@@ -922,6 +923,8 @@ export function StegenPage() {
     queries: participantUids.map((uid) => ({
       queryKey: [PROFILE_QUERY_KEY, uid],
       queryFn: () => getProfile(uid),
+      // Profiles change infrequently; avoid N Firestore reads on every mount.
+      staleTime: 5 * 60 * 1000,
     })),
   })
 
