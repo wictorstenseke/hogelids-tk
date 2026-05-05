@@ -268,14 +268,15 @@ function RankingsTable({
                   <span className="text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
                     {formatStats(participant.wins, participant.losses)}
                   </span>
-                  {phoneDisplay ? (
-                    <ParticipantPhoneSheetDialog
-                      displayName={name}
-                      phone={phoneDisplay}
-                    />
-                  ) : (
-                    <MissingPhoneIcon displayName={name} isMe={isMe} />
-                  )}
+                  {!isCompleted &&
+                    (phoneDisplay ? (
+                      <ParticipantPhoneSheetDialog
+                        displayName={name}
+                        phone={phoneDisplay}
+                      />
+                    ) : (
+                      <MissingPhoneIcon displayName={name} isMe={isMe} />
+                    ))}
                 </div>
               </>
             )
@@ -348,14 +349,15 @@ function RankingsTable({
                     <span className="text-xs font-medium tracking-[-0.02em] text-white/55">
                       Ny
                     </span>
-                    {phoneDisplay ? (
-                      <ParticipantPhoneSheetDialog
-                        displayName={name}
-                        phone={phoneDisplay}
-                      />
-                    ) : (
-                      <MissingPhoneIcon displayName={name} isMe={isMe} />
-                    )}
+                    {!isCompleted &&
+                      (phoneDisplay ? (
+                        <ParticipantPhoneSheetDialog
+                          displayName={name}
+                          phone={phoneDisplay}
+                        />
+                      ) : (
+                        <MissingPhoneIcon displayName={name} isMe={isMe} />
+                      ))}
                   </div>
                 </>
               )
@@ -431,14 +433,15 @@ function RankingsTable({
                     <span className="text-xs font-medium tabular-nums tracking-[-0.02em] text-white/30">
                       {formatStats(participant.wins, participant.losses)}
                     </span>
-                    {phoneDisplay ? (
-                      <ParticipantPhoneSheetDialog
-                        displayName={name}
-                        phone={phoneDisplay}
-                      />
-                    ) : (
-                      <MissingPhoneIcon displayName={name} isMe={isMe} />
-                    )}
+                    {!isCompleted &&
+                      (phoneDisplay ? (
+                        <ParticipantPhoneSheetDialog
+                          displayName={name}
+                          phone={phoneDisplay}
+                        />
+                      ) : (
+                        <MissingPhoneIcon displayName={name} isMe={isMe} />
+                      ))}
                   </div>
                 </li>
               )
