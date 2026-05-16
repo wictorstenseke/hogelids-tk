@@ -120,6 +120,8 @@ interface RankingsTableProps {
   isJoining?: boolean
   /** Profile phone per uid — fresh source of truth, supersedes the snapshot in the ladder doc. */
   phonesByUid?: Record<string, string | null>
+  /** Profile displayName per uid — fresh source of truth, supersedes the snapshot in the ladder doc. */
+  displayNamesByUid?: Record<string, string>
 }
 
 const joinCtaButtonClass =
@@ -173,6 +175,18 @@ function resolveParticipantPhoneDisplay(
   return fromLadder || null
 }
 
+/** Profile is source of truth; ladder snapshot is fallback; UID is last resort. */
+function resolveParticipantDisplayName(
+  participant: LadderParticipant,
+  displayNamesByUid: Record<string, string> | undefined
+): string {
+  const fromProfile = displayNamesByUid?.[participant.uid]?.trim()
+  if (fromProfile) return fromProfile
+  const fromLadder = participant.displayName?.trim()
+  if (fromLadder) return fromLadder
+  return participant.uid
+}
+
 function RankingsTable({
   ladder,
   currentUid,
@@ -183,6 +197,7 @@ function RankingsTable({
   onJoin,
   isJoining = false,
   phonesByUid,
+  displayNamesByUid,
 }: RankingsTableProps) {
   const active = getActiveParticipants(ladder.participants)
   const pool = getPoolParticipants(ladder.participants)
@@ -239,7 +254,10 @@ function RankingsTable({
               challengesEnabled && eligibility?.eligible === true
             const isMe = participant.uid === currentUid
 
-            const name = participant.displayName || participant.uid
+            const name = resolveParticipantDisplayName(
+              participant,
+              displayNamesByUid
+            )
             const phoneDisplay = resolveParticipantPhoneDisplay(
               participant,
               phonesByUid
@@ -323,7 +341,10 @@ function RankingsTable({
                 challengesEnabled && eligibility?.eligible === true
               const isMe = participant.uid === currentUid
 
-              const name = participant.displayName || participant.uid
+              const name = resolveParticipantDisplayName(
+                participant,
+                displayNamesByUid
+              )
               const phoneDisplay = resolveParticipantPhoneDisplay(
                 participant,
                 phonesByUid
@@ -403,7 +424,10 @@ function RankingsTable({
           </p>
           <ul className="border-t border-white/10">
             {paused.map((participant) => {
-              const name = participant.displayName || participant.uid
+              const name = resolveParticipantDisplayName(
+                participant,
+                displayNamesByUid
+              )
               const isMe = participant.uid === currentUid
               const phoneDisplay = resolveParticipantPhoneDisplay(
                 participant,
@@ -939,6 +963,14 @@ export function StegenPage() {
     return map
   }, [participantProfileQueries])
 
+  const displayNamesByUid = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const q of participantProfileQueries) {
+      if (q.data?.displayName) map[q.data.uid] = q.data.displayName
+    }
+    return map
+  }, [participantProfileQueries])
+
   const archivedLadderOptions = useMemo(
     () => [
       { value: '', label: 'Välj stege' },
@@ -1259,6 +1291,7 @@ export function StegenPage() {
                       onJoin={() => void handleJoin()}
                       isJoining={isJoining}
                       phonesByUid={phonesByUid}
+                      displayNamesByUid={displayNamesByUid}
                       onChallenge={(uid) => {
                         setChallengeOpponentUid(uid)
                         setReportingMatch(null)
@@ -1422,6 +1455,7 @@ export function StegenPage() {
                           challengesEnabled={false}
                           isCompleted
                           phonesByUid={phonesByUid}
+                          displayNamesByUid={displayNamesByUid}
                           onChallenge={() => {}}
                         />
                       </section>
