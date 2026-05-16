@@ -1,20 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetDoc, mockUpdateDoc, mockDoc, mockCollection } = vi.hoisted(
-  () => ({
-    mockGetDoc: vi.fn(),
-    mockUpdateDoc: vi.fn(),
-    mockDoc: vi.fn((...args: unknown[]) => args),
-    mockCollection: vi.fn((...args: unknown[]) => args),
-  })
-)
+const {
+  mockGetDoc,
+  mockUpdateDoc,
+  mockDoc,
+  mockCollection,
+  mockUpdateAuthProfile,
+  mockReload,
+  authMock,
+} = vi.hoisted(() => ({
+  mockGetDoc: vi.fn(),
+  mockUpdateDoc: vi.fn(),
+  mockDoc: vi.fn((...args: unknown[]) => args),
+  mockCollection: vi.fn((...args: unknown[]) => args),
+  mockUpdateAuthProfile: vi.fn(),
+  mockReload: vi.fn(),
+  authMock: { currentUser: null as unknown },
+}))
 
-vi.mock('../lib/firebase', () => ({ db: {} }))
+vi.mock('../lib/firebase', () => ({ db: {}, auth: authMock }))
 vi.mock('firebase/firestore', () => ({
   getDoc: mockGetDoc,
   updateDoc: mockUpdateDoc,
   doc: mockDoc,
   collection: mockCollection,
+}))
+vi.mock('firebase/auth', () => ({
+  updateProfile: mockUpdateAuthProfile,
+  reload: mockReload,
 }))
 
 import { updateProfile, getProfile } from './ProfileService'
@@ -31,6 +44,9 @@ const fakeTimestamp = {
 beforeEach(() => {
   vi.clearAllMocks()
   mockUpdateDoc.mockResolvedValue(undefined)
+  mockUpdateAuthProfile.mockResolvedValue(undefined)
+  mockReload.mockResolvedValue(undefined)
+  authMock.currentUser = null
 })
 
 describe('updateProfile', () => {
@@ -66,6 +82,44 @@ describe('updateProfile', () => {
     expect(mockUpdateDoc).toHaveBeenCalledWith(expect.anything(), {
       phone: null,
     })
+  })
+
+  it("syncs Firebase Auth displayName when updating the current user's name", async () => {
+    authMock.currentUser = { uid: 'uid-123', displayName: 'Old Name' }
+
+    await updateProfile('uid-123', { displayName: 'New Name' })
+
+    expect(mockUpdateAuthProfile).toHaveBeenCalledWith(authMock.currentUser, {
+      displayName: 'New Name',
+    })
+    expect(mockReload).toHaveBeenCalledWith(authMock.currentUser)
+  })
+
+  it("does not touch Firebase Auth when updating a different user's profile", async () => {
+    authMock.currentUser = { uid: 'uid-admin', displayName: 'Admin' }
+
+    await updateProfile('uid-other', { displayName: 'New Name' })
+
+    expect(mockUpdateAuthProfile).not.toHaveBeenCalled()
+    expect(mockReload).not.toHaveBeenCalled()
+  })
+
+  it('does not touch Firebase Auth when displayName is unchanged', async () => {
+    authMock.currentUser = { uid: 'uid-123', displayName: 'Same Name' }
+
+    await updateProfile('uid-123', { displayName: 'Same Name' })
+
+    expect(mockUpdateAuthProfile).not.toHaveBeenCalled()
+    expect(mockReload).not.toHaveBeenCalled()
+  })
+
+  it('does not touch Firebase Auth when only updating phone', async () => {
+    authMock.currentUser = { uid: 'uid-123', displayName: 'Anna' }
+
+    await updateProfile('uid-123', { phone: '0701234567' })
+
+    expect(mockUpdateAuthProfile).not.toHaveBeenCalled()
+    expect(mockReload).not.toHaveBeenCalled()
   })
 })
 

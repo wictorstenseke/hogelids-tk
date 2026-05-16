@@ -1,5 +1,6 @@
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { updateProfile as updateAuthProfile, reload } from 'firebase/auth'
+import { auth, db } from '../lib/firebase'
 import type { UserProfile, UserRole } from './AuthService'
 
 export const PROFILE_QUERY_KEY = 'profile'
@@ -20,11 +21,25 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
   }
 }
 
-// Updates editable fields on the users/{uid} document.
+// Updates editable fields on the users/{uid} document. When the current user
+// edits their own displayName, also keep Firebase Auth's profile in sync so
+// downstream snapshots (e.g. ladder participant join) get the fresh value.
 export async function updateProfile(
   uid: string,
   updates: { displayName?: string; phone?: string | null }
 ): Promise<void> {
   const ref = doc(db, 'users', uid)
   await updateDoc(ref, updates as Record<string, unknown>)
+
+  if (
+    typeof updates.displayName === 'string' &&
+    auth.currentUser &&
+    auth.currentUser.uid === uid &&
+    auth.currentUser.displayName !== updates.displayName
+  ) {
+    await updateAuthProfile(auth.currentUser, {
+      displayName: updates.displayName,
+    })
+    await reload(auth.currentUser)
+  }
 }
