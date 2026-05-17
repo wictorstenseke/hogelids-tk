@@ -81,6 +81,6 @@
       "eslint --fix"
     ],
     "*.{json,md,css,html}": "prettier --write",
-    "**/*.{ts,tsx}": "bash -c 'tsc --noEmit'"
+    "**/*.{ts,tsx}": "bash -c 'tsc -b --noEmit'"
   }
 }

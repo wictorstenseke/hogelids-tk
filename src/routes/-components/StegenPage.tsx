@@ -687,6 +687,7 @@ function PlannedMatchReportRow({
                 embedded
                 onDeleteTrashClick={() => setCancelChallengeOpen(true)}
                 deleteInProgress={deleteInProgress}
+                displayNamesByUid={displayNamesByUid}
               />
             </div>
           </div>
@@ -709,6 +710,7 @@ interface ReportFormProps {
   /** When set with embedded, trash opens parent-owned delete dialog instead of rendering one inside ReportForm */
   onDeleteTrashClick?: () => void
   deleteInProgress?: boolean
+  displayNamesByUid?: Record<string, string>
 }
 
 function ReportForm({
@@ -718,6 +720,7 @@ function ReportForm({
   embedded = false,
   onDeleteTrashClick,
   deleteInProgress = false,
+  displayNamesByUid,
 }: ReportFormProps) {
   const { addToast } = useToast()
   const queryClient = useQueryClient()
@@ -770,8 +773,22 @@ function ReportForm({
   }
 
   const players: { uid: string; name: string }[] = [
-    { uid: match.playerAId, name: playerA },
-    { uid: match.playerBId, name: playerB },
+    {
+      uid: match.playerAId,
+      name: resolveDisplayName(
+        match.playerAId,
+        displayNamesByUid,
+        match.playerAName
+      ),
+    },
+    {
+      uid: match.playerBId,
+      name: resolveDisplayName(
+        match.playerBId,
+        displayNamesByUid,
+        match.playerBName
+      ),
+    },
   ]
 
   return (
