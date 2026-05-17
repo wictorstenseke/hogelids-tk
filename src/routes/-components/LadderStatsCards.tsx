@@ -1,10 +1,12 @@
 import type { LadderParticipant } from '../../services/LadderService'
-import { getStatsLeaders } from '../../lib/ladder'
+import { getStatsLeaders, resolveDisplayName } from '../../lib/ladder'
 
 export function LadderStatsCards({
   participants,
+  displayNamesByUid,
 }: {
   participants: LadderParticipant[]
+  displayNamesByUid?: Record<string, string>
 }) {
   const leaders = getStatsLeaders(participants)
   if (!leaders) return null
@@ -20,7 +22,11 @@ export function LadderStatsCards({
             {leader.label}
           </p>
           <p className="mt-1 truncate text-sm font-bold text-white">
-            {leader.playerName}
+            {resolveDisplayName(
+              leader.uid,
+              displayNamesByUid,
+              leader.displayName
+            )}
           </p>
           <p className="mt-0.5 text-xs text-[#F1E334]">
             {leader.value} {leader.valueSuffix}

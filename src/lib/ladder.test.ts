@@ -521,7 +521,8 @@ describe('getStatsLeaders', () => {
     // Most matches: Erik (2+8=10)
     expect(leaders[0]).toEqual({
       label: 'Flest matcher',
-      playerName: 'Erik',
+      uid: 'erik',
+      displayName: 'Erik',
       value: 10,
       valueSuffix: 'matcher',
     })
@@ -529,7 +530,8 @@ describe('getStatsLeaders', () => {
     // Most wins: Anna (5)
     expect(leaders[1]).toEqual({
       label: 'Flest vinster',
-      playerName: 'Anna',
+      uid: 'anna',
+      displayName: 'Anna',
       value: 5,
       valueSuffix: 'segrar',
     })
@@ -537,7 +539,8 @@ describe('getStatsLeaders', () => {
     // Most losses (mest orädd): Erik (8)
     expect(leaders[2]).toEqual({
       label: 'Mest orädd',
-      playerName: 'Erik',
+      uid: 'erik',
+      displayName: 'Erik',
       value: 8,
       valueSuffix: 'förluster',
     })
@@ -552,9 +555,9 @@ describe('getStatsLeaders', () => {
     const leaders = getStatsLeaders(participants)!
 
     // All tied — Erik (position 1) should win all three
-    expect(leaders[0].playerName).toBe('Erik')
-    expect(leaders[1].playerName).toBe('Erik')
-    expect(leaders[2].playerName).toBe('Erik')
+    expect(leaders[0].uid).toBe('erik')
+    expect(leaders[1].uid).toBe('erik')
+    expect(leaders[2].uid).toBe('erik')
   })
 
   it('includes paused players in stats', () => {
@@ -571,9 +574,9 @@ describe('getStatsLeaders', () => {
     ])
     const leaders = getStatsLeaders(participants)!
 
-    expect(leaders[0].playerName).toBe('Erik') // most matches
-    expect(leaders[1].playerName).toBe('Erik') // most wins
-    expect(leaders[2].playerName).toBe('Erik') // most losses
+    expect(leaders[0].uid).toBe('erik') // most matches
+    expect(leaders[1].uid).toBe('erik') // most wins
+    expect(leaders[2].uid).toBe('erik') // most losses
   })
 
   it('returns null for empty participants array', () => {

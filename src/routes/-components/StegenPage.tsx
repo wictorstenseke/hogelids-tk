@@ -27,7 +27,11 @@ import {
   COMPLETED_LADDERS_QUERY_KEY,
 } from '../../services/LaddersArchiveService'
 import { formatPhoneForStorage } from '../../lib/phoneFormat'
-import { getChallengeEligibility, formatStats } from '../../lib/ladder'
+import {
+  getChallengeEligibility,
+  formatStats,
+  resolveDisplayName,
+} from '../../lib/ladder'
 import { isLadderJoinOpenNow } from '../../lib/ladderJoinWindow'
 import { isLadderChallengeOpenNow } from '../../lib/ladderTournamentStart'
 import { useState, useMemo, useEffect } from 'react'
@@ -175,16 +179,15 @@ function resolveParticipantPhoneDisplay(
   return fromLadder || null
 }
 
-/** Profile is source of truth; ladder snapshot is fallback; UID is last resort. */
 function resolveParticipantDisplayName(
   participant: LadderParticipant,
   displayNamesByUid: Record<string, string> | undefined
 ): string {
-  const fromProfile = displayNamesByUid?.[participant.uid]?.trim()
-  if (fromProfile) return fromProfile
-  const fromLadder = participant.displayName?.trim()
-  if (fromLadder) return fromLadder
-  return participant.uid
+  return resolveDisplayName(
+    participant.uid,
+    displayNamesByUid,
+    participant.displayName
+  )
 }
 
 function RankingsTable({
@@ -491,11 +494,20 @@ function RankingsTable({
 
 interface MatchCardProps {
   match: LadderMatch
+  displayNamesByUid?: Record<string, string>
 }
 
-function MatchCard({ match }: MatchCardProps) {
-  const playerA = match.playerAName
-  const playerB = match.playerBName
+function MatchCard({ match, displayNamesByUid }: MatchCardProps) {
+  const playerA = resolveDisplayName(
+    match.playerAId,
+    displayNamesByUid,
+    match.playerAName
+  )
+  const playerB = resolveDisplayName(
+    match.playerBId,
+    displayNamesByUid,
+    match.playerBName
+  )
 
   if (match.ladderStatus === 'completed') {
     const winnerName = match.winnerId
@@ -555,6 +567,7 @@ interface PlannedMatchReportRowProps {
   onExpand: () => void
   onCollapse: () => void
   isCompleted: boolean
+  displayNamesByUid?: Record<string, string>
 }
 
 function PlannedMatchReportRow({
@@ -564,14 +577,23 @@ function PlannedMatchReportRow({
   onExpand,
   onCollapse,
   isCompleted,
+  displayNamesByUid,
 }: PlannedMatchReportRowProps) {
   const queryClient = useQueryClient()
   const { addToast } = useToast()
   const [cancelChallengeOpen, setCancelChallengeOpen] = useState(false)
   const [deleteInProgress, setDeleteInProgress] = useState(false)
 
-  const playerA = match.playerAName
-  const playerB = match.playerBName
+  const playerA = resolveDisplayName(
+    match.playerAId,
+    displayNamesByUid,
+    match.playerAName
+  )
+  const playerB = resolveDisplayName(
+    match.playerBId,
+    displayNamesByUid,
+    match.playerBName
+  )
 
   // On a completed ladder show a plain read-only card (no expand/report)
   if (isCompleted) {
@@ -748,8 +770,8 @@ function ReportForm({
   }
 
   const players: { uid: string; name: string }[] = [
-    { uid: match.playerAId, name: match.playerAName },
-    { uid: match.playerBId, name: match.playerBName },
+    { uid: match.playerAId, name: playerA },
+    { uid: match.playerBId, name: playerB },
   ]
 
   return (
@@ -1151,7 +1173,7 @@ export function StegenPage() {
       user.uid,
       challengeOpponentUid,
       user.displayName,
-      challengeOpponent.displayName ?? challengeOpponentUid,
+      resolveParticipantDisplayName(challengeOpponent, displayNamesByUid),
       user.uid,
       user.email,
       user.displayName,
@@ -1375,10 +1397,17 @@ export function StegenPage() {
                                     setChallengeOpponentUid(null)
                                   }}
                                   onCollapse={() => setReportingMatch(null)}
+                                  displayNamesByUid={displayNamesByUid}
                                 />
                               )
                             }
-                            return <MatchCard key={match.id} match={match} />
+                            return (
+                              <MatchCard
+                                key={match.id}
+                                match={match}
+                                displayNamesByUid={displayNamesByUid}
+                              />
+                            )
                           })}
                         </div>
                       ) : (
@@ -1400,7 +1429,11 @@ export function StegenPage() {
                       (completedMatches.length > 0 ? (
                         <div className="space-y-2">
                           {completedMatches.map((match) => (
-                            <MatchCard key={match.id} match={match} />
+                            <MatchCard
+                              key={match.id}
+                              match={match}
+                              displayNamesByUid={displayNamesByUid}
+                            />
                           ))}
                         </div>
                       ) : (
@@ -1422,7 +1455,10 @@ export function StegenPage() {
               )}
 
               {activeLadder && (
-                <LadderStatsCards participants={activeLadder.participants} />
+                <LadderStatsCards
+                  participants={activeLadder.participants}
+                  displayNamesByUid={displayNamesByUid}
+                />
               )}
 
               {sortedCompletedLadders.length > 0 && (
@@ -1479,7 +1515,11 @@ export function StegenPage() {
                         {archivedCompletedMatches.length > 0 ? (
                           <div className="space-y-2">
                             {archivedCompletedMatches.map((match) => (
-                              <MatchCard key={match.id} match={match} />
+                              <MatchCard
+                                key={match.id}
+                                match={match}
+                                displayNamesByUid={displayNamesByUid}
+                              />
                             ))}
                           </div>
                         ) : (
@@ -1511,7 +1551,10 @@ export function StegenPage() {
             onClose={() => setChallengeOpponentUid(null)}
             playerNames={{
               playerA: user.displayName,
-              playerB: challengeOpponent.displayName ?? challengeOpponentUid,
+              playerB: resolveParticipantDisplayName(
+                challengeOpponent,
+                displayNamesByUid
+              ),
             }}
           />
         )}
@@ -1521,7 +1564,7 @@ export function StegenPage() {
         isDesktop && (
           <SheetDialogShell
             titleId="challenge-dialog-title"
-            title={`Utmana ${challengeOpponent.displayName ?? challengeOpponentUid}`}
+            title={`Utmana ${resolveParticipantDisplayName(challengeOpponent, displayNamesByUid)}`}
             onClose={() => setChallengeOpponentUid(null)}
             maxHeightVariant="tall"
           >
@@ -1545,8 +1588,10 @@ export function StegenPage() {
                 playerAId: user.uid,
                 playerBId: challengeOpponentUid,
                 playerAName: user.displayName,
-                playerBName:
-                  challengeOpponent.displayName ?? challengeOpponentUid,
+                playerBName: resolveParticipantDisplayName(
+                  challengeOpponent,
+                  displayNamesByUid
+                ),
               }}
             />
           </SheetDialogShell>

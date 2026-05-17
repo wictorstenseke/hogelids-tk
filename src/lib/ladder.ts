@@ -258,9 +258,24 @@ function lastWinnerPosition(
 
 export interface StatLeader {
   label: string
-  playerName: string
+  uid: string
+  /** Snapshot at compute time — use only as fallback when no live profile name is available. */
+  displayName: string
   value: number
   valueSuffix: string
+}
+
+/** Live profile name wins; snapshot name is fallback; uid is last resort. */
+export function resolveDisplayName(
+  uid: string,
+  displayNamesByUid: Record<string, string> | undefined,
+  fallback?: string | null
+): string {
+  const fromProfile = displayNamesByUid?.[uid]?.trim()
+  if (fromProfile) return fromProfile
+  const fromFallback = fallback?.trim()
+  if (fromFallback) return fromFallback
+  return uid
 }
 
 /**
@@ -291,19 +306,22 @@ export function getStatsLeaders(
   return [
     {
       label: 'Flest matcher',
-      playerName: mostMatches.displayName,
+      uid: mostMatches.uid,
+      displayName: mostMatches.displayName,
       value: mostMatches.wins + mostMatches.losses,
       valueSuffix: 'matcher',
     },
     {
       label: 'Flest vinster',
-      playerName: mostWins.displayName,
+      uid: mostWins.uid,
+      displayName: mostWins.displayName,
       value: mostWins.wins,
       valueSuffix: 'segrar',
     },
     {
       label: 'Mest orädd',
-      playerName: mostLosses.displayName,
+      uid: mostLosses.uid,
+      displayName: mostLosses.displayName,
       value: mostLosses.losses,
       valueSuffix: 'förluster',
     },
