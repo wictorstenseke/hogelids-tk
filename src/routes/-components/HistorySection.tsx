@@ -486,7 +486,7 @@ export function HistorySection({
   currentYear,
   earliestYear,
 }: HistorySectionProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('statistik')
+  const [activeTab, setActiveTab] = useState<Tab>('historik')
   const [showAllYears, setShowAllYears] = useState(false)
 
   const years: number[] = []
@@ -532,11 +532,11 @@ export function HistorySection({
         <div
           className="absolute top-1 h-[calc(100%-8px)] w-[calc(50%-6px)] rounded-lg bg-[#F1E334] transition-[left] duration-300 ease-out"
           style={{
-            left: activeTab === 'historik' ? 'calc(50% + 2px)' : '4px',
+            left: activeTab === 'statistik' ? 'calc(50% + 2px)' : '4px',
           }}
           aria-hidden
         />
-        {(['statistik', 'historik'] as Tab[]).map((tab) => (
+        {(['historik', 'statistik'] as Tab[]).map((tab) => (
           <button
             key={tab}
             type="button"
