@@ -159,7 +159,10 @@ export function SheetDialogShell({
     <>
       <div
         className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 motion-reduce:backdrop-blur-none sm:duration-150 ${visible ? 'opacity-100' : 'opacity-0'}`}
-        onClick={handleClose}
+        onClick={(e) => {
+          e.stopPropagation()
+          handleClose()
+        }}
         aria-hidden="true"
       />
 
@@ -168,6 +171,7 @@ export function SheetDialogShell({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
+        onClick={(e) => e.stopPropagation()}
         className={[
           'fixed z-50 flex min-h-0 flex-col bg-white shadow-2xl',
           maxH,
