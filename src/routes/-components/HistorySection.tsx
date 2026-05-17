@@ -136,7 +136,7 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
     }
   }
   combinedBookings.sort(
-    (a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime()
+    (a, b) => b.startTime.toDate().getTime() - a.startTime.toDate().getTime()
   )
 
   const byYear = new Map<number, BookingWithId[]>()
