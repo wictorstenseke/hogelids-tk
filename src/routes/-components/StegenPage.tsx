@@ -286,16 +286,19 @@ function RankingsTable({
             const leftClass =
               'flex min-w-0 flex-1 items-center gap-1 py-2.5 pl-0'
 
+            const liClass = `flex min-w-0 items-center gap-1 border-b border-white/10 pr-2${
+              isChallengeable
+                ? ' transition-colors hover:bg-white/5 active:bg-white/10'
+                : ''
+            }`
+
             return (
-              <li
-                key={participant.uid}
-                className="flex min-w-0 items-center gap-1 border-b border-white/10 pr-2"
-              >
+              <li key={participant.uid} className={liClass}>
                 {isChallengeable ? (
                   <button
                     type="button"
                     onClick={() => onChallenge(participant.uid)}
-                    className={`${leftClass} cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
+                    className={`${leftClass} cursor-pointer text-left`}
                     aria-label={`Utmana ${name}`}
                   >
                     {leftContent}
@@ -372,16 +375,19 @@ function RankingsTable({
               const leftClass =
                 'flex min-w-0 flex-1 items-center gap-1 py-2.5 pl-0'
 
+              const liClass = `flex min-w-0 items-center gap-1 border-b border-white/10 pr-2${
+                isChallengeable
+                  ? ' transition-colors hover:bg-white/5 active:bg-white/10'
+                  : ''
+              }`
+
               return (
-                <li
-                  key={participant.uid}
-                  className="flex min-w-0 items-center gap-1 border-b border-white/10 pr-2"
-                >
+                <li key={participant.uid} className={liClass}>
                   {isChallengeable ? (
                     <button
                       type="button"
                       onClick={() => onChallenge(participant.uid)}
-                      className={`${leftClass} cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
+                      className={`${leftClass} cursor-pointer text-left`}
                       aria-label={`Utmana ${name}`}
                     >
                       {leftContent}
