@@ -263,9 +263,7 @@ function RankingsTable({
               phonesByUid
             )
 
-            const rowClass = 'flex min-w-0 items-center gap-1 py-2.5 pr-2'
-
-            const rowContent = (
+            const leftContent = (
               <>
                 <span className="w-7 shrink-0 text-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
                   {participant.position}
@@ -282,7 +280,30 @@ function RankingsTable({
                     {name}
                   </span>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+              </>
+            )
+
+            const leftClass =
+              'flex min-w-0 flex-1 items-center gap-1 py-2.5 pl-0'
+
+            return (
+              <li
+                key={participant.uid}
+                className="flex min-w-0 items-center gap-1 border-b border-white/10 pr-2"
+              >
+                {isChallengeable ? (
+                  <button
+                    type="button"
+                    onClick={() => onChallenge(participant.uid)}
+                    className={`${leftClass} cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
+                    aria-label={`Utmana ${name}`}
+                  >
+                    {leftContent}
+                  </button>
+                ) : (
+                  <div className={leftClass}>{leftContent}</div>
+                )}
+                <div className="flex shrink-0 items-center gap-2 py-2.5">
                   <span className="text-xs font-medium tabular-nums tracking-[-0.02em] text-white/55">
                     {formatStats(participant.wins, participant.losses)}
                   </span>
@@ -296,23 +317,6 @@ function RankingsTable({
                       <MissingPhoneIcon displayName={name} isMe={isMe} />
                     ))}
                 </div>
-              </>
-            )
-
-            return (
-              <li key={participant.uid} className="border-b border-white/10">
-                {isChallengeable ? (
-                  <button
-                    type="button"
-                    onClick={() => onChallenge(participant.uid)}
-                    className={`${rowClass} w-full cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
-                    aria-label={`Utmana ${name}`}
-                  >
-                    {rowContent}
-                  </button>
-                ) : (
-                  <div className={rowClass}>{rowContent}</div>
-                )}
               </li>
             )
           })}
@@ -350,23 +354,42 @@ function RankingsTable({
                 phonesByUid
               )
 
-              const rowClass = 'flex min-w-0 items-center gap-1 py-2.5 pr-2'
+              const leftContent = (
+                <div className="flex min-w-0 flex-1 items-center">
+                  <span
+                    title={name}
+                    className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none ${
+                      isMe
+                        ? 'bg-[#F1E334] text-gray-900'
+                        : 'bg-white/15 text-white/90'
+                    }`}
+                  >
+                    {name}
+                  </span>
+                </div>
+              )
 
-              const rowContent = (
-                <>
-                  <div className="flex min-w-0 flex-1 items-center">
-                    <span
-                      title={name}
-                      className={`inline-block max-w-full min-w-0 truncate rounded-md px-2.5 py-1 text-xs font-semibold leading-none ${
-                        isMe
-                          ? 'bg-[#F1E334] text-gray-900'
-                          : 'bg-white/15 text-white/90'
-                      }`}
+              const leftClass =
+                'flex min-w-0 flex-1 items-center gap-1 py-2.5 pl-0'
+
+              return (
+                <li
+                  key={participant.uid}
+                  className="flex min-w-0 items-center gap-1 border-b border-white/10 pr-2"
+                >
+                  {isChallengeable ? (
+                    <button
+                      type="button"
+                      onClick={() => onChallenge(participant.uid)}
+                      className={`${leftClass} cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
+                      aria-label={`Utmana ${name}`}
                     >
-                      {name}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                      {leftContent}
+                    </button>
+                  ) : (
+                    <div className={leftClass}>{leftContent}</div>
+                  )}
+                  <div className="flex shrink-0 items-center gap-2 py-2.5">
                     <span className="text-xs font-medium tracking-[-0.02em] text-white/55">
                       Ny
                     </span>
@@ -380,23 +403,6 @@ function RankingsTable({
                         <MissingPhoneIcon displayName={name} isMe={isMe} />
                       ))}
                   </div>
-                </>
-              )
-
-              return (
-                <li key={participant.uid} className="border-b border-white/10">
-                  {isChallengeable ? (
-                    <button
-                      type="button"
-                      onClick={() => onChallenge(participant.uid)}
-                      className={`${rowClass} w-full cursor-pointer text-left transition-colors hover:bg-white/5 active:bg-white/10`}
-                      aria-label={`Utmana ${name}`}
-                    >
-                      {rowContent}
-                    </button>
-                  ) : (
-                    <div className={rowClass}>{rowContent}</div>
-                  )}
                 </li>
               )
             })}
