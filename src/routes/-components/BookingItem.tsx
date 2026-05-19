@@ -30,9 +30,9 @@ function getBookingLabel(
     if (!user) return 'Stegmatch'
     return `${booking.playerAName} vs ${booking.playerBName}`
   }
-  if (booking.opponentDisplayName) {
+  if (booking.opponentDisplayName && user) {
     const ownerLabel =
-      user && booking.type === 'member' && user.uid === booking.ownerUid
+      booking.type === 'member' && user.uid === booking.ownerUid
         ? (user.displayName ?? booking.ownerDisplayName)
         : booking.ownerDisplayName
     return `${ownerLabel} vs ${booking.opponentDisplayName}`
