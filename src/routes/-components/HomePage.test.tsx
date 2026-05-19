@@ -52,6 +52,11 @@ vi.mock('../../services/LadderService', () => ({
   createLadderMatch: vi.fn(() => Promise.resolve('mock-id')),
 }))
 
+vi.mock('../../services/UserService', () => ({
+  USERS_QUERY_KEY: ['users'],
+  listAllUsers: vi.fn(() => new Promise(() => {})),
+}))
+
 vi.mock('../../lib/useRole', () => ({
   useRole: vi.fn(() => null),
 }))

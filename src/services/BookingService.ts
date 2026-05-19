@@ -21,6 +21,9 @@ export interface Booking {
   startTime: Timestamp
   endTime: Timestamp
   createdAt: Timestamp
+  // Only present on member bookings where the owner picked a known opponent
+  opponentUid?: string
+  opponentDisplayName?: string
 }
 
 export interface BookingWithId extends Booking {
@@ -81,6 +84,12 @@ export function mapBookingSnapshot(
           playerBName: data['playerBName'] as string,
         }
       : {}),
+    ...(data['opponentUid']
+      ? {
+          opponentUid: data['opponentUid'] as string,
+          opponentDisplayName: data['opponentDisplayName'] as string,
+        }
+      : {}),
   }
 }
 
@@ -112,7 +121,8 @@ export async function createMemberBooking(
   ownerEmail: string,
   ownerDisplayName: string,
   startTime: Date,
-  endTime: Date
+  endTime: Date,
+  opponent?: { uid: string; displayName: string }
 ): Promise<string> {
   const bookingsRef = collection(db, 'bookings')
   const docRef = await addDoc(bookingsRef, {
@@ -123,6 +133,12 @@ export async function createMemberBooking(
     startTime: Timestamp.fromDate(startTime),
     endTime: Timestamp.fromDate(endTime),
     createdAt: Timestamp.fromDate(new Date()),
+    ...(opponent
+      ? {
+          opponentUid: opponent.uid,
+          opponentDisplayName: opponent.displayName,
+        }
+      : {}),
   })
   return docRef.id
 }

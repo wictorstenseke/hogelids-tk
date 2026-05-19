@@ -60,6 +60,16 @@ function formatHistoryDateLabel(booking: BookingWithId): string {
   })
 }
 
+function historyBookingLabel(booking: BookingWithId): string {
+  if (booking.playerAId) {
+    return `${booking.playerAName} vs ${booking.playerBName}`
+  }
+  if (booking.opponentDisplayName) {
+    return `${booking.ownerDisplayName} vs ${booking.opponentDisplayName}`
+  }
+  return booking.ownerDisplayName ?? ''
+}
+
 type Tab = 'statistik' | 'historik'
 
 interface YearQueryResult {
@@ -188,16 +198,10 @@ function HistorikTab({ selectedYears }: { selectedYears: number[] }) {
                         {formatHistoryDateLabel(booking)}
                       </span>
                       <span
-                        title={
-                          booking.playerAId
-                            ? `${booking.playerAName} vs ${booking.playerBName}`
-                            : (booking.ownerDisplayName ?? '')
-                        }
+                        title={historyBookingLabel(booking)}
                         className="inline-block min-w-0 max-w-full justify-self-start truncate rounded-md bg-white/15 px-2.5 py-0.5 text-left text-xs font-semibold text-white/80 w-fit"
                       >
-                        {booking.playerAId
-                          ? `${booking.playerAName} vs ${booking.playerBName}`
-                          : booking.ownerDisplayName}
+                        {historyBookingLabel(booking)}
                       </span>
                     </div>
                   </li>

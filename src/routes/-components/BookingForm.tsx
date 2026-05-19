@@ -1,5 +1,5 @@
-import React, { forwardRef, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import React, { forwardRef, useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import { sv } from 'date-fns/locale'
 import { format } from 'date-fns'
@@ -15,7 +15,9 @@ import {
 } from '../../services/BookingService'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { createLadderMatch } from '../../services/LadderService'
+import { listAllUsers, USERS_QUERY_KEY } from '../../services/UserService'
 import type { AuthUser } from '../../lib/useAuth'
+import { MenuSelect, type MenuSelectOption } from './MenuSelect'
 
 export interface LadderMeta {
   ladderId: string
@@ -119,9 +121,41 @@ export function BookingForm({
   const [endTimeValue, setEndTimeValue] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [opponent, setOpponent] = useState<{
+    uid: string
+    displayName: string
+  } | null>(null)
 
   // Mobile drawer
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const showOpponentField = !!user && !ladderMeta
+
+  const usersQuery = useQuery({
+    queryKey: USERS_QUERY_KEY,
+    queryFn: listAllUsers,
+    enabled: showOpponentField,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const opponentOptions = useMemo<MenuSelectOption[]>(() => {
+    const list = usersQuery.data ?? []
+    return [
+      { value: '', label: 'Ingen motspelare' },
+      ...list
+        .filter((u) => u.uid !== user?.uid)
+        .map((u) => ({ value: u.uid, label: u.displayName })),
+    ]
+  }, [usersQuery.data, user?.uid])
+
+  function handleOpponentChange(uid: string) {
+    if (!uid) {
+      setOpponent(null)
+      return
+    }
+    const u = usersQuery.data?.find((x) => x.uid === uid)
+    if (u) setOpponent({ uid: u.uid, displayName: u.displayName })
+  }
 
   const resolvedDesktopInterval =
     dateValue && startTimeValue && endTimeValue
@@ -195,7 +229,8 @@ export function BookingForm({
           user.email,
           user.displayName,
           start,
-          end
+          end,
+          opponent ?? undefined
         )
       } else {
         await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
@@ -207,6 +242,7 @@ export function BookingForm({
       setDateValue('')
       setStartTimeValue('')
       setEndTimeValue('')
+      setOpponent(null)
     } catch (err) {
       addToast(
         err instanceof Error
@@ -223,7 +259,8 @@ export function BookingForm({
   async function handleMobileSubmit(
     date: string,
     startTime: string,
-    endTime: string
+    endTime: string,
+    mobileOpponent: { uid: string; displayName: string } | null
   ) {
     const effectiveEmail = user ? user.email : email.trim()
     const resolved = resolveBookingInterval(date, startTime, endTime)
@@ -260,7 +297,8 @@ export function BookingForm({
         user.email,
         user.displayName,
         start,
-        end
+        end,
+        mobileOpponent ?? undefined
       )
     } else {
       await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
@@ -396,6 +434,29 @@ export function BookingForm({
               </div>
             </div>
 
+            {/* Opponent — members only, after start time is filled */}
+            {showOpponentField && startTimeValue && (
+              <div className="min-w-0">
+                <label className={labelClass}>Motspelare (valfritt)</label>
+                <MenuSelect
+                  value={opponent?.uid ?? ''}
+                  onChange={handleOpponentChange}
+                  options={opponentOptions}
+                  ariaLabel="Välj motspelare"
+                  placeholder="Välj motspelare"
+                  searchable
+                  searchPlaceholder="Sök medlem"
+                  emptyLabel="Inga träffar"
+                  className="w-full"
+                  triggerClassName={
+                    isDialog
+                      ? 'w-full border-gray-200 bg-white'
+                      : 'w-full border-white/20 bg-white/10 text-white hover:border-white/40 hover:bg-white/15'
+                  }
+                />
+              </div>
+            )}
+
             {/* Inline conflict error — desktop only */}
             {conflictDetected && (
               <p
@@ -448,6 +509,8 @@ export function BookingForm({
           existingBookings={existingBookings}
           onSubmit={handleMobileSubmit}
           onClose={() => setDrawerOpen(false)}
+          showOpponentStep={showOpponentField}
+          opponentOptions={opponentOptions}
         />
       )}
     </section>

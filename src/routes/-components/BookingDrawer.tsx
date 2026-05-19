@@ -10,8 +10,9 @@ import {
   findConflictingBooking,
 } from '../../services/BookingService'
 import { BOOKING_DRAWER_PRIMARY_BUTTON_CLASS } from '../../lib/bookingPrimaryButtonClass'
+import { MenuSelect, type MenuSelectOption } from './MenuSelect'
 
-type Step = 'datetime' | 'end' | 'summary'
+type Step = 'datetime' | 'end' | 'opponent' | 'summary'
 
 /** Snapshot when opening edit from summary — restored if user backs out without confirming */
 type BookingDraftSnapshot = {
@@ -20,6 +21,7 @@ type BookingDraftSnapshot = {
   draftStartMinute: string
   draftEndHour: string
   draftEndMinute: string
+  draftOpponentUid: string
 }
 
 const VISIBLE_COUNT = 20
@@ -95,9 +97,18 @@ function formatDateFull(dateValue: string): string {
 
 interface BookingDrawerProps {
   existingBookings: BookingWithId[]
-  onSubmit: (date: string, startTime: string, endTime: string) => Promise<void>
+  onSubmit: (
+    date: string,
+    startTime: string,
+    endTime: string,
+    opponent: { uid: string; displayName: string } | null
+  ) => Promise<void>
   onClose: () => void
   playerNames?: { playerA: string; playerB: string }
+  /** When true, insert an opponent picker step after the datetime wheels. */
+  showOpponentStep?: boolean
+  /** Pre-built options for the opponent picker. First option is "Ingen motspelare" (value=''). */
+  opponentOptions?: MenuSelectOption[]
 }
 
 export function BookingDrawer({
@@ -105,6 +116,8 @@ export function BookingDrawer({
   onSubmit,
   onClose,
   playerNames,
+  showOpponentStep = false,
+  opponentOptions = [],
 }: BookingDrawerProps) {
   const [step, setStep] = useState<Step>('datetime')
   const [visible, setVisible] = useState(false)
@@ -131,6 +144,13 @@ export function BookingDrawer({
   const [draftEndMinute, setDraftEndMinute] = useState(
     () => addTwoHours(nearest.hour, nearest.minute).minute
   )
+  const [draftOpponentUid, setDraftOpponentUid] = useState('')
+
+  const draftOpponent = useMemo(() => {
+    if (!draftOpponentUid) return null
+    const opt = opponentOptions.find((o) => o.value === draftOpponentUid)
+    return opt ? { uid: opt.value, displayName: opt.label } : null
+  }, [draftOpponentUid, opponentOptions])
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true))
@@ -169,6 +189,7 @@ export function BookingDrawer({
       draftStartMinute,
       draftEndHour,
       draftEndMinute,
+      draftOpponentUid,
     }
   }
 
@@ -180,6 +201,7 @@ export function BookingDrawer({
       setDraftStartMinute(snap.draftStartMinute)
       setDraftEndHour(snap.draftEndHour)
       setDraftEndMinute(snap.draftEndMinute)
+      setDraftOpponentUid(snap.draftOpponentUid)
       preEditDraftRef.current = null
     }
     setStep('summary')
@@ -204,7 +226,8 @@ export function BookingDrawer({
 
   function handleNext() {
     if (step === 'datetime') {
-      if (!fromSummary) {
+      const wasFromSummary = fromSummary
+      if (!wasFromSummary) {
         // First pass: auto-calculate end time from start (+2h wall clock, snap to 15 min)
         const s = new Date(`${draftDate}T${draftStartHour}:${draftStartMinute}`)
         const e = new Date(s.getTime() + 2 * 60 * 60 * 1000)
@@ -216,13 +239,28 @@ export function BookingDrawer({
         setDraftEndMinute(String(em).padStart(2, '0'))
       }
       preEditDraftRef.current = null
-      setStep('summary')
+      if (!wasFromSummary && showOpponentStep) {
+        setStep('opponent')
+      } else {
+        setStep('summary')
+      }
       setFromSummary(false)
     } else if (step === 'end') {
       preEditDraftRef.current = null
       setStep('summary')
       setFromSummary(false)
+    } else if (step === 'opponent') {
+      preEditDraftRef.current = null
+      setStep('summary')
+      setFromSummary(false)
     }
+  }
+
+  function handleSkipOpponent() {
+    setDraftOpponentUid('')
+    preEditDraftRef.current = null
+    setStep('summary')
+    setFromSummary(false)
   }
 
   function handleEditDatetime() {
@@ -237,6 +275,12 @@ export function BookingDrawer({
     setStep('end')
   }
 
+  function handleEditOpponent() {
+    snapshotDraftForEdit()
+    setFromSummary(true)
+    setStep('opponent')
+  }
+
   async function handleBookingSubmit() {
     setIsSubmitting(true)
     setSubmitError(null)
@@ -244,7 +288,8 @@ export function BookingDrawer({
       await onSubmit(
         draftDate,
         `${draftStartHour}:${draftStartMinute}`,
-        `${draftEndHour}:${draftEndMinute}`
+        `${draftEndHour}:${draftEndMinute}`,
+        draftOpponent
       )
       handleClose()
     } catch (err) {
@@ -324,9 +369,13 @@ export function BookingDrawer({
       ? 'Din bokning'
       : step === 'end'
         ? 'Ändra sluttid'
-        : fromSummary
-          ? 'Ändra datum & starttid'
-          : 'Datum & starttid'
+        : step === 'opponent'
+          ? fromSummary
+            ? 'Ändra motspelare'
+            : 'Välj motspelare'
+          : fromSummary
+            ? 'Ändra datum & starttid'
+            : 'Datum & starttid'
 
   const showBackBeforeTitle = fromSummary && step !== 'summary'
 
@@ -469,6 +518,43 @@ export function BookingDrawer({
               </>
             )}
 
+            {/* Opponent step */}
+            {step === 'opponent' && (
+              <>
+                <p className="mb-3 text-sm text-gray-600">
+                  Spelar du med en annan medlem? Välj namn nedan (valfritt).
+                </p>
+                <MenuSelect
+                  value={draftOpponentUid}
+                  onChange={setDraftOpponentUid}
+                  options={opponentOptions}
+                  ariaLabel="Välj motspelare"
+                  placeholder="Välj motspelare"
+                  searchable
+                  searchPlaceholder="Sök medlem"
+                  emptyLabel="Inga träffar"
+                  className="w-full"
+                  triggerClassName="w-full"
+                />
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className={BOOKING_DRAWER_PRIMARY_BUTTON_CLASS}
+                >
+                  Nästa
+                </button>
+                {!fromSummary && !draftOpponentUid && (
+                  <button
+                    type="button"
+                    onClick={handleSkipOpponent}
+                    className="mt-3 block w-full min-h-[44px] cursor-pointer rounded-xl bg-transparent px-4 py-2 text-sm font-semibold text-gray-600 underline underline-offset-2 transition-colors hover:text-gray-900"
+                  >
+                    Hoppa över
+                  </button>
+                )}
+              </>
+            )}
+
             {/* Summary step */}
             {step === 'summary' && (
               <>
@@ -497,6 +583,30 @@ export function BookingDrawer({
                       {`${draftEndHour}.${draftEndMinute}`}
                     </button>
                   </p>
+                  {showOpponentStep && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      {draftOpponent ? (
+                        <>
+                          <span className="text-gray-500">Motspelare: </span>
+                          <button
+                            type="button"
+                            onClick={handleEditOpponent}
+                            className={linkClass}
+                          >
+                            {draftOpponent.displayName}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleEditOpponent}
+                          className={linkClass}
+                        >
+                          Lägg till motspelare
+                        </button>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 {/* Conflict / validation message */}

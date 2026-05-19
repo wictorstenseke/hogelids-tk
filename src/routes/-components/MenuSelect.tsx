@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { IconCheck, IconChevronDown } from '@tabler/icons-react'
+import { IconCheck, IconChevronDown, IconSearch } from '@tabler/icons-react'
 
 export interface MenuSelectOption {
   value: string
@@ -17,6 +17,14 @@ interface MenuSelectProps {
   className?: string
   /** Extra classes merged onto the trigger button */
   triggerClassName?: string
+  /** Placeholder text shown on the trigger when value is `''` */
+  placeholder?: string
+  /** Render a filter input at the top of the listbox */
+  searchable?: boolean
+  /** Placeholder for the search input (default: "Sök") */
+  searchPlaceholder?: string
+  /** Shown when the filter matches no options (default: "Inga träffar") */
+  emptyLabel?: string
 }
 
 /**
@@ -29,8 +37,13 @@ export function MenuSelect({
   ariaLabel,
   className = '',
   triggerClassName = '',
+  placeholder,
+  searchable = false,
+  searchPlaceholder = 'Sök',
+  emptyLabel = 'Inga träffar',
 }: MenuSelectProps) {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
   /** Keep list mounted briefly after close so exit transition can run */
   const [panelRendered, setPanelRendered] = useState(false)
   const [panelVisible, setPanelVisible] = useState(false)
@@ -43,6 +56,7 @@ export function MenuSelect({
   })
   const triggerRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const listboxId = useId()
 
   const PANEL_MS = 200
@@ -62,9 +76,16 @@ export function MenuSelect({
       }
     }
     setPanelVisible(false)
+    setQuery('')
     const t = window.setTimeout(() => setPanelRendered(false), PANEL_MS)
     return () => clearTimeout(t)
   }, [open])
+
+  useEffect(() => {
+    if (open && searchable && panelVisible) {
+      searchInputRef.current?.focus()
+    }
+  }, [open, searchable, panelVisible])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -77,8 +98,17 @@ export function MenuSelect({
       }
       setOpen(false)
     }
-    if (open) document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClick)
+      document.addEventListener('keydown', handleKey)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
   }, [open])
 
   useLayoutEffect(() => {
@@ -127,9 +157,17 @@ export function MenuSelect({
     }
 
     setMenuLayout({ top, left, width, tw })
-  }, [open, panelVisible, options])
+  }, [open, panelVisible, options, query])
 
-  const selectedLabel = options.find((o) => o.value === value)?.label ?? value
+  const selectedLabel = options.find((o) => o.value === value)?.label
+  const triggerLabel = selectedLabel ?? placeholder ?? value
+  const showPlaceholder = !selectedLabel && !!placeholder
+
+  const filteredOptions = searchable
+    ? options.filter((o) =>
+        o.label.toLowerCase().includes(query.trim().toLowerCase())
+      )
+    : options
 
   const dropdown = panelRendered && (
     <ul
@@ -155,7 +193,40 @@ export function MenuSelect({
         transition: 'clip-path 200ms ease-out',
       }}
     >
-      {options.map((opt) => (
+      {searchable && (
+        <li
+          role="presentation"
+          className="sticky top-0 z-10 border-b border-gray-100 bg-white px-2 py-2"
+        >
+          <div className="relative">
+            <IconSearch
+              size={16}
+              stroke={1.75}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              aria-hidden
+            />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full min-h-[36px] rounded-lg border border-gray-200 bg-gray-50 pl-8 pr-2 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
+              aria-label={searchPlaceholder}
+            />
+          </div>
+        </li>
+      )}
+      {filteredOptions.length === 0 && searchable && (
+        <li
+          role="presentation"
+          className="px-4 py-3 text-sm text-gray-500"
+          aria-live="polite"
+        >
+          {emptyLabel}
+        </li>
+      )}
+      {filteredOptions.map((opt) => (
         <li key={opt.value} role="option" aria-selected={opt.value === value}>
           <button
             type="button"
@@ -206,7 +277,14 @@ export function MenuSelect({
         aria-controls={open ? listboxId : undefined}
         aria-label={ariaLabel}
       >
-        <span className="min-w-0 truncate">{selectedLabel}</span>
+        <span
+          className={[
+            'min-w-0 truncate',
+            showPlaceholder ? 'text-gray-400 font-normal' : '',
+          ].join(' ')}
+        >
+          {triggerLabel}
+        </span>
         <IconChevronDown
           size={18}
           stroke={1.5}

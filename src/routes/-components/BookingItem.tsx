@@ -30,6 +30,13 @@ function getBookingLabel(
     if (!user) return 'Stegmatch'
     return `${booking.playerAName} vs ${booking.playerBName}`
   }
+  if (booking.opponentDisplayName) {
+    const ownerLabel =
+      user && booking.type === 'member' && user.uid === booking.ownerUid
+        ? (user.displayName ?? booking.ownerDisplayName)
+        : booking.ownerDisplayName
+    return `${ownerLabel} vs ${booking.opponentDisplayName}`
+  }
   if (user) {
     if (booking.type === 'member' && user.uid === booking.ownerUid) {
       return user.displayName ?? 'Din bokning'
