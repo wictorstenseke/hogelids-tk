@@ -1,5 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { IconArrowLeft, IconX } from '@tabler/icons-react'
+import {
+  IconArrowLeft,
+  IconCheck,
+  IconSearch,
+  IconX,
+} from '@tabler/icons-react'
 import { WheelPicker, WheelPickerWrapper } from '@ncdai/react-wheel-picker'
 import '@ncdai/react-wheel-picker/style.css'
 import type { WheelPickerOption } from '@ncdai/react-wheel-picker'
@@ -10,7 +15,7 @@ import {
   findConflictingBooking,
 } from '../../services/BookingService'
 import { BOOKING_DRAWER_PRIMARY_BUTTON_CLASS } from '../../lib/bookingPrimaryButtonClass'
-import { MenuSelect, type MenuSelectOption } from './MenuSelect'
+import type { MenuSelectOption } from './MenuSelect'
 
 type Step = 'datetime' | 'end' | 'opponent' | 'summary'
 
@@ -145,6 +150,15 @@ export function BookingDrawer({
     () => addTwoHours(nearest.hour, nearest.minute).minute
   )
   const [draftOpponentUid, setDraftOpponentUid] = useState('')
+  const [opponentQuery, setOpponentQuery] = useState('')
+
+  const filteredOpponentOptions = useMemo(() => {
+    const q = opponentQuery.trim().toLowerCase()
+    if (!q) return []
+    return opponentOptions.filter(
+      (o) => o.value !== '' && o.label.toLowerCase().includes(q)
+    )
+  }, [opponentOptions, opponentQuery])
 
   const draftOpponent = useMemo(() => {
     if (!draftOpponentUid) return null
@@ -522,32 +536,112 @@ export function BookingDrawer({
             {step === 'opponent' && (
               <>
                 <p className="mb-3 text-sm text-gray-600">
-                  Spelar du med en annan medlem? Välj namn nedan (valfritt).
+                  Spelar du med en annan medlem? Sök nedan (valfritt).
                 </p>
-                <MenuSelect
-                  value={draftOpponentUid}
-                  onChange={setDraftOpponentUid}
-                  options={opponentOptions}
-                  ariaLabel="Välj motspelare"
-                  placeholder="Välj motspelare"
-                  searchable
-                  searchPlaceholder="Sök medlem"
-                  emptyLabel="Inga träffar"
-                  className="w-full"
-                  triggerClassName="w-full"
-                />
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className={BOOKING_DRAWER_PRIMARY_BUTTON_CLASS}
-                >
-                  Nästa
-                </button>
-                {!fromSummary && !draftOpponentUid && (
+                {draftOpponent ? (
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <span className="min-w-0 text-base font-semibold text-gray-900 wrap-break-word">
+                      {draftOpponent.displayName}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftOpponentUid('')
+                        setOpponentQuery('')
+                      }}
+                      className="shrink-0 min-h-[36px] cursor-pointer rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 border border-gray-200 transition-colors hover:bg-gray-100"
+                      aria-label="Ta bort motspelare"
+                    >
+                      Ta bort
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <IconSearch
+                      size={18}
+                      stroke={1.75}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      aria-hidden
+                    />
+                    <input
+                      type="text"
+                      value={opponentQuery}
+                      onChange={(e) => setOpponentQuery(e.target.value)}
+                      placeholder="Sök medlem"
+                      className="w-full min-h-[44px] rounded-2xl border border-gray-200 bg-gray-50 pl-10 pr-3 py-2 text-base text-gray-900 placeholder:text-gray-400 focus:border-[#F1E334] focus:outline-none focus:ring-2 focus:ring-[#F1E334]/30"
+                      aria-label="Sök medlem"
+                    />
+                  </div>
+                )}
+                {!draftOpponent && opponentQuery.trim() !== '' && (
+                  <ul
+                    role="listbox"
+                    aria-label="Sökresultat motspelare"
+                    className="mt-2 max-h-[35vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-gray-200 bg-white"
+                  >
+                    {filteredOpponentOptions.length === 0 ? (
+                      <li
+                        role="presentation"
+                        className="px-4 py-3 text-sm text-gray-500"
+                        aria-live="polite"
+                      >
+                        Inga träffar
+                      </li>
+                    ) : (
+                      filteredOpponentOptions.map((opt) => {
+                        const selected = opt.value === draftOpponentUid
+                        return (
+                          <li
+                            key={opt.value}
+                            role="option"
+                            aria-selected={selected}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDraftOpponentUid(opt.value)
+                                setOpponentQuery('')
+                              }}
+                              className={[
+                                'flex w-full min-h-[44px] items-center justify-between gap-2 px-4 py-2.5 text-left text-base font-medium transition-colors',
+                                selected
+                                  ? 'bg-[#F1E334] text-gray-900'
+                                  : 'text-gray-700 hover:bg-gray-50',
+                              ].join(' ')}
+                            >
+                              <span className="min-w-0 wrap-break-word">
+                                {opt.label}
+                              </span>
+                              <span
+                                className="flex h-[18px] w-[18px] shrink-0 items-center justify-center"
+                                aria-hidden
+                              >
+                                {selected ? (
+                                  <IconCheck size={18} stroke={2} />
+                                ) : (
+                                  <span className="block h-[18px] w-[18px]" />
+                                )}
+                              </span>
+                            </button>
+                          </li>
+                        )
+                      })
+                    )}
+                  </ul>
+                )}
+                {draftOpponentUid ? (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className={BOOKING_DRAWER_PRIMARY_BUTTON_CLASS}
+                  >
+                    Nästa
+                  </button>
+                ) : (
                   <button
                     type="button"
                     onClick={handleSkipOpponent}
-                    className="mt-3 block w-full min-h-[44px] cursor-pointer rounded-xl bg-transparent px-4 py-2 text-sm font-semibold text-gray-600 underline underline-offset-2 transition-colors hover:text-gray-900"
+                    className="mt-6 flex w-full min-h-[52px] cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-4 text-base font-semibold text-gray-700 transition-colors hover:bg-gray-100"
                   >
                     Hoppa över
                   </button>
