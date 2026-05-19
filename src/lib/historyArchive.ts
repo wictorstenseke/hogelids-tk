@@ -23,6 +23,8 @@ export interface ArchivedBooking {
   playerBId?: string
   playerAName?: string
   playerBName?: string
+  opponentUid?: string
+  opponentDisplayName?: string
 }
 
 export interface ArchivedLadder {
@@ -67,6 +69,10 @@ function bookingToArchived(b: BookingWithId): ArchivedBooking {
     base.playerBId = b.playerBId
     base.playerAName = b.playerAName
     base.playerBName = b.playerBName
+  }
+  if (b.opponentUid) {
+    base.opponentUid = b.opponentUid
+    base.opponentDisplayName = b.opponentDisplayName
   }
   return base
 }
@@ -150,6 +156,10 @@ export function archivedToBooking(a: ArchivedBooking): BookingWithId {
     base.playerBId = a.playerBId
     base.playerAName = a.playerAName
     base.playerBName = a.playerBName
+  }
+  if (a.opponentUid) {
+    base.opponentUid = a.opponentUid
+    base.opponentDisplayName = a.opponentDisplayName
   }
   return base
 }
