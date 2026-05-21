@@ -18,7 +18,17 @@ import { LadderChallengeCancelSheet } from './LadderChallengeCancelSheet'
 function formatTimeRange(booking: BookingWithId): string {
   const start = booking.startTime.toDate()
   const end = booking.endTime.toDate()
-  return `${formatTimeDisplay(start)} – ${formatTimeDisplay(end)}`
+  return `${formatTimeDisplay(start)}–${formatTimeDisplay(end)}`
+}
+
+function formatShortDateLabel(date: Date): string {
+  const str = new Intl.DateTimeFormat('sv-SE', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(date)
+  const clean = str.replace(/\./g, '')
+  return clean.charAt(0).toUpperCase() + clean.slice(1)
 }
 
 function getBookingLabel(
@@ -96,26 +106,33 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
     }
   }
 
+  const dateLabel = formatShortDateLabel(booking.startTime.toDate())
+  const timeRange = formatTimeRange(booking)
+
   return (
     <li
       className={`border-b ${confirmPending ? 'border-b-transparent' : 'border-white/10'}`}
     >
       {/* Main row */}
-      <div className="flex min-w-0 items-center gap-3 py-2">
-        <span className="shrink-0 self-center text-sm font-semibold leading-none tabular-nums tracking-[-0.02em] text-white/90">
-          {formatTimeRange(booking)}
-        </span>
-        <div className="flex min-w-0 flex-1 items-center overflow-hidden self-center">
-          <span
-            title={label}
-            className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none ${
-              ownBooking
-                ? 'bg-[#F1E334] text-gray-900'
-                : 'bg-white/15 text-white/80'
-            }`}
-          >
-            {label}
-          </span>
+      <div className="flex min-w-0 items-center gap-3 py-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="text-xs font-semibold tracking-wide tabular-nums text-white/55">
+            {dateLabel}
+            <span className="mx-2 text-white/30">|</span>
+            <span className="font-bold text-white/90">{timeRange}</span>
+          </div>
+          <div className="flex min-w-0 items-center overflow-hidden">
+            <span
+              title={label}
+              className={`inline-block max-w-full truncate rounded-md px-2.5 py-1 align-middle text-xs font-semibold leading-none ${
+                ownBooking
+                  ? 'bg-[#F1E334] text-gray-900'
+                  : 'bg-white/15 text-white/80'
+              }`}
+            >
+              {label}
+            </span>
+          </div>
         </div>
         {deletable && (
           <button
@@ -127,13 +144,13 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
             disabled={isDeleting}
             aria-label={isLadder ? 'Avbryt utmaning' : 'Radera bokning'}
             title={isLadder ? 'Avbryt utmaning' : 'Radera bokning'}
-            className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               confirmPending
                 ? 'bg-white/20 text-white'
                 : 'text-white/30 hover:bg-white/10 hover:text-white/70'
             }`}
           >
-            <IconTrash size={15} stroke={1.75} />
+            <IconTrash size={18} stroke={1.75} />
           </button>
         )}
       </div>

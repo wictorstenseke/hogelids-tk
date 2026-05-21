@@ -23,51 +23,11 @@ import { SuccessDialog } from './SuccessDialog'
 import { HistorySection } from './HistorySection'
 import { BookingItem } from './BookingItem'
 
-function formatDateHeader(date: Date): string {
-  const str = date.toLocaleDateString('sv-SE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
-  return str.charAt(0).toUpperCase() + str.slice(1)
-}
-
-function groupBookingsByDate(
-  bookings: BookingWithId[]
-): { dateKey: string; dateLabel: string; bookings: BookingWithId[] }[] {
-  const groups: {
-    dateKey: string
-    dateLabel: string
-    bookings: BookingWithId[]
-  }[] = []
-  const map = new Map<string, (typeof groups)[0]>()
-
-  for (const booking of bookings) {
-    const date = booking.startTime.toDate()
-    const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
-    if (!map.has(dateKey)) {
-      const group = { dateKey, dateLabel: formatDateHeader(date), bookings: [] }
-      map.set(dateKey, group)
-      groups.push(group)
-    }
-    map.get(dateKey)!.bookings.push(booking)
-  }
-
-  return groups
-}
-
-type UpcomingGroup = {
-  dateKey: string
-  dateLabel: string
-  bookings: BookingWithId[]
-}
-
 function UpcomingBookingsSection({
   isLoading,
   isError,
   error,
   bookings,
-  groups,
   effectiveGuestEmail,
   user,
 }: {
@@ -75,7 +35,6 @@ function UpcomingBookingsSection({
   isError: boolean
   error: unknown
   bookings: BookingWithId[] | undefined
-  groups: UpcomingGroup[]
   effectiveGuestEmail: string | null
   user: AuthUser | null
 }) {
@@ -105,26 +64,17 @@ function UpcomingBookingsSection({
         </div>
       )}
 
-      {!isLoading && !isError && groups.length > 0 && (
-        <div className="space-y-6">
-          {groups.map((group) => (
-            <div key={group.dateKey}>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/70">
-                {group.dateLabel}
-              </p>
-              <ul className="border-t border-white/10">
-                {group.bookings.map((booking) => (
-                  <BookingItem
-                    key={booking.id}
-                    booking={booking}
-                    guestEmail={effectiveGuestEmail}
-                    user={user}
-                  />
-                ))}
-              </ul>
-            </div>
+      {!isLoading && !isError && bookings && bookings.length > 0 && (
+        <ul className="border-t border-white/10">
+          {bookings.map((booking) => (
+            <BookingItem
+              key={booking.id}
+              booking={booking}
+              guestEmail={effectiveGuestEmail}
+              user={user}
+            />
           ))}
-        </div>
+        </ul>
       )}
     </>
   )
@@ -205,8 +155,6 @@ export function HomePage() {
     })
   }
 
-  const groups = bookings ? groupBookingsByDate(bookings) : []
-
   return (
     <div>
       {/* Main content — outer padding + inner max-width matches StegenPage */}
@@ -234,7 +182,6 @@ export function HomePage() {
                     isError={isError}
                     error={error}
                     bookings={bookings}
-                    groups={groups}
                     effectiveGuestEmail={effectiveGuestEmail}
                     user={user}
                   />
@@ -257,7 +204,6 @@ export function HomePage() {
                   isError={isError}
                   error={error}
                   bookings={bookings}
-                  groups={groups}
                   effectiveGuestEmail={effectiveGuestEmail}
                   user={user}
                 />
