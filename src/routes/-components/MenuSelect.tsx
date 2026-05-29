@@ -25,6 +25,7 @@ interface MenuSelectProps {
   searchPlaceholder?: string
   /** Shown when the filter matches no options (default: "Inga träffar") */
   emptyLabel?: string
+  onOpenChange?: (open: boolean) => void
 }
 
 /**
@@ -41,6 +42,7 @@ export function MenuSelect({
   searchable = false,
   searchPlaceholder = 'Sök',
   emptyLabel = 'Inga träffar',
+  onOpenChange,
 }: MenuSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -62,6 +64,7 @@ export function MenuSelect({
   const PANEL_MS = 200
 
   useEffect(() => {
+    onOpenChange?.(open)
     if (open) {
       // Two-phase mount: render list, then enable clip-path animation (see rAF below).
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional animation mount sequence
@@ -79,7 +82,7 @@ export function MenuSelect({
     setQuery('')
     const t = window.setTimeout(() => setPanelRendered(false), PANEL_MS)
     return () => clearTimeout(t)
-  }, [open])
+  }, [open, onOpenChange])
 
   useEffect(() => {
     if (open && searchable && panelVisible) {

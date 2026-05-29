@@ -1,7 +1,5 @@
-import './instrument'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { reactErrorHandler } from '@sentry/react'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
@@ -13,9 +11,16 @@ import {
   installStaleChunkHandlers,
   maybeReloadOnStaleChunk,
 } from './lib/staleChunkReload'
+import { captureReactError } from './lib/sentryClient'
 import './index.css'
 
 installStaleChunkHandlers()
+
+const QUERY_CACHE_SCHEMA_VERSION = 'query-cache-v1'
+
+window.setTimeout(() => {
+  void import('./instrument')
+}, 0)
 
 const localStoragePersister = createSyncStoragePersister({
   storage: window.localStorage,
@@ -48,10 +53,9 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const sentryReactErrorHandler = reactErrorHandler()
-function handleReactError(...args: Parameters<typeof sentryReactErrorHandler>) {
-  maybeReloadOnStaleChunk(args[0])
-  sentryReactErrorHandler(...args)
+function handleReactError(error: unknown, errorInfo: unknown) {
+  maybeReloadOnStaleChunk(error)
+  captureReactError(error, errorInfo)
 }
 
 createRoot(document.getElementById('root')!, {
@@ -65,11 +69,13 @@ createRoot(document.getElementById('root')!, {
       persistOptions={{
         persister: localStoragePersister,
         maxAge: SEVEN_DAYS_MS,
-        buster: __BUILD_ID__,
+        buster: QUERY_CACHE_SCHEMA_VERSION,
       }}
     >
       <RouterProvider router={router} />
-      <ReactQueryDevtools buttonPosition="bottom-right" />
+      {import.meta.env.DEV && (
+        <ReactQueryDevtools buttonPosition="bottom-right" />
+      )}
     </PersistQueryClientProvider>
   </StrictMode>
 )

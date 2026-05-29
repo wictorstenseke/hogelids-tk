@@ -15,6 +15,14 @@ import type { Response } from 'express'
 
 if (getApps().length === 0) initializeApp()
 
+export {
+  joinLadder,
+  pauseLadder,
+  createLadderMatch,
+  reportLadderResult,
+  syncProfileSnapshots,
+} from './ladderCallables'
+
 const openrouterApiKey = defineSecret('OPENROUTER_API_KEY')
 
 const MAX_MESSAGE_LENGTH = 500

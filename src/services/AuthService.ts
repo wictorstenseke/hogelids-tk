@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth'
 import { setDoc, doc, Timestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import * as GuestSession from '../lib/GuestSession'
 import { migrateGuestBookings } from './MigrationService'
 
 export type UserRole = 'user' | 'admin' | 'superuser'
@@ -52,7 +53,10 @@ export async function signUp(
 // Migrates any guest bookings matching this email to the member account.
 export async function signIn(email: string, password: string): Promise<void> {
   const credential = await signInWithEmailAndPassword(auth, email, password)
-  void migrateGuestBookings(credential.user.uid, email)
+  const guestEmail = GuestSession.getEmail()
+  if (guestEmail?.toLowerCase() === email.toLowerCase()) {
+    void migrateGuestBookings(credential.user.uid, email)
+  }
 }
 
 // Signs out

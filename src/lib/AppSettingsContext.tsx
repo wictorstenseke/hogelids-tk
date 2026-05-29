@@ -15,8 +15,6 @@ interface AppSettingsContextValue {
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null)
 
-const FIVE_MINUTES = 5 * 60 * 1000
-
 export function AppSettingsProvider({
   children,
 }: {
@@ -25,7 +23,7 @@ export function AppSettingsProvider({
   const { data: settings = null, isLoading } = useQuery({
     queryKey: APP_SETTINGS_QUERY_KEY,
     queryFn: getAppSettings,
-    staleTime: FIVE_MINUTES,
+    staleTime: Infinity,
     // Fall back to defaults on error so the app stays functional
     placeholderData: APP_SETTINGS_DEFAULTS,
   })

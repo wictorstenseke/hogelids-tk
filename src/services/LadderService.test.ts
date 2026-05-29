@@ -1,9 +1,28 @@
-import { Timestamp } from 'firebase/firestore'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-const getDocMock = vi.fn()
-const addDocMock = vi.fn()
+const {
+  mockCallable,
+  mockHttpsCallable,
+  mockFunctions,
+  mockCollection,
+  mockDoc,
+} = vi.hoisted(() => {
+  const mockCallable = vi.fn()
+  return {
+    mockCallable,
+    mockHttpsCallable: vi.fn(() => mockCallable),
+    mockFunctions: {},
+    mockCollection: vi.fn(() => ({})),
+    mockDoc: vi.fn((_db: unknown, ...path: string[]) => ({
+      __path: path.join('/'),
+    })),
+  }
+})
 
+vi.mock('../lib/firebase', () => ({ db: {}, functions: mockFunctions }))
+vi.mock('firebase/functions', () => ({
+  httpsCallable: mockHttpsCallable,
+}))
 vi.mock('firebase/firestore', async () => {
   const actual =
     await vi.importActual<typeof import('firebase/firestore')>(
@@ -11,108 +30,98 @@ vi.mock('firebase/firestore', async () => {
     )
   return {
     ...actual,
-    getDoc: (...args: unknown[]) => getDocMock(...args),
-    addDoc: (...args: unknown[]) => addDocMock(...args),
-    collection: vi.fn(() => ({})),
-    // doc returns a tagged ref so the mock can dispatch on it.
-    doc: vi.fn((_db: unknown, ...path: string[]) => ({
-      __path: path.join('/'),
-    })),
-    Timestamp: actual.Timestamp,
+    collection: mockCollection,
+    doc: mockDoc,
+    getDocs: vi.fn(),
+    getDoc: vi.fn(),
+    addDoc: vi.fn(),
+    updateDoc: vi.fn(),
+    writeBatch: vi.fn(),
+    query: vi.fn(),
+    where: vi.fn(),
+    orderBy: vi.fn(),
+    limit: vi.fn(),
+    deleteField: vi.fn(),
   }
 })
 
-vi.mock('../lib/firebase', () => ({ db: {} }))
+import {
+  createLadderMatch,
+  joinLadder,
+  pauseLadder,
+  reportLadderResult,
+} from './LadderService'
 
-import { createLadderMatch } from './LadderService'
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockCallable.mockResolvedValue({ data: { ok: true, bookingId: 'match-1' } })
+})
 
-describe('createLadderMatch', () => {
-  beforeEach(() => {
-    addDocMock.mockResolvedValue({ id: 'match-1' })
+describe('ladder callable mutations', () => {
+  it('joins through the callable function using only the ladder id', async () => {
+    await joinLadder('ladder-1', 'uid-1', 'Client Name', '0701234567')
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(mockFunctions, 'joinLadder')
+    expect(mockCallable).toHaveBeenCalledWith({ ladderId: 'ladder-1' })
   })
-  afterEach(() => {
-    vi.clearAllMocks()
+
+  it('pauses through the callable function using only the ladder id', async () => {
+    await pauseLadder('ladder-1', 'uid-1')
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(mockFunctions, 'pauseLadder')
+    expect(mockCallable).toHaveBeenCalledWith({ ladderId: 'ladder-1' })
   })
 
-  function mockLadderAndSettings(opts: {
-    tournamentStartsAt: Timestamp | null
-    bookingEnabled: boolean
-  }) {
-    getDocMock.mockImplementation((ref: { __path?: string }) => {
-      if (ref?.__path?.startsWith('ladders/')) {
-        return Promise.resolve({
-          exists: () => true,
-          data: () => ({ tournamentStartsAt: opts.tournamentStartsAt }),
-        })
-      }
-      if (ref?.__path?.startsWith('settings/')) {
-        return Promise.resolve({
-          exists: () => true,
-          data: () => ({ bookingEnabled: opts.bookingEnabled }),
-        })
-      }
-      return Promise.resolve({
-        exists: () => false,
-        data: () => ({}),
-      })
-    })
-  }
+  it('creates ladder matches through the callable function without trusting client names', async () => {
+    const start = new Date('2026-07-01T10:00:00+02:00')
+    const end = new Date('2026-07-01T11:00:00+02:00')
 
-  it('writes when tournamentStartsAt is null and booking enabled', async () => {
-    mockLadderAndSettings({ tournamentStartsAt: null, bookingEnabled: true })
     await expect(
       createLadderMatch(
         'ladder-1',
-        'a',
-        'b',
-        'A',
-        'B',
+        'player-a',
+        'player-b',
+        'Spoofed A',
+        'Spoofed B',
         'owner',
-        'o@x',
+        'owner@example.com',
         'Owner',
-        new Date('2026-07-01T10:00:00'),
-        new Date('2026-07-01T11:00:00')
+        start,
+        end
       )
     ).resolves.toBe('match-1')
-    expect(addDocMock).toHaveBeenCalledTimes(1)
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      mockFunctions,
+      'createLadderMatch'
+    )
+    expect(mockCallable).toHaveBeenCalledWith({
+      ladderId: 'ladder-1',
+      playerBId: 'player-b',
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+    })
   })
 
-  it('throws "Challenges are not open yet" when before tournamentStartsAt', async () => {
-    const future = Timestamp.fromDate(new Date('2026-12-31T00:00:00'))
-    mockLadderAndSettings({ tournamentStartsAt: future, bookingEnabled: true })
-    await expect(
-      createLadderMatch(
-        'ladder-1',
-        'a',
-        'b',
-        'A',
-        'B',
-        'owner',
-        'o@x',
-        'Owner',
-        new Date('2026-07-01T10:00:00'),
-        new Date('2026-07-01T11:00:00')
-      )
-    ).rejects.toThrow('Challenges are not open yet')
-    expect(addDocMock).not.toHaveBeenCalled()
-  })
+  it('reports match results through the callable function', async () => {
+    await reportLadderResult(
+      'ladder-1',
+      'match-1',
+      'winner',
+      'loser',
+      'Bra match'
+    )
 
-  it('throws when bookingEnabled is false', async () => {
-    mockLadderAndSettings({ tournamentStartsAt: null, bookingEnabled: false })
-    await expect(
-      createLadderMatch(
-        'ladder-1',
-        'a',
-        'b',
-        'A',
-        'B',
-        'owner',
-        'o@x',
-        'Owner',
-        new Date('2026-07-01T10:00:00'),
-        new Date('2026-07-01T11:00:00')
-      )
-    ).rejects.toThrow('Challenges are not open yet')
-    expect(addDocMock).not.toHaveBeenCalled()
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      mockFunctions,
+      'reportLadderResult'
+    )
+    expect(mockCallable).toHaveBeenCalledWith({
+      ladderId: 'ladder-1',
+      matchId: 'match-1',
+      winnerId: 'winner',
+      loserId: 'loser',
+      comment: 'Bra match',
+    })
   })
 })

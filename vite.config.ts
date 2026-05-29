@@ -1,20 +1,10 @@
 /// <reference types="vitest" />
-import { execSync } from 'node:child_process'
 import { defineConfig, loadEnv } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
-
-function resolveBuildId(mode: string): string {
-  if (mode === 'development') return 'dev'
-  try {
-    return execSync('git rev-parse --short HEAD').toString().trim()
-  } catch {
-    return `build-${Date.now()}`
-  }
-}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -23,17 +13,33 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/',
-    define: {
-      __BUILD_ID__: JSON.stringify(resolveBuildId(mode)),
-    },
     build: {
       sourcemap: 'hidden',
+      rolldownOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('recharts')) return 'vendor-recharts'
+            if (id.includes('react-datepicker')) return 'vendor-datepicker'
+            if (id.includes('@sentry')) return 'vendor-sentry'
+            if (id.includes('firebase')) return 'vendor-firebase'
+            if (id.includes('@tanstack')) return 'vendor-tanstack'
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react'
+            }
+            return 'vendor'
+          },
+        },
+      },
     },
     test: {
       globals: true,
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
-      include: ['src/**/*.{test,spec}.{ts,tsx}'],
+      include: [
+        'src/**/*.{test,spec}.{ts,tsx}',
+        'functions/src/**/*.{test,spec}.ts',
+      ],
     },
     plugins: [
       tanstackRouter({ target: 'react', autoCodeSplitting: true }),
