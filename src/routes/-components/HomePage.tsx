@@ -100,7 +100,6 @@ export function HomePage() {
     endTime: Date
     isGuestBooking: boolean
   } | null>(null)
-  const [historyOpen, setHistoryOpen] = useState(false)
 
   const {
     data: bookings,
@@ -124,16 +123,13 @@ export function HomePage() {
     queryFn: loadHistoryArchive,
     staleTime: Infinity,
     gcTime: Infinity,
-    enabled: !!user && historyOpen,
+    enabled: !!user,
   })
   const earliestYearQuery = useQuery({
     queryKey: ['bookings', 'earliestYear'],
     queryFn: getEarliestBookingYear,
     enabled:
-      !!user &&
-      historyOpen &&
-      archiveQuery.data === undefined &&
-      !archiveQuery.isLoading,
+      !!user && archiveQuery.data === undefined && !archiveQuery.isLoading,
     staleTime: Infinity,
     gcTime: Infinity,
   })
@@ -227,20 +223,7 @@ export function HomePage() {
             </div>
           )}
 
-          {user && !historyOpen && (
-            <div className="rounded-2xl bg-[#194b29] px-4 py-4">
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(true)}
-                className="flex min-h-[44px] w-full cursor-pointer items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:bg-white/15"
-              >
-                <span>Historik &amp; Statistik</span>
-                <span className="text-white/60">Visa</span>
-              </button>
-            </div>
-          )}
-
-          {user && historyOpen && (
+          {user && (
             <Suspense
               fallback={
                 <div className="rounded-2xl bg-[#194b29] px-4 py-10 text-center text-sm text-white/70">
