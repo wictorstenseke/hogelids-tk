@@ -10,6 +10,9 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 export default defineConfig(({ mode }) => {
   // Load all env vars (including non-VITE_ prefixed) for build-time plugins
   const env = loadEnv(mode, process.cwd(), '')
+  const enableSentryUpload =
+    process.env.CI === 'true' &&
+    Boolean(env.SENTRY_ORG && env.SENTRY_PROJECT && env.SENTRY_AUTH_TOKEN)
 
   return {
     base: '/',
@@ -46,11 +49,12 @@ export default defineConfig(({ mode }) => {
       react(),
       babel({ presets: [reactCompilerPreset()] }),
       tailwindcss(),
-      sentryVitePlugin({
-        org: env.SENTRY_ORG,
-        project: env.SENTRY_PROJECT,
-        authToken: env.SENTRY_AUTH_TOKEN,
-      }),
+      enableSentryUpload &&
+        sentryVitePlugin({
+          org: env.SENTRY_ORG,
+          project: env.SENTRY_PROJECT,
+          authToken: env.SENTRY_AUTH_TOKEN,
+        }),
     ],
   }
 })
