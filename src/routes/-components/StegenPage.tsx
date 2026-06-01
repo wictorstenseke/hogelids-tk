@@ -1009,7 +1009,8 @@ export function StegenPage() {
     const set = new Set<string>()
     const collect = (participant: LadderParticipant) => {
       const displayName = participant.displayName?.trim() ?? ''
-      if (!displayName || participant.phone === undefined) {
+      const phone = participant.phone?.trim() ?? ''
+      if (!displayName || !phone) {
         set.add(participant.uid)
       }
     }

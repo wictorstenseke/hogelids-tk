@@ -62,10 +62,17 @@ npm run preview    # Preview production build locally
 
 ## Deployment
 
-| Environment | Target                               | How                                                 |
-| ----------- | ------------------------------------ | --------------------------------------------------- |
-| Staging     | Firebase Hosting (`hogelids-tk-dev`) | Push to `main` — CI deploys automatically           |
-| Production  | FTP transfer of `/dist`              | Manual trigger via GitHub Actions `deploy-prod.yml` |
+| Environment | Target                                | How                                       |
+| ----------- | ------------------------------------- | ----------------------------------------- |
+| Staging     | Firebase Hosting (`hogelids-tk-dev`)  | Push to `main` — CI deploys automatically |
+| Production  | Firebase Hosting (`hogelids-tk-prod`) | Manual GitHub Actions `deploy-prod.yml`   |
+
+Functions, Firestore rules, and Firestore indexes are deployed manually during development and release:
+
+```bash
+firebase deploy --only functions --project hogelids-tk-prod
+firebase deploy --only firestore:rules,firestore:indexes --project hogelids-tk-prod
+```
 
 ---
 
