@@ -21,6 +21,10 @@ interface ToolResult {
   error?: string
 }
 
+function isCompletedLadderBooking(data: Record<string, unknown>): boolean {
+  return data.ladderId != null && data.ladderStatus === 'completed'
+}
+
 export async function executeReadTool(
   db: Firestore,
   uid: string,
@@ -69,7 +73,11 @@ async function listAvailableTimes(
     .orderBy('startTime', 'asc')
     .get()
 
-  const bookedSlots = snapshot.docs.map((doc) => {
+  const activeBookingDocs = snapshot.docs.filter(
+    (doc) => !isCompletedLadderBooking(doc.data())
+  )
+
+  const bookedSlots = activeBookingDocs.map((doc) => {
     const data = doc.data()
     return {
       start: formatTime(
@@ -81,7 +89,7 @@ async function listAvailableTimes(
 
   // Calculate free slots between 07:00 and 22:00
   const freeSlots: { start: string; end: string }[] = []
-  const bookings = snapshot.docs.map((doc) => {
+  const bookings = activeBookingDocs.map((doc) => {
     const data = doc.data()
     return {
       start: (data.startTime as FirebaseFirestore.Timestamp).toDate(),
@@ -142,6 +150,7 @@ async function listMyBookings(db: Firestore, uid: string): Promise<ToolResult> {
   const bookings = snapshot.docs
     .filter((doc) => {
       const d = doc.data()
+      if (isCompletedLadderBooking(d)) return false
       return d.ownerUid === uid || d.playerAId === uid || d.playerBId === uid
     })
     .map((doc) => {

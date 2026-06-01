@@ -91,6 +91,78 @@ describe('getUpcomingBookings', () => {
     )
     expect(mockOrderBy).toHaveBeenCalledWith('endTime', 'asc')
   })
+
+  it('excludes completed ladder matches even when their booking time is still ahead', async () => {
+    const now = new Date('2026-06-01T10:00:00')
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        {
+          id: 'regular-booking',
+          data: () => ({
+            type: 'member',
+            ownerEmail: 'anna@example.com',
+            ownerUid: 'anna',
+            ownerDisplayName: 'Anna',
+            startTime: Timestamp.fromDate(new Date('2026-06-02T10:00:00')),
+            endTime: Timestamp.fromDate(new Date('2026-06-02T11:00:00')),
+            createdAt: Timestamp.fromDate(now),
+          }),
+        },
+        {
+          id: 'planned-ladder',
+          data: () => ({
+            type: 'member',
+            ownerEmail: 'bo@example.com',
+            ownerUid: 'bo',
+            ownerDisplayName: 'Bo',
+            startTime: Timestamp.fromDate(new Date('2026-06-03T10:00:00')),
+            endTime: Timestamp.fromDate(new Date('2026-06-03T11:00:00')),
+            createdAt: Timestamp.fromDate(now),
+            ladderId: 'ladder-1',
+            playerAId: 'bo',
+            playerBId: 'cilla',
+            playerAName: 'Bo',
+            playerBName: 'Cilla',
+            ladderStatus: 'planned',
+          }),
+        },
+        {
+          id: 'completed-ladder',
+          data: () => ({
+            type: 'member',
+            ownerEmail: 'dan@example.com',
+            ownerUid: 'dan',
+            ownerDisplayName: 'Dan',
+            startTime: Timestamp.fromDate(new Date('2026-06-04T10:00:00')),
+            endTime: Timestamp.fromDate(new Date('2026-06-04T11:00:00')),
+            createdAt: Timestamp.fromDate(now),
+            ladderId: 'ladder-1',
+            playerAId: 'dan',
+            playerBId: 'eva',
+            playerAName: 'Dan',
+            playerBName: 'Eva',
+            ladderStatus: 'completed',
+            winnerId: 'dan',
+          }),
+        },
+      ],
+      empty: false,
+    })
+
+    try {
+      const bookings = await getUpcomingBookings()
+
+      expect(bookings.map((booking) => booking.id)).toEqual([
+        'regular-booking',
+        'planned-ladder',
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('getBookingsOverlapping', () => {
@@ -150,5 +222,42 @@ describe('createGuestBooking', () => {
       }),
       { merge: true }
     )
+  })
+
+  it('reuses slot locks owned by a completed ladder match', async () => {
+    mockTransactionGet.mockImplementation(async (ref: { path?: string }) => {
+      if (ref.path === 'bookingSlotDays/2026-06-01') {
+        return {
+          exists: () => true,
+          data: () => ({
+            slots: {
+              '10:00': 'completed-ladder',
+              '10:15': 'completed-ladder',
+              '10:30': 'completed-ladder',
+              '10:45': 'completed-ladder',
+            },
+          }),
+        }
+      }
+      if (ref.path === 'bookings/completed-ladder') {
+        return {
+          exists: () => true,
+          data: () => ({
+            ladderId: 'ladder-1',
+            ladderStatus: 'completed',
+          }),
+        }
+      }
+      return { exists: () => false }
+    })
+
+    await expect(
+      createGuestBooking(
+        'guest@example.com',
+        'guest@example.com',
+        new Date('2026-06-01T10:00:00'),
+        new Date('2026-06-01T11:00:00')
+      )
+    ).resolves.toMatch(/^booking-/)
   })
 })

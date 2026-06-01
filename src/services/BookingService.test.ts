@@ -139,6 +139,19 @@ describe('hasConflict', () => {
     const end = new Date(`${date}T14:00:00`)
     expect(hasConflict(bookings, start, end)).toBe(false)
   })
+
+  it('completed ladder matches do not count as active booking conflicts', () => {
+    const booking = makeMemberBooking({
+      ladderId: 'ladder-1',
+      playerAId: 'uid-a',
+      playerBId: 'uid-b',
+      ladderStatus: 'completed',
+    })
+    const start = new Date(`${date}T10:00:00`)
+    const end = new Date(`${date}T12:00:00`)
+
+    expect(hasConflict([booking], start, end)).toBe(false)
+  })
 })
 
 describe('findConflictingBooking', () => {

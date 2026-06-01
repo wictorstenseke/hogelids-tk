@@ -38,6 +38,13 @@ interface BookingOverlap {
   endTime: Date
 }
 
+function isCompletedLadderBooking(data: {
+  ladderId?: unknown
+  ladderStatus?: unknown
+}): boolean {
+  return data.ladderId != null && data.ladderStatus === 'completed'
+}
+
 function requireAuth(request: CallableRequest): string {
   const uid = request.auth?.uid
   if (!uid) {
@@ -234,6 +241,7 @@ async function createBookingWithLocks(
     const overlaps = conflictSnapshot.docs
       .map((doc) => {
         const data = doc.data()
+        if (isCompletedLadderBooking(data)) return null
         const startTime = timestampDate(data['startTime'])
         const endTime = timestampDate(data['endTime'])
         if (!startTime || !endTime) return null
@@ -247,18 +255,31 @@ async function createBookingWithLocks(
     const slotSnapshots = await Promise.all(
       slotDayRefs.map(({ ref }) => transaction.get(ref))
     )
+    const lockedBookingIds = new Set<string>()
     slotSnapshots.forEach((snapshot, index) => {
       const existingSlots = snapshot.exists
         ? ((snapshot.data()?.['slots'] ?? {}) as Record<string, string>)
         : {}
       for (const slot of slotDayRefs[index].lock.slots) {
-        if (existingSlots[slot]) {
-          throw new Error(
-            'Det finns redan en bokning som överlappar med vald tid.'
-          )
+        const existingBookingId = existingSlots[slot]
+        if (existingBookingId) {
+          lockedBookingIds.add(existingBookingId)
         }
       }
     })
+
+    const lockedBookingSnapshots = await Promise.all(
+      [...lockedBookingIds].map((bookingId) =>
+        transaction.get(db.doc(`bookings/${bookingId}`))
+      )
+    )
+    const blockingLock = lockedBookingSnapshots.some(
+      (snapshot) =>
+        snapshot.exists && !isCompletedLadderBooking(snapshot.data() ?? {})
+    )
+    if (blockingLock) {
+      throw new Error('Det finns redan en bokning som överlappar med vald tid.')
+    }
 
     transaction.set(bookingRef, {
       ...draft,

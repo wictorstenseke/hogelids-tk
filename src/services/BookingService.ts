@@ -42,6 +42,9 @@ export interface BookingWithId extends Booking {
   playerBId?: string
   playerAName?: string
   playerBName?: string
+  ladderStatus?: 'planned' | 'completed'
+  winnerId?: string | null
+  ladderComment?: string | null
 }
 
 export const BOOKINGS_QUERY_KEY = ['bookings', 'upcoming'] as const
@@ -107,6 +110,7 @@ export function findConflictingBooking(
 ): BookingWithId | null {
   return (
     bookings.find((booking) => {
+      if (isCompletedLadderBooking(booking)) return false
       const existingStart = booking.startTime.toDate().getTime()
       const existingEnd = booking.endTime.toDate().getTime()
       const newStart = start.getTime()
@@ -122,6 +126,17 @@ export function hasConflict(
   end: Date
 ): boolean {
   return findConflictingBooking(bookings, start, end) !== null
+}
+
+function isCompletedLadderBooking(booking: BookingWithId): boolean {
+  return isCompletedLadderBookingData(booking)
+}
+
+function isCompletedLadderBookingData(data: {
+  ladderId?: unknown
+  ladderStatus?: unknown
+}): boolean {
+  return data.ladderId != null && data.ladderStatus === 'completed'
 }
 
 export function mapBookingSnapshot(
@@ -147,6 +162,11 @@ export function mapBookingSnapshot(
           playerBId: data['playerBId'] as string,
           playerAName: data['playerAName'] as string,
           playerBName: data['playerBName'] as string,
+          ladderStatus: (data['ladderStatus'] ?? 'planned') as
+            | 'planned'
+            | 'completed',
+          winnerId: (data['winnerId'] ?? null) as string | null,
+          ladderComment: (data['ladderComment'] ?? null) as string | null,
         }
       : {}),
     ...(data['opponentUid']
@@ -217,18 +237,31 @@ export async function createBookingWithLocks(
       slotDayRefs.map(({ ref }) => transaction.get(ref))
     )
 
+    const lockedBookingIds = new Set<string>()
     snapshots.forEach((snapshot, i) => {
       const existingSlots = snapshot.exists()
         ? ((snapshot.data().slots ?? {}) as Record<string, string>)
         : {}
       for (const slot of slotDayRefs[i].lock.slots) {
-        if (existingSlots[slot]) {
-          throw new Error(
-            'Det finns redan en bokning som överlappar med vald tid.'
-          )
+        const existingBookingId = existingSlots[slot]
+        if (existingBookingId) {
+          lockedBookingIds.add(existingBookingId)
         }
       }
     })
+
+    const lockedBookingSnapshots = await Promise.all(
+      [...lockedBookingIds].map((bookingId) =>
+        transaction.get(doc(db, 'bookings', bookingId))
+      )
+    )
+    const blockingLock = lockedBookingSnapshots.some(
+      (snapshot) =>
+        snapshot.exists() && !isCompletedLadderBookingData(snapshot.data())
+    )
+    if (blockingLock) {
+      throw new Error('Det finns redan en bokning som överlappar med vald tid.')
+    }
 
     transaction.set(bookingRef, {
       ...booking,
@@ -358,6 +391,7 @@ export async function getUpcomingBookings(): Promise<BookingWithId[]> {
   const snapshot = await getDocs(q)
   return snapshot.docs
     .map(mapBookingSnapshot)
+    .filter((booking) => !isCompletedLadderBooking(booking))
     .sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis())
 }
 
