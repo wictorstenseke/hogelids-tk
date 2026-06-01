@@ -17,7 +17,7 @@ Court booking app for Högelids Tennisklubb. Frictionless booking for guests (na
 
 ## Install
 
-**Prerequisites:** Node.js 20+, npm
+**Prerequisites:** Node.js 22+, npm
 
 ```bash
 git clone https://github.com/wictorstenseke/hogelids-tk.git
