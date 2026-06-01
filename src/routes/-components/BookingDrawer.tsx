@@ -350,8 +350,10 @@ export function BookingDrawer({
   }
 
   const endBeforeStart = draftDate ? summaryInterval === null : false
+  const summaryConflictLabel = conflictLabel(summaryConflictBooking)
+  const datetimeConflictLabel = conflictLabel(datetimeConflictBooking)
 
-  const canBook = !conflictLabel(summaryConflictBooking) && !endBeforeStart
+  const canBook = !summaryConflictLabel && !endBeforeStart
 
   // ClassNames for wheel highlights
   const dateClassNames = {
@@ -484,9 +486,9 @@ export function BookingDrawer({
                     classNames={minuteClassNames}
                   />
                 </WheelPickerWrapper>
-                {conflictLabel(datetimeConflictBooking) && (
+                {!isSubmitting && datetimeConflictLabel && (
                   <p className="mt-3 text-sm font-medium text-red-600">
-                    {conflictLabel(datetimeConflictBooking)}
+                    {datetimeConflictLabel}
                   </p>
                 )}
                 <button
@@ -704,9 +706,10 @@ export function BookingDrawer({
                 </div>
 
                 {/* Conflict / validation message */}
-                {(conflictLabel(summaryConflictBooking) || endBeforeStart) && (
+                {((!isSubmitting && summaryConflictLabel) ||
+                  endBeforeStart) && (
                   <p className="mt-3 text-sm font-medium text-red-600">
-                    {conflictLabel(summaryConflictBooking) ??
+                    {summaryConflictLabel ??
                       'Sluttiden måste vara efter starttiden.'}
                   </p>
                 )}

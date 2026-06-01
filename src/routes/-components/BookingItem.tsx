@@ -85,13 +85,17 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
 
   async function handleDelete() {
     setIsDeleting(true)
+    const previousBookings =
+      queryClient.getQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY)
+    queryClient.setQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY, (old = []) =>
+      old.filter((b) => b.id !== booking.id)
+    )
     try {
       if (booking.type === 'member') {
         await deleteMemberBooking(booking.id)
       } else {
         await deleteGuestBooking(booking.id)
       }
-      await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
       if (isLadder && booking.ladderId) {
         await queryClient.invalidateQueries({
           queryKey: LADDER_MATCHES_QUERY_KEY(booking.ladderId),
@@ -99,6 +103,7 @@ export function BookingItem({ booking, guestEmail, user }: BookingItemProps) {
       }
       addToast(isLadder ? 'Utmaning avbruten' : 'Bokning raderad')
     } catch {
+      queryClient.setQueryData(BOOKINGS_QUERY_KEY, previousBookings)
       addToast('Kunde inte ta bort bokningen.', 'error')
       setConfirmPending(false)
     } finally {

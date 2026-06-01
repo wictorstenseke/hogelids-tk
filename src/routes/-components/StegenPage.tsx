@@ -1,4 +1,5 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Timestamp } from 'firebase/firestore'
 import { getProfile, PROFILE_QUERY_KEY } from '../../services/ProfileService'
 
 import {
@@ -46,10 +47,16 @@ import { LadderStatsCards } from './LadderStatsCards'
 import { MenuSelect } from './MenuSelect'
 import {
   deleteMemberBooking,
-  findConflictingBooking,
   getUpcomingBookings,
   BOOKINGS_QUERY_KEY,
+  type BookingWithId,
 } from '../../services/BookingService'
+import {
+  BOOKING_BOARD_REFETCH_ON_MOUNT,
+  BOOKING_BOARD_STALE_TIME_MS,
+  LADDER_STALE_TIME_MS,
+  PROFILE_STALE_TIME_MS,
+} from '../../services/queryStaleTimes'
 import { resolveBookingInterval } from '../../lib/bookingInterval'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
 import { useIsDesktop } from '../../lib/useIsDesktop'
@@ -75,6 +82,12 @@ function getPoolParticipants(participants: LadderParticipant[]) {
 
 function getPausedParticipants(participants: LadderParticipant[]) {
   return participants.filter((p) => p.paused)
+}
+
+function sortBookings(bookings: BookingWithId[]): BookingWithId[] {
+  return [...bookings].sort(
+    (a, b) => a.startTime.toMillis() - b.startTime.toMillis()
+  )
 }
 
 function formatMatchDateHeading(match: LadderMatch): string {
@@ -122,9 +135,9 @@ interface RankingsTableProps {
   /** När satt: visar "Gå med i stegen" i tom lista (under text) eller ovanför listan om andra redan gått med. */
   onJoin?: () => void
   isJoining?: boolean
-  /** Profile phone per uid — fresh source of truth, supersedes the snapshot in the ladder doc. */
+  /** Profile phone per uid — legacy fallback when ladder snapshot is missing. */
   phonesByUid?: Record<string, string | null>
-  /** Profile displayName per uid — fresh source of truth, supersedes the snapshot in the ladder doc. */
+  /** Profile displayName per uid — legacy fallback when ladder snapshot is missing. */
   displayNamesByUid?: Record<string, string>
 }
 
@@ -168,15 +181,15 @@ function MissingPhoneIcon({
   )
 }
 
-/** Profile is source of truth; ladder snapshot is fallback for offline/loading state. */
+/** Ladder snapshot is the read model; profile is only fallback for legacy rows. */
 function resolveParticipantPhoneDisplay(
   participant: LadderParticipant,
   phonesByUid: Record<string, string | null> | undefined
 ): string | null {
-  const fromProfile = phonesByUid?.[participant.uid]?.trim()
-  if (fromProfile) return fromProfile
   const fromLadder = participant.phone?.trim()
-  return fromLadder || null
+  if (fromLadder) return fromLadder
+  const fromProfile = phonesByUid?.[participant.uid]?.trim()
+  return fromProfile || null
 }
 
 function resolveParticipantDisplayName(
@@ -941,6 +954,7 @@ export function StegenPage() {
     queryKey: [PROFILE_QUERY_KEY, user?.uid],
     queryFn: () => getProfile(user!.uid),
     enabled: !!user?.uid,
+    staleTime: PROFILE_STALE_TIME_MS,
   })
 
   const { data: activeLadder = null, isLoading: activeLadderLoading } =
@@ -948,6 +962,7 @@ export function StegenPage() {
       queryKey: LADDER_QUERY_KEY,
       queryFn: getActiveLadder,
       enabled: !!user,
+      staleTime: LADDER_STALE_TIME_MS,
     })
 
   const { data: completedLadders = [], isLoading: completedLaddersLoading } =
@@ -955,7 +970,7 @@ export function StegenPage() {
       queryKey: COMPLETED_LADDERS_QUERY_KEY,
       queryFn: () => loadCompletedLadders(queryClient),
       enabled: !!user,
-      staleTime: 5 * 60 * 1000,
+      staleTime: Infinity,
     })
 
   const laddersLoading = activeLadderLoading || completedLaddersLoading
@@ -990,19 +1005,25 @@ export function StegenPage() {
     sortedCompletedLadders.find((l) => l.id === effectiveArchivedLadderId) ??
     null
 
-  const participantUids = useMemo(() => {
+  const participantUidsNeedingProfile = useMemo(() => {
     const set = new Set<string>()
-    activeLadder?.participants.forEach((p) => set.add(p.uid))
-    archivedLadder?.participants.forEach((p) => set.add(p.uid))
+    const collect = (participant: LadderParticipant) => {
+      const displayName = participant.displayName?.trim() ?? ''
+      if (!displayName || participant.phone === undefined) {
+        set.add(participant.uid)
+      }
+    }
+    activeLadder?.participants.forEach(collect)
+    archivedLadder?.participants.forEach(collect)
     return [...set]
   }, [activeLadder, archivedLadder])
 
   const participantProfileQueries = useQueries({
-    queries: participantUids.map((uid) => ({
+    queries: participantUidsNeedingProfile.map((uid) => ({
       queryKey: [PROFILE_QUERY_KEY, uid],
       queryFn: () => getProfile(uid),
-      // Profiles change infrequently; avoid N Firestore reads on every mount.
-      staleTime: 5 * 60 * 1000,
+      // Only legacy ladder rows missing embedded snapshot data need profile reads.
+      staleTime: PROFILE_STALE_TIME_MS,
     })),
   })
 
@@ -1040,7 +1061,7 @@ export function StegenPage() {
     queryFn: () =>
       activeLadder ? getLadderMatches(activeLadder.id) : Promise.resolve([]),
     enabled: !!activeLadder,
-    staleTime: 2 * 60 * 1000,
+    staleTime: LADDER_STALE_TIME_MS,
   })
 
   const { data: archivedMatches = [] } = useQuery({
@@ -1052,12 +1073,15 @@ export function StegenPage() {
         ? getLadderMatches(effectiveArchivedLadderId)
         : Promise.resolve([]),
     enabled: !!effectiveArchivedLadderId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: Infinity,
   })
 
   const { data: existingBookings = [] } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
+    staleTime: BOOKING_BOARD_STALE_TIME_MS,
+    refetchOnMount: BOOKING_BOARD_REFETCH_ON_MOUNT,
+    refetchOnWindowFocus: true,
   })
 
   const ladderJoinOpenNow = isLadderJoinOpenNow(
@@ -1177,15 +1201,7 @@ export function StegenPage() {
       throw new Error('Sluttiden måste vara efter starttiden.')
     }
     const { start, end } = resolved
-    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
-    const freshBookings =
-      queryClient.getQueryData<typeof existingBookings>(BOOKINGS_QUERY_KEY) ??
-      existingBookings
-    const conflict = findConflictingBooking(freshBookings, start, end)
-    if (conflict) {
-      throw new Error(`Det finns redan en bokning som överlappar med vald tid.`)
-    }
-    await createLadderMatch(
+    const bookingId = await createLadderMatch(
       activeLadder.id,
       user.uid,
       challengeOpponentUid,
@@ -1197,11 +1213,35 @@ export function StegenPage() {
       start,
       end
     )
+    queryClient.setQueryData<typeof existingBookings>(
+      BOOKINGS_QUERY_KEY,
+      (old = []) =>
+        sortBookings([
+          ...old,
+          {
+            id: bookingId,
+            type: 'member',
+            ownerEmail: user.email,
+            ownerUid: user.uid,
+            ownerDisplayName: user.displayName,
+            startTime: Timestamp.fromDate(start),
+            endTime: Timestamp.fromDate(end),
+            createdAt: Timestamp.fromDate(new Date()),
+            ladderId: activeLadder.id,
+            playerAId: user.uid,
+            playerBId: challengeOpponentUid,
+            playerAName: user.displayName,
+            playerBName: resolveParticipantDisplayName(
+              challengeOpponent,
+              displayNamesByUid
+            ),
+          } satisfies BookingWithId,
+        ])
+    )
     setChallengeOpponentUid(null)
     await queryClient.invalidateQueries({
       queryKey: LADDER_MATCHES_QUERY_KEY(activeLadder.id),
     })
-    await queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
     addToast('Match bokad!')
   }
 
@@ -1593,9 +1633,6 @@ export function StegenPage() {
                 setChallengeOpponentUid(null)
                 void queryClient.invalidateQueries({
                   queryKey: LADDER_MATCHES_QUERY_KEY(activeLadder.id),
-                })
-                void queryClient.invalidateQueries({
-                  queryKey: BOOKINGS_QUERY_KEY,
                 })
                 addToast('Match bokad!')
               }}

@@ -4,18 +4,15 @@ import {
   query,
   where,
   orderBy,
+  limit,
   doc,
   addDoc,
   updateDoc,
-  writeBatch,
   Timestamp,
-  getDoc,
   deleteField,
 } from 'firebase/firestore'
-import { db } from '../lib/firebase'
-import { isLadderJoinOpenNow } from '../lib/ladderJoinWindow'
-import { isLadderChallengeOpenNow } from '../lib/ladderTournamentStart'
-import { getAppSettingsRef, APP_SETTINGS_DEFAULTS } from './AppSettingsService'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '../lib/firebase'
 
 export interface LadderParticipant {
   uid: string
@@ -69,7 +66,7 @@ function mapDocToLadder(docSnap: { id: string; data: () => any }): Ladder {
 
 export async function getActiveLadder(): Promise<Ladder | null> {
   const laddersRef = collection(db, 'ladders')
-  const q = query(laddersRef, where('status', '==', 'active'))
+  const q = query(laddersRef, where('status', '==', 'active'), limit(1))
   const snapshot = await getDocs(q)
   if (snapshot.empty) return null
   return mapDocToLadder(snapshot.docs[0])
@@ -135,102 +132,24 @@ export async function setLadderTournamentStartDate(
 
 export async function joinLadder(
   ladderId: string,
-  uid: string,
-  displayName: string,
-  phone: string | null = null
+  _uid: string,
+  _displayName: string,
+  _phone: string | null = null
 ): Promise<void> {
-  const ladderRef = doc(db, 'ladders', ladderId)
-  const snapshot = await getDoc(ladderRef)
-  if (!snapshot.exists()) throw new Error('Ladder not found')
-  const data = snapshot.data()
-  const participants: LadderParticipant[] = (data['participants'] ??
-    []) as LadderParticipant[]
-  const joinOpensAt =
-    data['joinOpensAt'] != null ? (data['joinOpensAt'] as Timestamp) : null
-
-  // Already active — no-op
-  if (participants.some((p) => p.uid === uid && !p.paused)) return
-
-  const existing = participants.find((p) => p.uid === uid)
-  const activeLadderCount = participants.filter(
-    (p) => !p.paused && !p.inPool
-  ).length
-
-  // New sign-ups only (not paused rejoin) respect the optional open date.
-  if (!existing && !isLadderJoinOpenNow({ joinOpensAt }, new Date())) {
-    throw new Error('Ladder join is not open yet')
-  }
-
-  if (existing) {
-    // Rejoin: move to bottom of ladder (or back to pool if they were pool members), keep stats, mark active
-    const wasInPool = existing.inPool === true
-    const updated = participants.map((p) =>
-      p.uid === uid
-        ? {
-            ...p,
-            displayName,
-            paused: false,
-            position: wasInPool ? 0 : activeLadderCount + 1,
-            inPool: wasInPool,
-            phone: phone ?? p.phone ?? null,
-          }
-        : p
-    )
-    await updateDoc(ladderRef, { participants: updated })
-  } else {
-    // New join: enter the pool (no ranking position yet)
-    const newParticipant: LadderParticipant = {
-      uid,
-      displayName,
-      phone: phone || null,
-      position: 0,
-      wins: 0,
-      losses: 0,
-      paused: false,
-      inPool: true,
-    }
-    await updateDoc(ladderRef, {
-      participants: [...participants, newParticipant],
-    })
-  }
+  void _uid
+  void _displayName
+  void _phone
+  const join = httpsCallable(functions, 'joinLadder')
+  await join({ ladderId })
 }
 
 export async function pauseLadder(
   ladderId: string,
-  uid: string
+  _uid: string
 ): Promise<void> {
-  const ladderRef = doc(db, 'ladders', ladderId)
-  const snapshot = await getDoc(ladderRef)
-  if (!snapshot.exists()) throw new Error('Ladder not found')
-  const data = snapshot.data()
-  const participants: LadderParticipant[] = (data['participants'] ??
-    []) as LadderParticipant[]
-
-  const target = participants.find((p) => p.uid === uid)
-
-  // Pool members never entered the ranking — drop them entirely on leave.
-  if (target?.inPool === true) {
-    const remaining = participants.filter((p) => p.uid !== uid)
-    await updateDoc(ladderRef, { participants: remaining })
-    return
-  }
-
-  const pausedParticipants = participants.map((p) =>
-    p.uid === uid ? { ...p, paused: true } : p
-  )
-
-  // Compact positions for remaining active ladder participants (skip pool members).
-  const activeLadder = pausedParticipants
-    .filter((p) => !p.paused && !p.inPool)
-    .sort((a, b) => a.position - b.position)
-    .map((p, i) => ({ ...p, position: i + 1 }))
-
-  const pool = pausedParticipants.filter((p) => !p.paused && p.inPool)
-  const paused = pausedParticipants.filter((p) => p.paused)
-
-  await updateDoc(ladderRef, {
-    participants: [...activeLadder, ...pool, ...paused],
-  })
+  void _uid
+  const pause = httpsCallable(functions, 'pauseLadder')
+  await pause({ ladderId })
 }
 
 export interface LadderMatch {
@@ -284,60 +203,35 @@ export async function getLadderMatches(
 
 export async function createLadderMatch(
   ladderId: string,
-  playerAId: string,
+  _playerAId: string,
   playerBId: string,
-  playerAName: string,
-  playerBName: string,
-  ownerUid: string,
-  ownerEmail: string,
-  ownerDisplayName: string,
+  _playerAName: string,
+  _playerBName: string,
+  _ownerUid: string,
+  _ownerEmail: string,
+  _ownerDisplayName: string,
   startTime: Date,
   endTime: Date
 ): Promise<string> {
-  const ladderRef = doc(db, 'ladders', ladderId)
-  const ladderSnap = await getDoc(ladderRef)
-  if (!ladderSnap.exists()) throw new Error('Ladder not found')
-  const ladderData = ladderSnap.data()
-  const tournamentStartsAt =
-    ladderData['tournamentStartsAt'] != null
-      ? (ladderData['tournamentStartsAt'] as Timestamp)
-      : null
-
-  const settingsSnap = await getDoc(getAppSettingsRef())
-  const bookingEnabled = settingsSnap.exists()
-    ? (settingsSnap.data().bookingEnabled ??
-      APP_SETTINGS_DEFAULTS.bookingEnabled)
-    : APP_SETTINGS_DEFAULTS.bookingEnabled
-
-  if (
-    !isLadderChallengeOpenNow(
-      { tournamentStartsAt },
-      { bookingEnabled },
-      new Date()
-    )
-  ) {
-    throw new Error('Challenges are not open yet')
-  }
-
-  const bookingsRef = collection(db, 'bookings')
-  const docRef = await addDoc(bookingsRef, {
-    type: 'member',
-    ownerUid,
-    ownerEmail,
-    ownerDisplayName,
-    startTime: Timestamp.fromDate(startTime),
-    endTime: Timestamp.fromDate(endTime),
-    createdAt: Timestamp.fromDate(new Date()),
+  const create = httpsCallable<
+    {
+      ladderId: string
+      playerBId: string
+      startTime: string
+      endTime: string
+    },
+    { bookingId?: unknown }
+  >(functions, 'createLadderMatch')
+  const result = await create({
     ladderId,
-    playerAId,
     playerBId,
-    playerAName,
-    playerBName,
-    ladderStatus: 'planned',
-    winnerId: null,
-    ladderComment: null,
+    startTime: startTime.toISOString(),
+    endTime: endTime.toISOString(),
   })
-  return docRef.id
+  if (typeof result.data.bookingId !== 'string') {
+    throw new Error('Matchen kunde inte skapas.')
+  }
+  return result.data.bookingId
 }
 
 export async function reportLadderResult(
@@ -347,25 +241,6 @@ export async function reportLadderResult(
   loserId: string,
   comment: string
 ): Promise<void> {
-  const ladderRef = doc(db, 'ladders', ladderId)
-  const matchRef = doc(db, 'bookings', matchId)
-
-  const ladderSnap = await getDoc(ladderRef)
-  if (!ladderSnap.exists()) throw new Error('Ladder not found')
-
-  const data = ladderSnap.data()
-  const participants: LadderParticipant[] = (data['participants'] ??
-    []) as LadderParticipant[]
-
-  const { applyMatchResult } = await import('../lib/ladder')
-  const updated = applyMatchResult(participants, winnerId, loserId)
-
-  const batch = writeBatch(db)
-  batch.update(ladderRef, { participants: updated })
-  batch.update(matchRef, {
-    ladderStatus: 'completed',
-    winnerId,
-    ladderComment: comment || null,
-  })
-  await batch.commit()
+  const report = httpsCallable(functions, 'reportLadderResult')
+  await report({ ladderId, matchId, winnerId, loserId, comment })
 }

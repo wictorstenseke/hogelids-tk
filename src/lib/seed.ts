@@ -1,5 +1,9 @@
 import { collection, getDocs, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from './firebase'
+import {
+  buildSlotLocks,
+  type BookingSlotLock,
+} from '../services/BookingService'
 
 interface Booking {
   type: 'guest' | 'member'
@@ -9,6 +13,7 @@ interface Booking {
   startTime: Timestamp
   endTime: Timestamp
   createdAt: Timestamp
+  slotLocks: BookingSlotLock[]
 }
 
 // Base date: today at midnight (local time)
@@ -42,6 +47,7 @@ function booking(
     startTime: toTs(start),
     endTime: toTs(end),
     createdAt: toTs(new Date()),
+    slotLocks: buildSlotLocks(start, end),
   }
 }
 
@@ -141,6 +147,7 @@ function bookingOnDate(
     startTime: toTs(start),
     endTime: toTs(end),
     createdAt: toTs(new Date(date)),
+    slotLocks: buildSlotLocks(start, end),
   }
 }
 

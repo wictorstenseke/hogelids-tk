@@ -14,6 +14,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superuser';
     }
 
+    function hasBookingSlotLocks() {
+      return request.resource.data.slotLocks is list
+        && request.resource.data.slotLocks.size() > 0
+        && request.resource.data.slotLocks.size() <= 2;
+    }
+
+    function isClientBookingCreate() {
+      return !request.resource.data.keys().hasAny(['ladderId']);
+    }
+
     // Bookings
     // - Anyone can read and create bookings (guests book without auth)
     // - Anyone can delete guest bookings
@@ -27,7 +37,7 @@ service cloud.firestore {
     // the toggle is a "we are closed" sign, not a hard lockdown.
     match /bookings/{bookingId} {
       allow read: if true;
-      allow create: if true;
+      allow create: if hasBookingSlotLocks() && isClientBookingCreate();
       allow delete: if resource.data.type == 'guest'
                     || (resource.data.type == 'member'
                         && request.auth != null
@@ -35,6 +45,15 @@ service cloud.firestore {
                             || request.auth.uid == resource.data.playerAId
                             || request.auth.uid == resource.data.playerBId));
       allow update: if request.auth != null;
+    }
+
+    // Deterministic 15-minute slot locks written in the same transaction as
+    // bookings. The client transaction prevents honest concurrent writers from
+    // creating overlaps; the booking rule above blocks legacy creates without
+    // lock metadata.
+    match /bookingSlotDays/{date} {
+      allow read: if true;
+      allow create, update: if true;
     }
 
     // User profiles
@@ -58,14 +77,11 @@ service cloud.firestore {
     // Ladder
     // - Authenticated users can read
     // - Admins can create, delete, and update anything
-    // - Authenticated users can update their own participant entry only
-    //   (join / pause / rejoin): diff must be limited to the participants field
+    // - Member ladder mutations (join, pause, challenge results, profile
+    //   snapshot refresh) are owned by callable Cloud Functions.
     match /ladders/{ladderId} {
       allow read: if request.auth != null;
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin()
-                    || (request.auth != null
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']));
+      allow create, update, delete: if isAdmin();
     }
   }
 }

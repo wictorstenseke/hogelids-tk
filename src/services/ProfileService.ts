@@ -1,6 +1,7 @@
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { updateProfile as updateAuthProfile, reload } from 'firebase/auth'
-import { auth, db } from '../lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { auth, db, functions } from '../lib/firebase'
 import type { UserProfile, UserRole } from './AuthService'
 
 export const PROFILE_QUERY_KEY = 'profile'
@@ -30,6 +31,7 @@ export async function updateProfile(
 ): Promise<void> {
   const ref = doc(db, 'users', uid)
   await updateDoc(ref, updates as Record<string, unknown>)
+  await syncProfileSnapshots(uid)
 
   if (
     typeof updates.displayName === 'string' &&
@@ -42,4 +44,10 @@ export async function updateProfile(
     })
     await reload(auth.currentUser)
   }
+}
+
+async function syncProfileSnapshots(uid: string): Promise<void> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) return
+  const sync = httpsCallable(functions, 'syncProfileSnapshots')
+  await sync({})
 }

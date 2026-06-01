@@ -1,5 +1,6 @@
 import React, { forwardRef, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Timestamp } from 'firebase/firestore'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import { sv } from 'date-fns/locale'
 import { format } from 'date-fns'
@@ -101,6 +102,12 @@ function overlapConflictMessage(booking: BookingWithId | null): string {
   return `${base} Upptaget ${formatTimeDisplay(booking.startTime.toDate())} – ${formatTimeDisplay(booking.endTime.toDate())}.`
 }
 
+function sortBookings(bookings: BookingWithId[]): BookingWithId[] {
+  return [...bookings].sort(
+    (a, b) => a.startTime.toMillis() - b.startTime.toMillis()
+  )
+}
+
 export function BookingForm({
   existingBookings,
   onSuccess,
@@ -125,6 +132,7 @@ export function BookingForm({
     uid: string
     displayName: string
   } | null>(null)
+  const [opponentPickerOpen, setOpponentPickerOpen] = useState(false)
 
   // Mobile drawer
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -134,7 +142,7 @@ export function BookingForm({
   const usersQuery = useQuery({
     queryKey: USERS_QUERY_KEY,
     queryFn: listAllUsers,
-    enabled: showOpponentField,
+    enabled: showOpponentField && (opponentPickerOpen || drawerOpen),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -169,10 +177,67 @@ export function BookingForm({
       ? findConflictingBooking(existingBookings, startDate, endDate)
       : null
   const conflictDetected = conflictingBooking !== null
+  const showConflictMessage = !isSubmitting && conflictDetected
 
   function handleStartTimeChange(val: string) {
     setStartTimeValue(val)
     if (val) setEndTimeValue(addHours(val, 2))
+  }
+
+  function buildOptimisticBooking(
+    id: string,
+    effectiveEmail: string,
+    start: Date,
+    end: Date,
+    selectedOpponent: { uid: string; displayName: string } | null
+  ): BookingWithId {
+    return {
+      id,
+      type: user ? 'member' : 'guest',
+      ownerEmail: effectiveEmail,
+      ownerUid: user?.uid ?? null,
+      ownerDisplayName: user?.displayName ?? effectiveEmail,
+      startTime: Timestamp.fromDate(start),
+      endTime: Timestamp.fromDate(end),
+      createdAt: Timestamp.fromDate(new Date()),
+      ...(selectedOpponent
+        ? {
+            opponentUid: selectedOpponent.uid,
+            opponentDisplayName: selectedOpponent.displayName,
+          }
+        : {}),
+      ...(ladderMeta
+        ? {
+            ladderId: ladderMeta.ladderId,
+            playerAId: ladderMeta.playerAId,
+            playerBId: ladderMeta.playerBId,
+            playerAName: ladderMeta.playerAName,
+            playerBName: ladderMeta.playerBName,
+          }
+        : {}),
+    }
+  }
+
+  function addOptimisticBooking(booking: BookingWithId) {
+    queryClient.setQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY, (old = []) =>
+      sortBookings([...old, booking])
+    )
+  }
+
+  function replaceOptimisticBooking(tempId: string, bookingId: string) {
+    queryClient.setQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY, (old = []) =>
+      sortBookings(
+        old.map((booking) =>
+          booking.id === tempId ? { ...booking, id: bookingId } : booking
+        )
+      )
+    )
+  }
+
+  function removeOptimisticBooking(tempId: string) {
+    queryClient.setQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY, (old = []) =>
+      old.filter((booking) => booking.id !== tempId)
+    )
   }
 
   // Desktop submit
@@ -199,19 +264,21 @@ export function BookingForm({
     const { start, end } = resolved
 
     setIsSubmitting(true)
-    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
-    const freshBookings =
-      queryClient.getQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY) ??
-      existingBookings
-    const conflicting = findConflictingBooking(freshBookings, start, end)
-    if (conflicting) {
-      setSubmitError(overlapConflictMessage(conflicting))
-      setIsSubmitting(false)
-      return
-    }
+    let tempBookingId: string | null = null
     try {
+      tempBookingId = `optimistic-${Date.now()}`
+      addOptimisticBooking(
+        buildOptimisticBooking(
+          tempBookingId,
+          effectiveEmail,
+          start,
+          end,
+          opponent
+        )
+      )
+      let bookingId: string
       if (user && ladderMeta) {
-        await createLadderMatch(
+        bookingId = await createLadderMatch(
           ladderMeta.ladderId,
           ladderMeta.playerAId,
           ladderMeta.playerBId,
@@ -224,7 +291,7 @@ export function BookingForm({
           end
         )
       } else if (user) {
-        await createMemberBooking(
+        bookingId = await createMemberBooking(
           user.uid,
           user.email,
           user.displayName,
@@ -233,10 +300,16 @@ export function BookingForm({
           opponent ?? undefined
         )
       } else {
-        await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
+        bookingId = await createGuestBooking(
+          effectiveEmail,
+          effectiveEmail,
+          start,
+          end
+        )
         GuestSession.setEmail(effectiveEmail)
         GuestSession.incrementBookingCount()
       }
+      replaceOptimisticBooking(tempBookingId, bookingId)
       addToast('Bokning skapad!')
       onSuccess(start, end, { isGuestBooking: !user })
       setDateValue('')
@@ -250,6 +323,8 @@ export function BookingForm({
           : 'Något gick fel. Försök igen senare.',
         'error'
       )
+      if (err instanceof Error) setSubmitError(err.message)
+      if (tempBookingId) removeOptimisticBooking(tempBookingId)
     } finally {
       setIsSubmitting(false)
     }
@@ -269,41 +344,54 @@ export function BookingForm({
     }
     const { start, end } = resolved
 
-    await queryClient.refetchQueries({ queryKey: BOOKINGS_QUERY_KEY })
-    const freshBookings =
-      queryClient.getQueryData<BookingWithId[]>(BOOKINGS_QUERY_KEY) ??
-      existingBookings
-    const conflicting = findConflictingBooking(freshBookings, start, end)
-    if (conflicting) {
-      throw new Error(overlapConflictMessage(conflicting))
-    }
-
-    if (user && ladderMeta) {
-      await createLadderMatch(
-        ladderMeta.ladderId,
-        ladderMeta.playerAId,
-        ladderMeta.playerBId,
-        ladderMeta.playerAName,
-        ladderMeta.playerBName,
-        user.uid,
-        user.email,
-        user.displayName,
-        start,
-        end
-      )
-    } else if (user) {
-      await createMemberBooking(
-        user.uid,
-        user.email,
-        user.displayName,
+    const tempBookingId = `optimistic-${Date.now()}`
+    addOptimisticBooking(
+      buildOptimisticBooking(
+        tempBookingId,
+        effectiveEmail,
         start,
         end,
-        mobileOpponent ?? undefined
+        mobileOpponent
       )
-    } else {
-      await createGuestBooking(effectiveEmail, effectiveEmail, start, end)
-      GuestSession.setEmail(effectiveEmail)
-      GuestSession.incrementBookingCount()
+    )
+    try {
+      let bookingId: string
+      if (user && ladderMeta) {
+        bookingId = await createLadderMatch(
+          ladderMeta.ladderId,
+          ladderMeta.playerAId,
+          ladderMeta.playerBId,
+          ladderMeta.playerAName,
+          ladderMeta.playerBName,
+          user.uid,
+          user.email,
+          user.displayName,
+          start,
+          end
+        )
+      } else if (user) {
+        bookingId = await createMemberBooking(
+          user.uid,
+          user.email,
+          user.displayName,
+          start,
+          end,
+          mobileOpponent ?? undefined
+        )
+      } else {
+        bookingId = await createGuestBooking(
+          effectiveEmail,
+          effectiveEmail,
+          start,
+          end
+        )
+        GuestSession.setEmail(effectiveEmail)
+        GuestSession.incrementBookingCount()
+      }
+      replaceOptimisticBooking(tempBookingId, bookingId)
+    } catch (err) {
+      removeOptimisticBooking(tempBookingId)
+      throw err
     }
     addToast('Bokning skapad!')
     onSuccess(start, end, { isGuestBooking: !user })
@@ -447,6 +535,7 @@ export function BookingForm({
                   searchable
                   searchPlaceholder="Sök medlem"
                   emptyLabel="Inga träffar"
+                  onOpenChange={setOpponentPickerOpen}
                   className="w-full"
                   triggerClassName={
                     isDialog
@@ -458,7 +547,7 @@ export function BookingForm({
             )}
 
             {/* Inline conflict error — desktop only */}
-            {conflictDetected && (
+            {showConflictMessage && (
               <p
                 className={`text-sm ${isDialog ? 'text-red-600' : 'text-red-300'}`}
               >

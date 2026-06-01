@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth'
 import { setDoc, doc, Timestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import * as GuestSession from '../lib/GuestSession'
 import { migrateGuestBookings } from './MigrationService'
 
 export type UserRole = 'user' | 'admin' | 'superuser'
@@ -32,7 +33,7 @@ export async function signUp(
   password: string,
   displayName: string,
   phone: string | null = null
-): Promise<void> {
+): Promise<string> {
   const credential = await createUserWithEmailAndPassword(auth, email, password)
   const user = credential.user
 
@@ -46,13 +47,18 @@ export async function signUp(
     role: 'user' as UserRole,
   } satisfies Omit<UserProfile, 'uid'>)
   await migrateGuestBookings(user.uid, email)
+  return user.uid
 }
 
 // Signs in with email/password (persistent session — Firebase default).
 // Migrates any guest bookings matching this email to the member account.
-export async function signIn(email: string, password: string): Promise<void> {
+export async function signIn(email: string, password: string): Promise<string> {
   const credential = await signInWithEmailAndPassword(auth, email, password)
-  void migrateGuestBookings(credential.user.uid, email)
+  const guestEmail = GuestSession.getEmail()
+  if (guestEmail?.toLowerCase() === email.toLowerCase()) {
+    await migrateGuestBookings(credential.user.uid, email)
+  }
+  return credential.user.uid
 }
 
 // Signs out

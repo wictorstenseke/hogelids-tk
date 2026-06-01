@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import * as Sentry from '@sentry/react'
 import { auth } from './firebase'
+import * as GuestSession from './GuestSession'
+import { setSentryUser } from './sentryClient'
 
 export interface AuthUser {
   uid: string
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             displayName: firebaseUser.displayName ?? '',
           }
           setUser(authUser)
-          Sentry.setUser({
+          setSentryUser({
             id: authUser.uid,
             email: authUser.email,
             username: authUser.displayName,
@@ -39,15 +40,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUser(null)
           // Fall back to guest identity if present
-          const guestEmail = localStorage.getItem('htk_guest_email')
-          const guestName = localStorage.getItem('htk_guest_name')
+          const guestEmail = GuestSession.getEmail()
+          const guestName = GuestSession.getName()
           if (guestEmail) {
-            Sentry.setUser({
+            setSentryUser({
               email: guestEmail,
               username: guestName ?? undefined,
             })
           } else {
-            Sentry.setUser(null)
+            setSentryUser(null)
           }
         }
         setLoading(false)

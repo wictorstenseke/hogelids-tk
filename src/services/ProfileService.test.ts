@@ -4,27 +4,47 @@ const {
   mockGetDoc,
   mockUpdateDoc,
   mockDoc,
-  mockCollection,
   mockUpdateAuthProfile,
   mockReload,
+  mockHttpsCallable,
+  mockCallable,
+  mockFunctions,
   authMock,
-} = vi.hoisted(() => ({
-  mockGetDoc: vi.fn(),
-  mockUpdateDoc: vi.fn(),
-  mockDoc: vi.fn((...args: unknown[]) => args),
-  mockCollection: vi.fn((...args: unknown[]) => args),
-  mockUpdateAuthProfile: vi.fn(),
-  mockReload: vi.fn(),
-  authMock: { currentUser: null as unknown },
-}))
+} = vi.hoisted(() => {
+  const mockCallable = vi.fn()
+  return {
+    mockGetDoc: vi.fn(),
+    mockUpdateDoc: vi.fn(),
+    mockDoc: vi.fn((...args: unknown[]) => args),
+    mockUpdateAuthProfile: vi.fn(),
+    mockReload: vi.fn(),
+    mockHttpsCallable: vi.fn(() => mockCallable),
+    mockCallable,
+    mockFunctions: {},
+    authMock: { currentUser: null as unknown },
+  }
+})
 
-vi.mock('../lib/firebase', () => ({ db: {}, auth: authMock }))
-vi.mock('firebase/firestore', () => ({
-  getDoc: mockGetDoc,
-  updateDoc: mockUpdateDoc,
-  doc: mockDoc,
-  collection: mockCollection,
+vi.mock('../lib/firebase', () => ({
+  db: {},
+  auth: authMock,
+  functions: mockFunctions,
 }))
+vi.mock('firebase/functions', () => ({
+  httpsCallable: mockHttpsCallable,
+}))
+vi.mock('firebase/firestore', async () => {
+  const actual =
+    await vi.importActual<typeof import('firebase/firestore')>(
+      'firebase/firestore'
+    )
+  return {
+    getDoc: mockGetDoc,
+    updateDoc: mockUpdateDoc,
+    doc: mockDoc,
+    Timestamp: actual.Timestamp,
+  }
+})
 vi.mock('firebase/auth', () => ({
   updateProfile: mockUpdateAuthProfile,
   reload: mockReload,
@@ -46,6 +66,7 @@ beforeEach(() => {
   mockUpdateDoc.mockResolvedValue(undefined)
   mockUpdateAuthProfile.mockResolvedValue(undefined)
   mockReload.mockResolvedValue(undefined)
+  mockCallable.mockResolvedValue({ data: { ok: true } })
   authMock.currentUser = null
 })
 
@@ -120,6 +141,30 @@ describe('updateProfile', () => {
 
     expect(mockUpdateAuthProfile).not.toHaveBeenCalled()
     expect(mockReload).not.toHaveBeenCalled()
+  })
+
+  it('asks the callable function to sync profile snapshots for the current user', async () => {
+    authMock.currentUser = { uid: 'uid-123', displayName: 'Old Name' }
+
+    await updateProfile('uid-123', {
+      displayName: 'New Name',
+      phone: '0701234567',
+    })
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(
+      mockFunctions,
+      'syncProfileSnapshots'
+    )
+    expect(mockCallable).toHaveBeenCalledWith({})
+  })
+
+  it('does not ask for snapshot sync when updating another profile', async () => {
+    authMock.currentUser = { uid: 'uid-admin', displayName: 'Admin' }
+
+    await updateProfile('uid-other', { displayName: 'New Name' })
+
+    expect(mockHttpsCallable).not.toHaveBeenCalled()
+    expect(mockCallable).not.toHaveBeenCalled()
   })
 })
 

@@ -2,25 +2,21 @@
 import { createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from './useAuth'
-import { getProfile } from '../services/ProfileService'
+import { getProfile, PROFILE_QUERY_KEY } from '../services/ProfileService'
 import type { UserRole } from '../services/AuthService'
+import { PROFILE_STALE_TIME_MS } from '../services/queryStaleTimes'
 
 const RoleContext = createContext<UserRole | null>(null)
-
-const TEN_MINUTES = 10 * 60 * 1000
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
 
   const { data: role = null } = useQuery({
-    queryKey: ['role', user?.uid ?? ''],
-    queryFn: async () => {
-      if (!user) return null
-      const profile = await getProfile(user.uid)
-      return profile?.role ?? ('user' as UserRole)
-    },
+    queryKey: [PROFILE_QUERY_KEY, user?.uid ?? ''],
+    queryFn: () => getProfile(user!.uid),
     enabled: !loading && !!user,
-    staleTime: TEN_MINUTES,
+    staleTime: PROFILE_STALE_TIME_MS,
+    select: (profile) => profile?.role ?? ('user' as UserRole),
   })
 
   return <RoleContext.Provider value={role}>{children}</RoleContext.Provider>

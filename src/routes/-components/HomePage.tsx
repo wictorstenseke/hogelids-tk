@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getUpcomingBookings,
@@ -20,8 +20,19 @@ import { BookingForm } from './BookingForm'
 import { Banner } from './Banner'
 import { GlassNoticeCard } from './GlassNoticeCard'
 import { SuccessDialog } from './SuccessDialog'
-import { HistorySection } from './HistorySection'
 import { BookingItem } from './BookingItem'
+import {
+  BOOKING_BOARD_REFETCH_ON_MOUNT,
+  BOOKING_BOARD_STALE_TIME_MS,
+  LADDER_STALE_TIME_MS,
+  PROFILE_STALE_TIME_MS,
+} from '../../services/queryStaleTimes'
+
+const HistorySection = lazy(() =>
+  import('./HistorySection').then((module) => ({
+    default: module.HistorySection,
+  }))
+)
 
 function UpcomingBookingsSection({
   isLoading,
@@ -89,6 +100,7 @@ export function HomePage() {
     endTime: Date
     isGuestBooking: boolean
   } | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const {
     data: bookings,
@@ -98,7 +110,9 @@ export function HomePage() {
   } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
-    staleTime: user ? 15 * 60 * 1000 : Infinity,
+    staleTime: BOOKING_BOARD_STALE_TIME_MS,
+    refetchOnMount: BOOKING_BOARD_REFETCH_ON_MOUNT,
+    refetchOnWindowFocus: true,
   })
 
   const { settings: appSettings } = useAppSettings()
@@ -110,13 +124,16 @@ export function HomePage() {
     queryFn: loadHistoryArchive,
     staleTime: Infinity,
     gcTime: Infinity,
-    enabled: !!user,
+    enabled: !!user && historyOpen,
   })
   const earliestYearQuery = useQuery({
     queryKey: ['bookings', 'earliestYear'],
     queryFn: getEarliestBookingYear,
     enabled:
-      !!user && archiveQuery.data === undefined && !archiveQuery.isLoading,
+      !!user &&
+      historyOpen &&
+      archiveQuery.data === undefined &&
+      !archiveQuery.isLoading,
     staleTime: Infinity,
     gcTime: Infinity,
   })
@@ -129,12 +146,12 @@ export function HomePage() {
     void queryClient.prefetchQuery({
       queryKey: [PROFILE_QUERY_KEY, user.uid],
       queryFn: () => getProfile(user.uid),
-      staleTime: 1000 * 60 * 10,
+      staleTime: PROFILE_STALE_TIME_MS,
     })
     void queryClient.prefetchQuery({
       queryKey: LADDER_QUERY_KEY,
       queryFn: getActiveLadder,
-      staleTime: 1000 * 60 * 5,
+      staleTime: LADDER_STALE_TIME_MS,
     })
   }, [user, queryClient])
 
@@ -147,7 +164,6 @@ export function HomePage() {
     meta: { isGuestBooking: boolean }
   ) {
     setGuestEmail(getEmail())
-    void queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })
     setSuccessBooking({
       startTime,
       endTime,
@@ -211,11 +227,32 @@ export function HomePage() {
             </div>
           )}
 
-          {user && (
-            <HistorySection
-              currentYear={currentYear}
-              earliestYear={earliestYear ?? currentYear}
-            />
+          {user && !historyOpen && (
+            <div className="rounded-2xl bg-[#194b29] px-4 py-4">
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                className="flex min-h-[44px] w-full cursor-pointer items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-left text-sm font-semibold text-white transition-colors hover:bg-white/15"
+              >
+                <span>Historik &amp; Statistik</span>
+                <span className="text-white/60">Visa</span>
+              </button>
+            </div>
+          )}
+
+          {user && historyOpen && (
+            <Suspense
+              fallback={
+                <div className="rounded-2xl bg-[#194b29] px-4 py-10 text-center text-sm text-white/70">
+                  Laddar historik…
+                </div>
+              }
+            >
+              <HistorySection
+                currentYear={currentYear}
+                earliestYear={earliestYear ?? currentYear}
+              />
+            </Suspense>
           )}
         </div>
       </main>
