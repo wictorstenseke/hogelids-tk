@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { IconEye, IconEyeOff, IconX } from '@tabler/icons-react'
 import { overlayCloseDelayMs } from '../../lib/overlayCloseDelay'
 import {
@@ -10,6 +11,8 @@ import {
   formatPhoneForDisplay,
   formatPhoneForStorage,
 } from '../../lib/phoneFormat'
+import { BOOKINGS_QUERY_KEY } from '../../services/BookingService'
+import { PROFILE_QUERY_KEY } from '../../services/ProfileService'
 
 type View = 'sign-in' | 'sign-up' | 'forgot-password'
 
@@ -24,6 +27,7 @@ export function AuthModal({
   initialView = 'sign-in',
   initialEmail = '',
 }: AuthModalProps) {
+  const queryClient = useQueryClient()
   const [view, setView] = useState<View>(initialView)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,12 +61,20 @@ export function AuthModal({
     setResetSent(false)
   }
 
+  async function refreshAuthDependentQueries(uid: string) {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: [PROFILE_QUERY_KEY, uid] }),
+    ])
+  }
+
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      await signIn(email, password)
+      const uid = await signIn(email, password)
+      await refreshAuthDependentQueries(uid)
       onClose()
     } catch (err) {
       setError(getFirebaseErrorMessage(getErrorCode(err)))
@@ -76,7 +88,13 @@ export function AuthModal({
     setLoading(true)
     setError(null)
     try {
-      await signUp(email, password, displayName, formatPhoneForStorage(phone))
+      const uid = await signUp(
+        email,
+        password,
+        displayName,
+        formatPhoneForStorage(phone)
+      )
+      await refreshAuthDependentQueries(uid)
       onClose()
     } catch (err) {
       setError(getFirebaseErrorMessage(getErrorCode(err)))

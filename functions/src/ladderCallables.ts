@@ -13,6 +13,10 @@ import {
   type LadderParticipant,
   type UserSnapshot,
 } from './ladderDomain'
+import {
+  PROFILE_BOOKING_SYNC_RULES,
+  shouldSyncUpcomingBooking,
+} from './profileSnapshotSync'
 
 const REGION = 'europe-west1'
 const SLOT_MINUTES = 15
@@ -482,25 +486,19 @@ export const syncProfileSnapshots = onCall(
         }
       }
 
-      const now = Timestamp.now()
-      const syncQueries = [
-        { field: 'ownerUid', update: { ownerDisplayName: user.displayName } },
-        {
-          field: 'opponentUid',
-          update: { opponentDisplayName: user.displayName },
-        },
-        { field: 'playerAId', update: { playerAName: user.displayName } },
-        { field: 'playerBId', update: { playerBName: user.displayName } },
-      ]
-
-      for (const syncQuery of syncQueries) {
+      const nowMillis = Date.now()
+      for (const syncRule of PROFILE_BOOKING_SYNC_RULES) {
         const bookings = await db
           .collection('bookings')
-          .where(syncQuery.field, '==', uid)
-          .where('endTime', '>=', now)
+          .where(syncRule.userField, '==', uid)
           .get()
         for (const bookingDoc of bookings.docs) {
-          batch.update(bookingDoc.ref, syncQuery.update)
+          if (!shouldSyncUpcomingBooking(bookingDoc.data(), nowMillis)) {
+            continue
+          }
+          batch.update(bookingDoc.ref, {
+            [syncRule.displayNameField]: user.displayName,
+          })
           writes += 1
         }
       }
@@ -511,6 +509,7 @@ export const syncProfileSnapshots = onCall(
 
       return { ok: true, writes }
     } catch (error) {
+      console.error('syncProfileSnapshots failed:', error)
       throw mapHttpsError(error)
     }
   }

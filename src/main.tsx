@@ -16,7 +16,7 @@ import './index.css'
 
 installStaleChunkHandlers()
 
-const QUERY_CACHE_SCHEMA_VERSION = 'query-cache-v1'
+const QUERY_CACHE_SCHEMA_VERSION = 'query-cache-v2'
 
 window.setTimeout(() => {
   void import('./instrument')

@@ -9,6 +9,8 @@ import {
   updateProfile,
   PROFILE_QUERY_KEY,
 } from '../../services/ProfileService'
+import { LADDER_QUERY_KEY } from '../../services/LadderService'
+import { BOOKINGS_QUERY_KEY } from '../../services/BookingService'
 import type { AuthUser } from '../../lib/useAuth'
 
 interface ProfileSectionProps {
@@ -53,9 +55,13 @@ export function ProfileSection({ user }: ProfileSectionProps) {
         displayName: displayName.trim(),
         phone: formatPhoneForStorage(phone),
       })
-      await queryClient.invalidateQueries({
-        queryKey: [PROFILE_QUERY_KEY, user.uid],
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [PROFILE_QUERY_KEY, user.uid],
+        }),
+        queryClient.invalidateQueries({ queryKey: LADDER_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY }),
+      ])
       setSavedSuccess(true)
       setTimeout(() => setSavedSuccess(false), 2000)
     } catch {

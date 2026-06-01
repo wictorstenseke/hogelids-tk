@@ -22,9 +22,10 @@ import { GlassNoticeCard } from './GlassNoticeCard'
 import { SuccessDialog } from './SuccessDialog'
 import { BookingItem } from './BookingItem'
 import {
+  BOOKING_BOARD_REFETCH_ON_MOUNT,
+  BOOKING_BOARD_STALE_TIME_MS,
   LADDER_STALE_TIME_MS,
   PROFILE_STALE_TIME_MS,
-  UPCOMING_BOOKINGS_STALE_TIME_MS,
 } from '../../services/queryStaleTimes'
 
 const HistorySection = lazy(() =>
@@ -109,7 +110,9 @@ export function HomePage() {
   } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
-    staleTime: user ? UPCOMING_BOOKINGS_STALE_TIME_MS : Infinity,
+    staleTime: BOOKING_BOARD_STALE_TIME_MS,
+    refetchOnMount: BOOKING_BOARD_REFETCH_ON_MOUNT,
+    refetchOnWindowFocus: true,
   })
 
   const { settings: appSettings } = useAppSettings()

@@ -52,9 +52,10 @@ import {
   type BookingWithId,
 } from '../../services/BookingService'
 import {
+  BOOKING_BOARD_REFETCH_ON_MOUNT,
+  BOOKING_BOARD_STALE_TIME_MS,
   LADDER_STALE_TIME_MS,
   PROFILE_STALE_TIME_MS,
-  UPCOMING_BOOKINGS_STALE_TIME_MS,
 } from '../../services/queryStaleTimes'
 import { resolveBookingInterval } from '../../lib/bookingInterval'
 import { formatTimeDisplay } from '../../lib/formatTimeDisplay'
@@ -1078,7 +1079,9 @@ export function StegenPage() {
   const { data: existingBookings = [] } = useQuery({
     queryKey: BOOKINGS_QUERY_KEY,
     queryFn: getUpcomingBookings,
-    staleTime: UPCOMING_BOOKINGS_STALE_TIME_MS,
+    staleTime: BOOKING_BOARD_STALE_TIME_MS,
+    refetchOnMount: BOOKING_BOARD_REFETCH_ON_MOUNT,
+    refetchOnWindowFocus: true,
   })
 
   const ladderJoinOpenNow = isLadderJoinOpenNow(

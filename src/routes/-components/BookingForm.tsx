@@ -177,6 +177,7 @@ export function BookingForm({
       ? findConflictingBooking(existingBookings, startDate, endDate)
       : null
   const conflictDetected = conflictingBooking !== null
+  const showConflictMessage = !isSubmitting && conflictDetected
 
   function handleStartTimeChange(val: string) {
     setStartTimeValue(val)
@@ -546,7 +547,7 @@ export function BookingForm({
             )}
 
             {/* Inline conflict error — desktop only */}
-            {conflictDetected && (
+            {showConflictMessage && (
               <p
                 className={`text-sm ${isDialog ? 'text-red-600' : 'text-red-300'}`}
               >
