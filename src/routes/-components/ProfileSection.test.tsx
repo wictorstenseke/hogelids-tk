@@ -12,6 +12,12 @@ const { mockGetProfile, mockUpdateProfile } = vi.hoisted(() => ({
   mockUpdateProfile: vi.fn(),
 }))
 
+vi.mock('../../lib/firebase', () => ({
+  auth: {},
+  db: {},
+  functions: {},
+}))
+
 vi.mock('../../services/ProfileService', async () => {
   const actual = await vi.importActual<
     typeof import('../../services/ProfileService')

@@ -12,6 +12,12 @@ const { mockSignIn, mockSignUp, mockSendPasswordReset } = vi.hoisted(() => ({
   mockSendPasswordReset: vi.fn(),
 }))
 
+vi.mock('../../lib/firebase', () => ({
+  auth: {},
+  db: {},
+  functions: {},
+}))
+
 vi.mock('../../services/AuthService', () => ({
   signIn: mockSignIn,
   signUp: mockSignUp,
