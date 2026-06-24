@@ -50,7 +50,7 @@ import { signIn, signUp } from './AuthService'
 beforeEach(() => {
   vi.clearAllMocks()
   mockSignInWithEmailAndPassword.mockResolvedValue({
-    user: { uid: 'uid-123' },
+    user: { uid: 'uid-123', displayName: 'Existing Member' },
   })
   mockCreateUserWithEmailAndPassword.mockResolvedValue({
     user: { uid: 'uid-new' },
@@ -70,7 +70,8 @@ describe('signUp', () => {
     expect(mockSetDoc).toHaveBeenCalled()
     expect(mockMigrateGuestBookings).toHaveBeenCalledWith(
       'uid-new',
-      'new@example.com'
+      'new@example.com',
+      'New Member'
     )
   })
 })
@@ -99,7 +100,8 @@ describe('signIn', () => {
 
     expect(mockMigrateGuestBookings).toHaveBeenCalledWith(
       'uid-123',
-      'member@example.com'
+      'member@example.com',
+      'Existing Member'
     )
   })
 

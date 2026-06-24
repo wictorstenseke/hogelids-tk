@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "icons:generate": "node scripts/generate-app-icons.mjs",
     "archive:build": "tsx scripts/build-history-archive.ts",
+    "backfill:names": "tsx scripts/backfill-migrated-display-names.ts",
     "prepare": "husky"
   },
   "dependencies": {

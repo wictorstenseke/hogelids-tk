@@ -51,12 +51,12 @@ describe('migrateGuestBookings', () => {
   it('no matching bookings — commit not called', async () => {
     mockGetDocs.mockResolvedValue(makeSnapshot([]))
 
-    await migrateGuestBookings('uid-123', 'user@example.com')
+    await migrateGuestBookings('uid-123', 'user@example.com', 'Test User')
 
     expect(mockCommit).not.toHaveBeenCalled()
   })
 
-  it('matching guest bookings — both updated with type member and ownerUid', async () => {
+  it('matching guest bookings — both updated with type member, ownerUid and ownerDisplayName', async () => {
     const ref1 = { id: 'doc1' }
     const ref2 = { id: 'doc2' }
     mockGetDocs.mockResolvedValue(
@@ -66,16 +66,18 @@ describe('migrateGuestBookings', () => {
       ])
     )
 
-    await migrateGuestBookings('uid-abc', 'member@example.com')
+    await migrateGuestBookings('uid-abc', 'member@example.com', 'Member Name')
 
     expect(mockUpdate).toHaveBeenCalledTimes(2)
     expect(mockUpdate).toHaveBeenCalledWith(ref1, {
       type: 'member',
       ownerUid: 'uid-abc',
+      ownerDisplayName: 'Member Name',
     })
     expect(mockUpdate).toHaveBeenCalledWith(ref2, {
       type: 'member',
       ownerUid: 'uid-abc',
+      ownerDisplayName: 'Member Name',
     })
     expect(mockCommit).toHaveBeenCalledTimes(1)
   })
@@ -83,7 +85,11 @@ describe('migrateGuestBookings', () => {
   it('query uses correct where clauses for type and email', async () => {
     mockGetDocs.mockResolvedValue(makeSnapshot([]))
 
-    await migrateGuestBookings('uid-xyz', 'specific@example.com')
+    await migrateGuestBookings(
+      'uid-xyz',
+      'specific@example.com',
+      'Specific User'
+    )
 
     expect(mockWhere).toHaveBeenCalledWith('type', '==', 'guest')
     expect(mockWhere).toHaveBeenCalledWith(
@@ -97,7 +103,7 @@ describe('migrateGuestBookings', () => {
     mockGetDocs.mockRejectedValue(new Error('Firestore unavailable'))
 
     await expect(
-      migrateGuestBookings('uid-err', 'err@example.com')
+      migrateGuestBookings('uid-err', 'err@example.com', 'Err User')
     ).resolves.toBeUndefined()
   })
 })
