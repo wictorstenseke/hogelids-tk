@@ -2,12 +2,13 @@
  * Backfills ownerDisplayName on member bookings that were migrated from guest
  * bookings before the migration started copying the display name.
  *
- * A guest booking stores the email in ownerDisplayName. The old
- * migrateGuestBookings() set type=member + ownerUid but left ownerDisplayName as
- * the email, so the booking list kept showing the email instead of the member's
- * name. This script finds those stale rows (ownerDisplayName === ownerEmail and
- * a linked ownerUid) and replaces ownerDisplayName with the live profile name
- * from users/{ownerUid}.
+ * Two kinds of stale rows are repaired, both on member bookings with a linked
+ * ownerUid:
+ *   1. guest->member migrations that kept the email in ownerDisplayName
+ *      (ownerDisplayName === ownerEmail)
+ *   2. legacy-imported bookings with a blank ownerDisplayName ('')
+ * For both, ownerDisplayName is replaced with the live profile name from
+ * users/{ownerUid}.
  *
  * Auth: requires GOOGLE_APPLICATION_CREDENTIALS env pointing at a service
  * account JSON, OR `gcloud auth application-default login`.
@@ -54,8 +55,9 @@ async function main() {
     `[backfill] project ${PROJECT_ID} — ${APPLY ? 'APPLY (writing)' : 'DRY RUN (no writes)'}`
   )
 
-  // Stale rows: migrated member bookings whose ownerUid is set. We filter
-  // ownerDisplayName === ownerEmail in memory (Firestore can't compare fields).
+  // Stale rows: member bookings whose ownerUid is set but ownerDisplayName is
+  // broken (equals the email, or blank). We filter in memory because Firestore
+  // can't compare two fields against each other.
   const snapshot = await db
     .collection('bookings')
     .where('type', '==', 'member')
@@ -87,8 +89,13 @@ async function main() {
     const ownerDisplayName =
       (data['ownerDisplayName'] as string | undefined) ?? ''
 
-    // Stale signature: name still equals the email and there is a linked account
-    if (!ownerUid || ownerDisplayName !== ownerEmail || ownerEmail === '') {
+    // Stale signature: linked account, but the name is either the email
+    // (guest->member migration) or blank (legacy import).
+    const isStale =
+      ownerUid !== null &&
+      (ownerDisplayName === '' ||
+        (ownerEmail !== '' && ownerDisplayName === ownerEmail))
+    if (!isStale) {
       continue
     }
     stale += 1
@@ -102,7 +109,10 @@ async function main() {
       continue
     }
 
-    console.log(`[backfill]  FIX  ${docSnap.id} — "${ownerEmail}" -> "${name}"`)
+    const oldLabel = ownerDisplayName === '' ? '(blank)' : ownerDisplayName
+    console.log(
+      `[backfill]  FIX  ${docSnap.id} — ${oldLabel} -> "${name}" (${ownerEmail})`
+    )
     fixed += 1
     if (APPLY) {
       batch.update(docSnap.ref, { ownerDisplayName: name })
