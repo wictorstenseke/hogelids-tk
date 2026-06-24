@@ -46,7 +46,7 @@ export async function signUp(
     createdAt: Timestamp.now(),
     role: 'user' as UserRole,
   } satisfies Omit<UserProfile, 'uid'>)
-  await migrateGuestBookings(user.uid, email)
+  await migrateGuestBookings(user.uid, email, displayName)
   return user.uid
 }
 
@@ -56,7 +56,11 @@ export async function signIn(email: string, password: string): Promise<string> {
   const credential = await signInWithEmailAndPassword(auth, email, password)
   const guestEmail = GuestSession.getEmail()
   if (guestEmail?.toLowerCase() === email.toLowerCase()) {
-    await migrateGuestBookings(credential.user.uid, email)
+    await migrateGuestBookings(
+      credential.user.uid,
+      email,
+      credential.user.displayName ?? email
+    )
   }
   return credential.user.uid
 }

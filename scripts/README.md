@@ -27,3 +27,34 @@ Then commit `public/history-archive.json`.
 ```bash
 FIREBASE_PROJECT_ID=hogelids-tk-dev npm run archive:build
 ```
+
+## backfill:names
+
+One-off repair for member bookings that were migrated from guest bookings
+before `migrateGuestBookings()` started copying the display name. Those rows
+have `ownerDisplayName === ownerEmail`, so the booking list shows the email
+instead of the member's name. This script finds them (linked `ownerUid` +
+`ownerDisplayName === ownerEmail`) and sets `ownerDisplayName` to the live
+`users/{ownerUid}.displayName`.
+
+**When to run:** once per project after deploying the migration fix. New
+sign-ups/sign-ins are handled by the code fix; this only repairs existing rows.
+
+**Auth:** same as `archive:build` (`GOOGLE_APPLICATION_CREDENTIALS` or
+`gcloud auth application-default login`).
+
+**Dry run first (default — no writes):**
+
+```bash
+npm run backfill:names                          # prod
+FIREBASE_PROJECT_ID=hogelids-tk-dev npm run backfill:names   # dev
+```
+
+**Apply:**
+
+```bash
+npm run backfill:names -- --apply               # prod
+FIREBASE_PROJECT_ID=hogelids-tk-dev npm run backfill:names -- --apply   # dev
+```
+
+Run for **both** `hogelids-tk-dev` and `hogelids-tk-prod`.
