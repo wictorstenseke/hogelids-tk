@@ -74,6 +74,10 @@ async function main() {
       base.playerAName = data['playerAName'] as string
       base.playerBName = data['playerBName'] as string
     }
+    if (data['opponentUid']) {
+      base.opponentUid = data['opponentUid'] as string
+      base.opponentDisplayName = data['opponentDisplayName'] as string
+    }
     return base
   })
 
