@@ -33,6 +33,12 @@ function mkBooking(
           playerBName: overrides.playerBName,
         }
       : {}),
+    ...(overrides.opponentUid
+      ? {
+          opponentUid: overrides.opponentUid,
+          opponentDisplayName: overrides.opponentDisplayName,
+        }
+      : {}),
   }
 }
 
@@ -100,6 +106,22 @@ describe('buildArchive', () => {
     expect(archived.playerAName).toBe('Alice')
   })
 
+  it('preserves optional opponent fields when present', () => {
+    const bookings: BookingWithId[] = [
+      mkBooking({
+        id: 'o',
+        endTime: new Date('2026-06-01T10:00:00Z'),
+        ownerDisplayName: 'Anna',
+        opponentUid: 'uid-erik',
+        opponentDisplayName: 'Erik',
+      }),
+    ]
+    const archive = buildArchive(bookings, 2027)
+    const archived = archive.bookings[0]
+    expect(archived.opponentUid).toBe('uid-erik')
+    expect(archived.opponentDisplayName).toBe('Erik')
+  })
+
   it('stamps version + generatedAt', () => {
     const before = Date.now()
     const archive = buildArchive([], 2026)
@@ -124,6 +146,22 @@ describe('archivedToBooking', () => {
     expect(restored.ownerDisplayName).toBe('Gäst')
     expect(restored.endTime.toMillis()).toBe(original.endTime.toMillis())
     expect(restored.endTime).toBeInstanceOf(Timestamp)
+  })
+})
+
+describe('archivedToBooking opponent', () => {
+  it('round-trips opponent fields so historik renders "A vs B"', () => {
+    const original: BookingWithId = mkBooking({
+      id: 'ro',
+      endTime: new Date('2026-06-01T10:00:00Z'),
+      ownerDisplayName: 'Anna',
+      opponentUid: 'uid-erik',
+      opponentDisplayName: 'Erik',
+    })
+    const archive = buildArchive([original], 2027)
+    const restored = archivedToBooking(archive.bookings[0])
+    expect(restored.opponentUid).toBe('uid-erik')
+    expect(restored.opponentDisplayName).toBe('Erik')
   })
 })
 
